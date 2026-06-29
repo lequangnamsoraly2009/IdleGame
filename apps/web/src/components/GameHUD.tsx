@@ -31,7 +31,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     monsterMaxHp,
     monsterRage,
     combatLogs,
-    onStageChange,
     changeHeroClass,
     battleMode,
     exitGuildRaid,
@@ -48,7 +47,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
   if (!saveData) return null;
 
-  const { hero, activeStage, stagesCleared, currentWave, autoAdvance } = saveData;
+  const { hero, activeStage, currentWave, autoAdvance } = saveData;
 
   // Filter combat logs
   const filteredLogs = combatLogs.filter(log => {
@@ -217,97 +216,83 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
         {/* COLUMN 2 & 3: Game Scene Screen & Life indicators */}
         <section className="lg:col-span-2 flex flex-col gap-2 sm:gap-3 overflow-hidden">
           
-          {/* Stage & Wave Selector (Centered row below header) */}
-          <div className="flex flex-col items-center gap-2 shrink-0">
-            {/* Stage Selector Row */}
-            <div className="flex justify-center">
-              <div className="flex items-center bg-slate-950/70 border border-slate-850/80 rounded-xl px-2 py-1.5 sm:px-4 sm:py-1.5 shadow-inner">
-                <button
-                  onClick={() => onStageChange(Math.max(1, activeStage - 1))}
-                  disabled={activeStage <= 1}
-                  className="text-xs sm:text-base font-bold text-slate-500 hover:text-white px-2 py-0.5 cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
-                >
-                  ◀
-                </button>
-                
-                <div className="text-center px-4 min-w-[90px] sm:min-w-[120px]">
-                  <span className="block text-[6px] sm:text-[8px] text-slate-500 font-extrabold uppercase tracking-wider">{t('battle_stage')}</span>
-                  <span className="text-[10px] sm:text-xs font-bold text-blue-400">{t('stage')} {activeStage}</span>
-                </div>
-
-                <button
-                  onClick={() => onStageChange(activeStage + 1)}
-                  disabled={activeStage > stagesCleared}
-                  className="text-xs sm:text-base font-bold text-slate-500 hover:text-white px-2 py-0.5 cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
-                  title={activeStage > stagesCleared ? t('clear_stage_first') : ''}
-                >
-                  ▶
-                </button>
+          {/* Stage & Wave Panel (Single row below header) */}
+          <div className="flex justify-center shrink-0">
+            <div className="flex items-center gap-2 bg-slate-950/70 border border-slate-850/80 rounded-xl px-3 py-1.5 text-xs shadow-inner">
+              {/* Active Stage Name */}
+              <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1">
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">{t('stage')}:</span>
+                <span className="text-xs font-black text-blue-400">{activeStage}</span>
               </div>
+
+              <div className="w-[1px] h-3.5 bg-slate-850" />
+
+              {/* Wave Progress & Controls */}
+              {battleMode === 'stage' ? (
+                <>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-slate-300">
+                      Wave {(currentWave || 1) <= 20 ? (currentWave || 1) : 20}/20
+                    </span>
+                    {/* Wave Type Badge */}
+                    {(() => {
+                      const waveNum = currentWave || 1;
+                      if (waveNum === 20) {
+                        return (
+                          <span className="px-1.5 py-0.5 text-[8px] font-black uppercase bg-red-950/80 border border-red-800 text-red-400 rounded animate-pulse shadow-md">
+                            Boss
+                          </span>
+                        );
+                      } else if (waveNum === 5 || waveNum === 10 || waveNum === 15) {
+                        return (
+                          <span className="px-1.5 py-0.5 text-[8px] font-extrabold uppercase bg-amber-950/80 border border-amber-800 text-amber-400 rounded shadow-md">
+                            Mini-Boss
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="px-1.5 py-0.5 text-[8px] font-semibold uppercase bg-slate-900 border border-slate-800 text-slate-400 rounded">
+                          {language === 'vi' ? 'Farm' : 'Farming'}
+                        </span>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="w-[1px] h-3.5 bg-slate-850" />
+
+                  {/* Auto Advance Toggle Button */}
+                  <button
+                    onClick={() => toggleAutoAdvance()}
+                    className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-lg border transition active:scale-95 cursor-pointer ${
+                      autoAdvance !== false
+                        ? 'bg-emerald-950/60 border-emerald-500/60 text-emerald-400 hover:bg-emerald-900/80 hover:border-emerald-400'
+                        : 'bg-slate-900/60 border-slate-750 text-slate-400 hover:bg-slate-800 hover:border-slate-600'
+                    }`}
+                  >
+                    {autoAdvance !== false 
+                      ? (language === 'vi' ? '🔄 Tự Vượt Ải' : '🔄 Auto') 
+                      : (language === 'vi' ? '⏹️ Tự Vượt Ải: Tắt' : '⏹️ Auto: Off')}
+                  </button>
+
+                  {/* Manual Challenge Boss Button (only when auto-advance is disabled and wave is not boss yet) */}
+                  {autoAdvance === false && (currentWave || 1) < 20 && (
+                    <>
+                      <div className="w-[1px] h-3.5 bg-slate-850" />
+                      <button
+                        onClick={() => challengeBoss()}
+                        className="px-2.5 py-1 text-[10px] font-extrabold uppercase bg-red-950/60 border border-red-500/60 text-red-400 hover:bg-red-900 hover:border-red-400 rounded-lg animate-pulse transition active:scale-95 cursor-pointer"
+                      >
+                        {language === 'vi' ? '👿 Đấu Boss' : '👿 Fight Boss'}
+                      </button>
+                    </>
+                  )}
+                </>
+              ) : (
+                <span className="font-extrabold text-red-400 animate-pulse uppercase tracking-wider">
+                  {language === 'vi' ? '🔥 BOSS BANG HỘI' : '🔥 GUILD RAID'}
+                </span>
+              )}
             </div>
-
-            {/* Wave Progress & Controls */}
-            {battleMode === 'stage' && (
-              <div className="flex items-center gap-2 bg-slate-950/60 border border-slate-850/50 rounded-xl px-3 py-1.5 text-xs shadow-inner">
-                {/* Wave Counter and Labels */}
-                <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-slate-300">
-                    Wave {(currentWave || 1) <= 20 ? (currentWave || 1) : 20}/20
-                  </span>
-                  {/* Wave Type Badge */}
-                  {(() => {
-                    const waveNum = currentWave || 1;
-                    if (waveNum === 20) {
-                      return (
-                        <span className="px-1.5 py-0.5 text-[8px] font-black uppercase bg-red-950/80 border border-red-800 text-red-400 rounded animate-pulse shadow-md">
-                          {language === 'vi' ? 'Boss Ải' : 'Stage Boss'}
-                        </span>
-                      );
-                    } else if (waveNum === 5 || waveNum === 10 || waveNum === 15) {
-                      return (
-                        <span className="px-1.5 py-0.5 text-[8px] font-extrabold uppercase bg-amber-950/80 border border-amber-800 text-amber-400 rounded shadow-md">
-                          Mini-Boss
-                        </span>
-                      );
-                    }
-                    return (
-                      <span className="px-1.5 py-0.5 text-[8px] font-semibold uppercase bg-slate-900 border border-slate-800 text-slate-400 rounded">
-                        {language === 'vi' ? 'Farm' : 'Farming'}
-                      </span>
-                    );
-                  })()}
-                </div>
-
-                <div className="w-[1px] h-3.5 bg-slate-850" />
-
-                {/* Auto Advance Toggle Button */}
-                <button
-                  onClick={() => toggleAutoAdvance()}
-                  className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-lg border transition active:scale-95 cursor-pointer ${
-                    autoAdvance !== false
-                      ? 'bg-emerald-950/60 border-emerald-500/60 text-emerald-400 hover:bg-emerald-900/80 hover:border-emerald-400'
-                      : 'bg-slate-900/60 border-slate-750 text-slate-400 hover:bg-slate-800 hover:border-slate-600'
-                  }`}
-                >
-                  {autoAdvance !== false 
-                    ? (language === 'vi' ? '🔄 Tự Vượt Ải: Bật' : '🔄 Auto-Advance: On') 
-                    : (language === 'vi' ? '⏹️ Tự Vượt Ải: Tắt' : '⏹️ Auto-Advance: Off')}
-                </button>
-
-                {/* Manual Challenge Boss Button (only when auto-advance is disabled and wave is not boss yet) */}
-                {autoAdvance === false && (currentWave || 1) < 20 && (
-                  <>
-                    <div className="w-[1px] h-3.5 bg-slate-850" />
-                    <button
-                      onClick={() => challengeBoss()}
-                      className="px-2.5 py-1 text-[10px] font-extrabold uppercase bg-red-950/60 border border-red-500/60 text-red-400 hover:bg-red-900 hover:border-red-400 rounded-lg animate-pulse transition active:scale-95 cursor-pointer"
-                    >
-                      {language === 'vi' ? '👿 Đấu Boss' : '👿 Fight Boss'}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
           </div>
           
           {/* Pixi Canvas Viewport Container */}
