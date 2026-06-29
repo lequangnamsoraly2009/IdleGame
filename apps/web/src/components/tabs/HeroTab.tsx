@@ -55,14 +55,14 @@ export const HeroTab: React.FC = () => {
   const classDetails = getHeroClassDetails();
 
   const statItems = [
-    { label: language === 'vi' ? 'Lớp Nhân Vật' : 'Class', value: language === 'vi' ? classDetails.titleVi : classDetails.titleEn, desc: classDetails.description, icon: classDetails.icon },
-    { label: language === 'vi' ? 'Cấp Độ' : 'Level', value: `Lv.${hero.level}`, desc: `${language === 'vi' ? 'Cấp độ hiện tại' : 'Current level'}`, icon: '🌟' },
-    { label: t('max_health'), value: hero.currentStats.maxHp, desc: `${t('stat_base')}: ${hero.baseStats.maxHp}`, icon: '💖' },
-    { label: t('attack_power'), value: hero.currentStats.attack, desc: `${t('stat_base')}: ${hero.baseStats.attack}`, icon: '⚔️' },
-    { label: t('defense_rating'), value: hero.currentStats.defense, desc: `${t('stat_base')}: ${hero.baseStats.defense}`, icon: '🛡️' },
-    { label: t('attack_speed'), value: `${hero.currentStats.speed}%`, desc: `${t('stat_base')}: 100%`, icon: '⚡' },
-    { label: t('critical_rate'), value: `${Math.round(hero.currentStats.critRate * 100)}%`, desc: `${t('stat_cap')}: 85%`, icon: '🎯' },
-    { label: t('critical_damage'), value: `${Math.round(hero.currentStats.critDamage * 100)}%`, desc: `${t('stat_base')}: 150%`, icon: '💥' },
+    { label: language === 'vi' ? '🔮 Lớp Nhân Vật' : '🔮 Class', value: language === 'vi' ? classDetails.titleVi : classDetails.titleEn, desc: classDetails.description },
+    { label: language === 'vi' ? '🌟 Cấp Độ' : '🌟 Level', value: `Lv.${hero.level}`, desc: `${language === 'vi' ? 'Cấp độ hiện tại' : 'Current level'}` },
+    { label: t('max_health'), value: hero.currentStats.maxHp, desc: `${t('stat_base')}: ${hero.baseStats.maxHp}` },
+    { label: t('attack_power'), value: hero.currentStats.attack, desc: `${t('stat_base')}: ${hero.baseStats.attack}` },
+    { label: t('defense_rating'), value: hero.currentStats.defense, desc: `${t('stat_base')}: ${hero.baseStats.defense}` },
+    { label: t('attack_speed'), value: `${hero.currentStats.speed}%`, desc: `${t('stat_base')}: 100%` },
+    { label: t('critical_rate'), value: `${Math.round(hero.currentStats.critRate * 100)}%`, desc: `${t('stat_cap')}: 85%` },
+    { label: t('critical_damage'), value: `${Math.round(hero.currentStats.critDamage * 100)}%`, desc: `${t('stat_base')}: 150%` },
   ];
 
   const renderCharacterSVG = (heroClass: string) => {
@@ -275,7 +275,7 @@ export const HeroTab: React.FC = () => {
                     <div key={i} className="bg-slate-950/40 border border-slate-900/60 rounded-xl p-2.5 flex justify-between items-center gap-2">
                       <div className="flex-1 min-w-0 pr-1">
                         <span className="block text-[8.5px] text-slate-450 font-bold uppercase tracking-wider truncate">
-                          {stat.icon} {stat.label}
+                          {stat.label}
                         </span>
                         <span className="block text-[8px] text-slate-500 font-semibold mt-0.5 leading-tight">
                           {stat.desc}
