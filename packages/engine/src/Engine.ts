@@ -84,16 +84,24 @@ export class GameEngine {
 
     // Create PixiJS Application
     this.app = new Application();
-    await this.app.init({
-      resizeTo: canvasContainer,
-      backgroundAlpha: 0, // transparent to let CSS gradient show through
-      resolution: window.devicePixelRatio || 1,
-      autoDensity: true
-    });
+    
+    try {
+      await this.app.init({
+        resizeTo: canvasContainer,
+        backgroundAlpha: 0, // transparent to let CSS gradient show through
+        resolution: window.devicePixelRatio || 1,
+        autoDensity: true
+      });
+    } catch (err) {
+      this.app = null;
+      throw err;
+    }
 
     if (this.isDestroyed) {
       try {
-        this.app.destroy({ removeView: true });
+        if (this.app && this.app.renderer) {
+          this.app.destroy({ removeView: true });
+        }
       } catch (e) {}
       this.app = null;
       return;
@@ -1122,11 +1130,10 @@ export class GameEngine {
     // Destroy Pixi app safely
     if (this.app) {
       try {
-        // Prevent PixiJS v8 _cancelResize type errors during hot reloading / unmounting
-        if (typeof (this.app as any)._cancelResize !== 'function') {
-          (this.app as any)._cancelResize = () => {};
+        // Only call destroy if renderer is fully initialized to avoid partial-state resize errors
+        if (this.app.renderer) {
+          this.app.destroy({ removeView: true });
         }
-        this.app.destroy({ removeView: true });
       } catch (err) {
         console.warn("Failed to destroy PixiJS App safely:", err);
       }
@@ -1134,6 +1141,7 @@ export class GameEngine {
     }
     if (this.container) {
       this.container.innerHTML = '';
+      this.container = null;
     }
   }
 }
