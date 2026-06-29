@@ -34,3 +34,6 @@ out/
 # system files
 .DS_Store
 Thumbs.db
+
+# firebase config
+firebase/
