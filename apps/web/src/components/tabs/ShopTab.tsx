@@ -57,19 +57,36 @@ export const ShopTab: React.FC = () => {
         {([
           { id: 'shop', label: language === 'vi' ? '💰 Cửa Hàng' : '💰 Shop' },
           { id: 'summon', label: language === 'vi' ? '🎁 Triệu Hồi' : '🎁 Summon' }
-        ] as const).map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setSubTab(tab.id)}
-            className={`text-[10px] sm:text-xs font-bold py-2 px-4 rounded-lg cursor-pointer transition active:scale-95 ${
-              subTab === tab.id
-                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/10'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        ] as const).map(tab => {
+          const isSummonLocked = tab.id === 'summon' && hero.level < 7;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                if (isSummonLocked) {
+                  addLogMessage(
+                    language === 'vi' 
+                      ? '🔒 Tính năng khóa! Đạt cấp 7 để mở khóa Triệu Hồi.' 
+                      : '🔒 Feature locked! Reach level 7 to unlock Summon.', 
+                    'system'
+                  );
+                  return;
+                }
+                setSubTab(tab.id);
+              }}
+              className={`text-[10px] sm:text-xs font-bold py-2 px-4 rounded-lg cursor-pointer transition active:scale-95 ${
+                subTab === tab.id
+                  ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/10'
+                  : isSummonLocked
+                  ? 'text-slate-650 opacity-40 cursor-not-allowed'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+              }`}
+              title={isSummonLocked ? (language === 'vi' ? 'Khóa đến cấp 7' : 'Locked until level 7') : ''}
+            >
+              {isSummonLocked ? '🔒 Triệu Hồi' : tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Sub tab content */}

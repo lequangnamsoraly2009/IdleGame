@@ -13,6 +13,13 @@ import { useLanguageStore } from '../stores/languageStore';
 import { ItemInfoModal } from './ItemInfoModal';
 import { calculateHeroCP } from '@idle-rpg/shared';
 
+const LEVEL_LOCKS = {
+  hero: 1,
+  quest: 3,
+  shop: 5,
+  guild: 10
+} as const;
+
 interface GameHUDProps {
   onNavigate: (to: string) => void;
 }
@@ -43,6 +50,17 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
   const [logFilter, setLogFilter] = useState<'all' | 'combat' | 'loot'>('all');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
+
+  // Redirect to 'hero' tab if the currently active tab is locked (e.g. after prestige)
+  React.useEffect(() => {
+    if (saveData) {
+      const currentLevel = saveData.hero.level || 1;
+      const tabKey = activeTab as keyof typeof LEVEL_LOCKS;
+      if (LEVEL_LOCKS[tabKey] && currentLevel < LEVEL_LOCKS[tabKey]) {
+        setActiveTab('hero');
+      }
+    }
+  }, [saveData?.hero?.level, activeTab, setActiveTab]);
 
   if (!saveData) return null;
 
@@ -443,19 +461,37 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
         {/* Navigation Tabs Bar */}
         <nav className="flex justify-between items-center border-b border-slate-850 pb-2 mb-4 gap-2 overflow-hidden shrink-0">
           <div className="flex gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none shrink-0 snap-x snap-mandatory">
-            {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`shrink-0 snap-start px-4 py-2 text-xs font-extrabold uppercase rounded-xl border tracking-wider transition-all duration-150 cursor-pointer ${
-                  activeTab === tab
-                    ? 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white shadow shadow-blue-500/20'
-                    : 'bg-slate-950/60 hover:bg-slate-900 border-slate-850 text-slate-400 hover:text-white'
-                }`}
-              >
-                {tab === 'hero' ? t('tab_hero') : tab === 'quest' ? t('tab_quest') : tab === 'guild' ? t('tab_guild') : t('tab_shop')}
-              </button>
-            ))}
+            {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => {
+              const locked = hero.level < LEVEL_LOCKS[tab];
+              return (
+                <button
+                  key={tab}
+                  onClick={() => {
+                    if (locked) {
+                      useGameStore.getState().addLogMessage(
+                        language === 'vi' 
+                          ? `🔒 Tính năng khóa! Đạt cấp ${LEVEL_LOCKS[tab]} để mở khóa.` 
+                          : `🔒 Feature locked! Reach level ${LEVEL_LOCKS[tab]} to unlock.`, 
+                        'system'
+                      );
+                      return;
+                    }
+                    setActiveTab(tab);
+                  }}
+                  className={`shrink-0 snap-start px-4 py-2 text-xs font-extrabold uppercase rounded-xl border tracking-wider transition-all duration-150 cursor-pointer ${
+                    activeTab === tab
+                      ? 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white shadow shadow-blue-500/20'
+                      : locked
+                      ? 'bg-slate-950/20 border-slate-900 text-slate-650 opacity-40 cursor-not-allowed'
+                      : 'bg-slate-950/60 hover:bg-slate-900 border-slate-850 text-slate-400 hover:text-white'
+                  }`}
+                  title={locked ? (language === 'vi' ? `Khóa đến cấp ${LEVEL_LOCKS[tab]}` : `Locked until level ${LEVEL_LOCKS[tab]}`) : ''}
+                >
+                  {locked ? '🔒 ' : ''}
+                  {tab === 'hero' ? t('tab_hero') : tab === 'quest' ? t('tab_quest') : tab === 'guild' ? t('tab_guild') : t('tab_shop')}
+                </button>
+              );
+            })}
           </div>
           
           <div className="hidden md:block text-[10px] text-slate-500 font-bold uppercase tracking-widest shrink-0">
@@ -471,22 +507,36 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
       {/* MOBILE BOTTOM STICKY NAVIGATION BAR (Hidden on desktop) */}
       <nav className="lg:hidden glass-panel rounded-2xl p-1.5 flex justify-around items-center shrink-0 z-20 border-slate-800 shadow-xl select-none mb-1">
-        {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => {
-              setActiveTab(tab);
-              setIsMobilePanelOpen(true);
-            }}
-            className={`flex-1 flex justify-center py-2 text-2xl transition cursor-pointer active:scale-90 ${
-              activeTab === tab && isMobilePanelOpen
-                ? 'text-blue-400 scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
-                : 'text-slate-500 opacity-60 grayscale'
-            }`}
-          >
-            {getTabIconOnly(tab)}
-          </button>
-        ))}
+        {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => {
+          const locked = hero.level < LEVEL_LOCKS[tab];
+          return (
+            <button
+              key={tab}
+              onClick={() => {
+                if (locked) {
+                  useGameStore.getState().addLogMessage(
+                    language === 'vi' 
+                      ? `🔒 Tính năng khóa! Đạt cấp ${LEVEL_LOCKS[tab]} để mở khóa.` 
+                      : `🔒 Feature locked! Reach level ${LEVEL_LOCKS[tab]} to unlock.`, 
+                    'system'
+                  );
+                  return;
+                }
+                setActiveTab(tab);
+                setIsMobilePanelOpen(true);
+              }}
+              className={`flex-1 flex justify-center py-2 text-2xl transition cursor-pointer active:scale-90 ${
+                activeTab === tab && isMobilePanelOpen
+                  ? 'text-blue-400 scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+                  : locked
+                  ? 'text-slate-800 opacity-30 cursor-not-allowed'
+                  : 'text-slate-500 opacity-60 grayscale'
+              }`}
+            >
+              {locked ? '🔒' : getTabIconOnly(tab)}
+            </button>
+          );
+        })}
       </nav>
 
       {/* MOBILE FULL-SCREEN POPUP MODAL OVERLAY */}
@@ -519,19 +569,35 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
           {/* Switcher inside Modal */}
           <nav className="flex justify-around items-center border-t border-slate-850 pt-3 shrink-0 select-none">
-            {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 flex justify-center py-2 text-2xl transition cursor-pointer active:scale-90 ${
-                  activeTab === tab
-                    ? 'text-blue-400 scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
-                    : 'text-slate-500 opacity-60 grayscale'
-                }`}
-              >
-                {getTabIconOnly(tab)}
-              </button>
-            ))}
+            {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => {
+              const locked = hero.level < LEVEL_LOCKS[tab];
+              return (
+                <button
+                  key={tab}
+                  onClick={() => {
+                    if (locked) {
+                      useGameStore.getState().addLogMessage(
+                        language === 'vi' 
+                          ? `🔒 Tính năng khóa! Đạt cấp ${LEVEL_LOCKS[tab]} để mở khóa.` 
+                          : `🔒 Feature locked! Reach level ${LEVEL_LOCKS[tab]} to unlock.`, 
+                        'system'
+                      );
+                      return;
+                    }
+                    setActiveTab(tab);
+                  }}
+                  className={`flex-1 flex justify-center py-2 text-2xl transition cursor-pointer active:scale-90 ${
+                    activeTab === tab
+                      ? 'text-blue-400 scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+                      : locked
+                      ? 'text-slate-800 opacity-30 cursor-not-allowed'
+                      : 'text-slate-500 opacity-60 grayscale'
+                  }`}
+                >
+                  {locked ? '🔒' : getTabIconOnly(tab)}
+                </button>
+              );
+            })}
           </nav>
         </div>
       )}

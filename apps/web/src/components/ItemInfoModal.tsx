@@ -279,69 +279,78 @@ export const ItemInfoModal: React.FC = () => {
               <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2.5 border-b border-slate-900 pb-1">
                 💎 {language === 'vi' ? 'Ô KHẢM NGỌC' : 'GEMS/SOCKETS'} ({item.sockets.filter(Boolean).length} / {item.sockets.length})
               </span>
-              <div className="flex flex-col gap-3">
-                {item.sockets.map((gem, idx) => (
-                  <div key={idx} className="flex flex-col gap-1 w-full">
-                    <span className="text-[8px] text-slate-500 font-extrabold block">
-                      {language === 'vi' ? `Ô KHẢM #${idx + 1}:` : `SOCKET #${idx + 1}:`}
-                    </span>
-                    {gem ? (
-                      <div className="w-full flex items-center gap-2 p-1.5 rounded-lg bg-slate-950/80 border border-slate-900 shadow-inner">
-                        <span className="text-base">{gem === 'ruby' ? '🔴' : gem === 'emerald' ? '🟢' : '🟡'}</span>
-                        <div className="flex-1 text-[10px]">
-                          <span className="font-extrabold text-slate-200 block leading-tight">
-                            {gem === 'ruby' ? (language === 'vi' ? 'Hồng Ngọc (Ruby)' : 'Ruby') : gem === 'emerald' ? (language === 'vi' ? 'Phỉ Thúy (Emerald)' : 'Emerald') : (language === 'vi' ? 'Hoàng Ngọc (Topaz)' : 'Topaz')}
-                          </span>
-                          <span className="text-slate-400 font-medium text-[8px] mt-0.5 block">
-                            {gem === 'ruby' ? '+15 ATK' : gem === 'emerald' ? '+4% CRIT' : '+15% GOLD'}
-                          </span>
+              {hero.level < 15 ? (
+                <div className="flex flex-col items-center justify-center p-4 bg-slate-900/10 border border-dashed border-slate-800/60 rounded-lg select-none">
+                  <span className="text-base mb-1">🔒</span>
+                  <span className="text-[9px] font-extrabold uppercase text-slate-500 tracking-wider text-center">
+                    {language === 'vi' ? 'Khóa đến Cấp 15' : 'Locked until Level 15'}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {item.sockets.map((gem, idx) => (
+                    <div key={idx} className="flex flex-col gap-1 w-full">
+                      <span className="text-[8px] text-slate-500 font-extrabold block">
+                        {language === 'vi' ? `Ô KHẢM #${idx + 1}:` : `SOCKET #${idx + 1}:`}
+                      </span>
+                      {gem ? (
+                        <div className="w-full flex items-center gap-2 p-1.5 rounded-lg bg-slate-950/80 border border-slate-900 shadow-inner">
+                          <span className="text-base">{gem === 'ruby' ? '🔴' : gem === 'emerald' ? '🟢' : '🟡'}</span>
+                          <div className="flex-1 text-[10px]">
+                            <span className="font-extrabold text-slate-200 block leading-tight">
+                              {gem === 'ruby' ? (language === 'vi' ? 'Hồng Ngọc (Ruby)' : 'Ruby') : gem === 'emerald' ? (language === 'vi' ? 'Phỉ Thúy (Emerald)' : 'Emerald') : (language === 'vi' ? 'Hoàng Ngọc (Topaz)' : 'Topaz')}
+                            </span>
+                            <span className="text-slate-400 font-medium text-[8px] mt-0.5 block">
+                              {gem === 'ruby' ? '+15 ATK' : gem === 'emerald' ? '+4% CRIT' : '+15% GOLD'}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-1 w-full bg-slate-900/30 p-2 rounded-lg border border-slate-950">
-                        <span className="text-[8px] text-slate-450 font-bold uppercase tracking-wider block mb-0.5">
-                          {language === 'vi' ? 'Khảm ngọc (Phí: 100 Vàng 💰):' : 'Slot Gem (Fee: 100 Gold 💰):'}
-                        </span>
-                        <div className="flex flex-col gap-1">
-                          <button
-                            onClick={() => insertGem(item.id, 'ruby', idx)}
-                            disabled={hero.gold < 100}
-                            className="w-full flex items-center justify-between px-2 py-1 rounded bg-red-950/20 hover:bg-red-900/35 border border-red-500/20 text-[9px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-                          >
-                            <span className="flex items-center gap-1">
-                              <span>🔴</span>
-                              <span className="text-red-400">Ruby</span>
-                            </span>
-                            <span className="text-slate-350 font-mono">+15 ATK</span>
-                          </button>
-                          <button
-                            onClick={() => insertGem(item.id, 'emerald', idx)}
-                            disabled={hero.gold < 100}
-                            className="w-full flex items-center justify-between px-2 py-1 rounded bg-emerald-950/20 hover:bg-emerald-900/35 border border-emerald-550/20 text-[9px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-                          >
-                            <span className="flex items-center gap-1">
-                              <span>🟢</span>
-                              <span className="text-emerald-400">Emerald</span>
-                            </span>
-                            <span className="text-slate-350 font-mono">+4% CRIT</span>
-                          </button>
-                          <button
-                            onClick={() => insertGem(item.id, 'topaz', idx)}
-                            disabled={hero.gold < 100}
-                            className="w-full flex items-center justify-between px-2 py-1 rounded bg-amber-950/20 hover:bg-amber-900/35 border border-amber-500/20 text-[9px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-                          >
-                            <span className="flex items-center gap-1">
-                              <span>🟡</span>
-                              <span className="text-amber-400">Topaz</span>
-                            </span>
-                            <span className="text-slate-350 font-mono">+15% GOLD</span>
-                          </button>
+                      ) : (
+                        <div className="flex flex-col gap-1 w-full bg-slate-900/30 p-2 rounded-lg border border-slate-950">
+                          <span className="text-[8px] text-slate-450 font-bold uppercase tracking-wider block mb-0.5">
+                            {language === 'vi' ? 'Khảm ngọc (Phí: 100 Vàng 💰):' : 'Slot Gem (Fee: 100 Gold 💰):'}
+                          </span>
+                          <div className="flex flex-col gap-1">
+                            <button
+                              onClick={() => insertGem(item.id, 'ruby', idx)}
+                              disabled={hero.gold < 100}
+                              className="w-full flex items-center justify-between px-2 py-1 rounded bg-red-950/20 hover:bg-red-900/35 border border-red-500/20 text-[9px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                            >
+                              <span className="flex items-center gap-1">
+                                <span>🔴</span>
+                                <span className="text-red-400">Ruby</span>
+                              </span>
+                              <span className="text-slate-350 font-mono">+15 ATK</span>
+                            </button>
+                            <button
+                              onClick={() => insertGem(item.id, 'emerald', idx)}
+                              disabled={hero.gold < 100}
+                              className="w-full flex items-center justify-between px-2 py-1 rounded bg-emerald-950/20 hover:bg-emerald-900/35 border border-emerald-555/20 text-[9px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                            >
+                              <span className="flex items-center gap-1">
+                                <span>🟢</span>
+                                <span className="text-emerald-400">Emerald</span>
+                              </span>
+                              <span className="text-slate-350 font-mono">+4% CRIT</span>
+                            </button>
+                            <button
+                              onClick={() => insertGem(item.id, 'topaz', idx)}
+                              disabled={hero.gold < 100}
+                              className="w-full flex items-center justify-between px-2 py-1 rounded bg-amber-950/20 hover:bg-amber-900/35 border border-amber-500/20 text-[9px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                            >
+                              <span className="flex items-center gap-1">
+                                <span>🟡</span>
+                                <span className="text-amber-400">Topaz</span>
+                              </span>
+                              <span className="text-slate-350 font-mono">+15% GOLD</span>
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

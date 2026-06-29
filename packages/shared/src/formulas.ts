@@ -1,10 +1,10 @@
-import { 
-  ItemRarity, 
-  EquipmentSlot, 
-  BaseStats, 
-  EquipmentItem, 
-  ItemTemplate, 
-  MonsterTemplate, 
+import {
+  ItemRarity,
+  EquipmentSlot,
+  BaseStats,
+  EquipmentItem,
+  ItemTemplate,
+  MonsterTemplate,
   ItemAffix,
   MonsterRank,
   MonsterAffix
@@ -51,7 +51,7 @@ export function getRarityMultiplier(rarity: ItemRarity): number {
 // Calculate the item stats base + level upgrades
 export function calculateItemStats(slot: EquipmentSlot, rarity: ItemRarity, level: number): BaseStats {
   const mult = getRarityMultiplier(rarity) * (1 + (level - 1) * 0.1); // +10% per level
-  
+
   const base: BaseStats = {
     maxHp: 0,
     attack: 0,
@@ -282,7 +282,7 @@ const SUFFIXES = [
 // Generate a random item instance from template
 export function createItemInstance(template: ItemTemplate, level = 1): EquipmentItem {
   const stats = calculateItemStats(template.slot, template.rarity, level);
-  
+
   // Sockets roll
   let socketCount = 0;
   const socketRoll = Math.random();
@@ -336,7 +336,7 @@ export function createItemInstance(template: ItemTemplate, level = 1): Equipment
   // Keep track of rolled categories to avoid duplicates
   let rolledPrefix = false;
   let rolledSuffix = false;
-  
+
   for (let i = 0; i < affixCount; i++) {
     // 50% chance to roll prefix or suffix
     if (Math.random() < 0.5 && !rolledPrefix || rolledSuffix && !rolledPrefix) {
@@ -370,11 +370,11 @@ export function createItemInstance(template: ItemTemplate, level = 1): Equipment
   // Name construction
   const prefixObj = affixes.find(a => a.type === 'prefix');
   const suffixObj = affixes.find(a => a.type === 'suffix');
-  
+
   let finalName = template.name;
   if (prefixObj) finalName = `${prefixObj.name} ${finalName}`;
   if (suffixObj) finalName = `${finalName} ${suffixObj.name}`;
-  
+
   if (isCorrupted) finalName = `[CORRUPTED] ${finalName}`;
   if (isCursed) finalName = `${finalName} [Cursed]`;
 
@@ -512,8 +512,8 @@ export const DEFAULT_ITEM_TEMPLATES: ItemTemplate[] = [
 ];
 
 export function generateMonsterForStage(
-  stage: number, 
-  _heroLevel: number = 1, 
+  stage: number,
+  _heroLevel: number = 1,
   monsterResearch?: Record<string, { level: number; exp: number; kills: number }>,
   wave: number = 1
 ): MonsterTemplate {
@@ -524,7 +524,7 @@ export function generateMonsterForStage(
 
   // 2. Extinction / Ecology weights
   // Get all active candidates for this stage
-  let candidates = MONSTER_SPECIES_DATABASE.filter(s => 
+  let candidates = MONSTER_SPECIES_DATABASE.filter(s =>
     stage >= s.spawnMinStage && stage <= s.spawnMaxStage && s.id !== 's_ancient_slime_god'
   );
 
@@ -550,7 +550,7 @@ export function generateMonsterForStage(
     const kills = monsterResearch?.[c.id]?.kills || 0;
     // Reduce weight if kills are high (min weight factor 0.1)
     const ecologyWeight = 1 / (1 + kills / 300);
-    
+
     // Time/Weather bonuses
     let weatherBonus = 1.0;
     if (c.category === 'mystery') {
@@ -739,11 +739,11 @@ export function calculateItemCP(item: EquipmentItem): number {
 
   // base stats CP
   let cp = (stats.attack || 0) * 6.0 +
-           (stats.maxHp || 0) * 0.5 +
-           (stats.defense || 0) * 4.0 +
-           (stats.speed || 0) * 5.0 +
-           (stats.critRate || 0) * 100 * 15.0 +
-           ((stats.critDamage || 1.5) - 1.5) * 100 * 8.0;
+    (stats.maxHp || 0) * 0.5 +
+    (stats.defense || 0) * 4.0 +
+    (stats.speed || 0) * 5.0 +
+    (stats.critRate || 0) * 100 * 15.0 +
+    ((stats.critDamage || 1.5) - 1.5) * 100 * 8.0;
 
   // rarity bonus
   const rarityBonuses: Record<string, number> = {
@@ -774,11 +774,11 @@ export function calculateHeroCP(
 
   // Calculate basic CP based on final stats
   let cp = stats.attack * 6.0 +
-           stats.maxHp * 0.5 +
-           stats.defense * 4.0 +
-           stats.speed * 5.0 +
-           stats.critRate * 100 * 15.0 +
-           (stats.critDamage - 1.5) * 100 * 8.0;
+    stats.maxHp * 0.5 +
+    stats.defense * 4.0 +
+    stats.speed * 5.0 +
+    stats.critRate * 100 * 15.0 +
+    (stats.critDamage - 1.5) * 100 * 8.0;
 
   // Add equipped items CP
   const items = equippedItems || [];
@@ -795,10 +795,10 @@ export function calculateMonsterCP(monster: { baseStats: BaseStats; level: numbe
   if (!monster || !monster.baseStats) return 0;
   const stats = monster.baseStats;
   let cp = (stats.attack || 0) * 6.0 +
-           (stats.maxHp || 0) * 0.5 +
-           (stats.defense || 0) * 4.0 +
-           (stats.speed || 0) * 5.0 +
-           (stats.critRate || 0) * 100 * 15.0 +
-           ((stats.critDamage || 1.5) - 1.5) * 100 * 8.0;
+    (stats.maxHp || 0) * 0.5 +
+    (stats.defense || 0) * 4.0 +
+    (stats.speed || 0) * 5.0 +
+    (stats.critRate || 0) * 100 * 15.0 +
+    ((stats.critDamage || 1.5) - 1.5) * 100 * 8.0;
   return Math.round(cp);
 }
