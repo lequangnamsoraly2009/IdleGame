@@ -2,19 +2,12 @@ import React, { useState } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { EquipmentItem, getFinalItemStats } from '@idle-rpg/shared';
 import { useTranslation, getTranslatedItemName } from '../../utils/i18n';
+import { useLanguageStore } from '../../stores/languageStore';
 import { ItemGraphic } from '../ItemGraphic';
 
 export const BagTab: React.FC = () => {
-  const { 
-    saveData, 
-    equipEquipment, 
-    unequipEquipment, 
-    upgradeEquipment, 
-    sellEquipment, 
-    sellMultipleEquipment,
-    identifyEquipment, 
-    insertGem 
-  } = useGameStore();
+  const { saveData, equipEquipment, unequipEquipment, upgradeEquipment, sellEquipment, sellMultipleEquipment, identifyEquipment, insertGem } = useGameStore();
+  const { language } = useLanguageStore();
   const { t } = useTranslation();
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
@@ -396,6 +389,17 @@ export const BagTab: React.FC = () => {
                 <span className="text-xs opacity-80">+{selectedItem.level}</span>
               </h4>
 
+              {/* Class Restriction */}
+              {selectedItem.allowedClass && (
+                <div className="mt-1 mb-3 text-[10px] font-bold">
+                  <span className="text-slate-400">Yêu cầu Lớp: </span>
+                  <span className={hero.heroClass === selectedItem.allowedClass ? "text-emerald-400" : "text-red-400 font-extrabold animate-pulse"}>
+                    {selectedItem.allowedClass === 'knight' ? 'Hiệp Sĩ 🛡️' : selectedItem.allowedClass === 'mage' ? 'Pháp Sư 🔮' : 'Sát Thủ 🗡️'}
+                    {hero.heroClass !== selectedItem.allowedClass && ' (Không tương thích)'}
+                  </span>
+                </div>
+              )}
+
               {/* Description */}
               <p className="text-xs text-slate-400 italic mt-1 mb-4 leading-relaxed">
                 {selectedItem.isCorrupted ? (
@@ -541,12 +545,22 @@ export const BagTab: React.FC = () => {
                         {t('unequip_btn')}
                       </button>
                     ) : (
-                      <button
-                        onClick={() => equipEquipment(selectedItem.id)}
-                        className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-3 px-2 rounded-xl transition active:scale-[0.98] cursor-pointer"
-                      >
-                        {t('equip_btn')}
-                      </button>
+                      (() => {
+                        const isClassIncompatible = selectedItem.allowedClass && hero.heroClass && selectedItem.allowedClass !== hero.heroClass;
+                        return (
+                          <button
+                            onClick={() => equipEquipment(selectedItem.id)}
+                            disabled={!!isClassIncompatible}
+                            className={`flex-1 text-xs font-bold py-3 px-2 rounded-xl transition active:scale-[0.98] cursor-pointer ${
+                              isClassIncompatible 
+                                ? 'bg-slate-800 text-slate-500 border border-slate-900/60 cursor-not-allowed opacity-50' 
+                                : 'bg-blue-600 hover:bg-blue-500 text-white'
+                            }`}
+                          >
+                            {isClassIncompatible ? (language === 'vi' ? 'Sai Class 🔒' : 'Incompatible 🔒') : t('equip_btn')}
+                          </button>
+                        );
+                      })()
                     )}
 
                     <button
