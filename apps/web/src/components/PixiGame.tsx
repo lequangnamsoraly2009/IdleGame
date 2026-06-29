@@ -304,9 +304,8 @@ export const PixiGame: React.FC = () => {
                 <span>💰</span>
                 <span>{t('revive_gold')}</span>
               </div>
-              <div className="text-[9px] font-bold opacity-80 mt-0.5 flex items-center gap-1">
-                <span>{reviveCostGold.toLocaleString()} G</span>
-                <span className="text-[8px] italic">({t('keep_stage_note')})</span>
+              <div className="text-[9px] font-bold opacity-80 mt-0.5">
+                {reviveCostGold.toLocaleString()} G
               </div>
             </button>
 
@@ -320,9 +319,8 @@ export const PixiGame: React.FC = () => {
                 <span>💎</span>
                 <span>{t('revive_diamonds')}</span>
               </div>
-              <div className="text-[9px] font-medium opacity-95 mt-0.5 flex items-center gap-1">
-                <span>{reviveCostDiamonds} 💎</span>
-                <span className="text-[8px] italic text-blue-200">({t('keep_stage_note')})</span>
+              <div className="text-[9px] font-medium opacity-95 mt-0.5">
+                {reviveCostDiamonds} 💎
               </div>
             </button>
 
@@ -336,13 +334,10 @@ export const PixiGame: React.FC = () => {
             {/* OPTION 3: Free revive immediately */}
             <button
               onClick={() => reviveHero('time')}
-              className="flex flex-col items-center justify-center border border-slate-800 bg-slate-900/60 hover:bg-slate-850 hover:border-slate-700 text-slate-300 font-bold py-1.5 px-3 sm:py-2 sm:px-4 rounded-xl active:scale-[0.98] transition cursor-pointer"
+              className="flex flex-col items-center justify-center border border-slate-800 bg-slate-900/60 hover:bg-slate-850 hover:border-slate-700 text-slate-300 font-bold py-2.5 px-3 sm:px-4 rounded-xl active:scale-[0.98] transition cursor-pointer"
             >
               <div className="text-xs">
                 {t('revive_time')}
-              </div>
-              <div className="text-[8.5px] text-slate-500 font-normal mt-0.5">
-                {t('drop_stage_note')}
               </div>
             </button>
 
