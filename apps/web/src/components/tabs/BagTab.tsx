@@ -159,9 +159,11 @@ export const BagTab: React.FC = () => {
   const blankSlots = Array.from({ length: blankSlotsCount });
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 h-full overflow-y-auto lg:overflow-hidden pr-1">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 h-full overflow-hidden pr-1">
       {/* Grid List */}
-      <div className="lg:col-span-2 flex flex-col justify-between h-[280px] lg:h-full bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 overflow-hidden shrink-0">
+      <div className={`lg:col-span-2 flex flex-col justify-between h-full bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 overflow-hidden shrink-0 ${
+        (selectedItemId || isBulkSellMode) ? 'hidden lg:flex' : 'flex'
+      }`}>
         <div>
           <div className="flex justify-between items-center mb-4 border-b border-slate-850 pb-2 gap-2 flex-wrap">
             <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
@@ -189,7 +191,7 @@ export const BagTab: React.FC = () => {
           </div>
 
           {/* Grid View */}
-          <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 gap-2 overflow-y-auto h-[180px] lg:h-[300px] pr-1">
+          <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 gap-2 overflow-y-auto flex-1 min-h-0 lg:h-[300px] pr-1">
             {inventory.map((item) => {
               const ui = getRarityUIStyles(item);
               const isSelected = isBulkSellMode 
@@ -275,7 +277,9 @@ export const BagTab: React.FC = () => {
       </div>
 
       {/* Item Inspector Panel */}
-      <div className="lg:col-span-1 bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between h-auto lg:h-full min-h-[340px] lg:min-h-0 shrink-0">
+      <div className={`lg:col-span-1 bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between h-full shrink-0 ${
+        (!selectedItemId && !isBulkSellMode) ? 'hidden lg:flex' : 'flex'
+      }`}>
         {isBulkSellMode ? (
           <div className="flex flex-col justify-between h-full">
             <div>
@@ -370,8 +374,17 @@ export const BagTab: React.FC = () => {
             </div>
           </div>
         ) : selectedItem ? (
-          <div className="flex flex-col justify-between h-full">
-            <div>
+          <div className="flex flex-col justify-between h-full overflow-hidden">
+            <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin space-y-3 pb-3">
+              {/* Back button on Mobile */}
+              <div className="lg:hidden">
+                <button
+                  onClick={() => setSelectedItemId(null)}
+                  className="flex items-center gap-1.5 text-xs text-slate-400 font-extrabold active:scale-95 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-lg cursor-pointer hover:text-white"
+                >
+                  ◀ Quay lại hành trang
+                </button>
+              </div>
               {/* Header Rarity info */}
               <div className="flex justify-between items-center mb-3">
                 <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded ${getRarityUIStyles(selectedItem).bg} ${getRarityUIStyles(selectedItem).text}`}>
@@ -544,7 +557,7 @@ export const BagTab: React.FC = () => {
             </div>
 
             {/* Actions Block */}
-            <div className="space-y-2.5 pt-4 border-t border-slate-850">
+            <div className="space-y-2.5 pt-4 border-t border-slate-850 shrink-0">
               {selectedItem.isIdentified === false ? (
                 <button
                   onClick={() => identifyEquipment(selectedItem.id)}
