@@ -11,6 +11,14 @@ export interface BaseStats {
   critDamage: number; // e.g. 1.5 for 150%
 }
 
+export interface ItemAffix {
+  name: string;
+  type: 'prefix' | 'suffix';
+  stats: Partial<BaseStats> & {
+    goldBonus?: number;
+  };
+}
+
 export interface ItemTemplate {
   id: string;
   name: string;
@@ -32,6 +40,12 @@ export interface EquipmentItem {
   upgradeCost: number;
   equipped: boolean;
   allowedClass?: 'knight' | 'mage' | 'assassin';
+  affixes?: ItemAffix[];
+  isIdentified?: boolean;
+  isCorrupted?: boolean;
+  isCursed?: boolean;
+  kills?: number;
+  sockets?: Array<string | null>;
 }
 
 export interface HeroState {

@@ -1,4 +1,4 @@
-import { ItemRarity, EquipmentSlot, BaseStats, EquipmentItem, ItemTemplate, MonsterTemplate } from './types/game';
+import { ItemRarity, EquipmentSlot, BaseStats, EquipmentItem, ItemTemplate, MonsterTemplate, ItemAffix } from './types/game';
 
 // Experience curve: 100, 115, 132, 152, 174, etc.
 export function calculateLevelUpExp(level: number): number {
@@ -47,34 +47,103 @@ export function calculateItemStats(slot: EquipmentSlot, rarity: ItemRarity, leve
     defense: 0,
     speed: 0,
     critRate: 0,
-    critDamage: 0
+    critDamage: 1.5
   };
 
   switch (slot) {
     case 'weapon':
-      base.attack = Math.round(10 * mult);
-      base.critRate = 0.05 + (rarity === 'legendary' ? 0.05 : 0);
-      base.critDamage = 1.5;
+      base.attack = Math.round(15 * mult);
+      base.critRate = 0.05;
       break;
     case 'armor':
-      base.maxHp = Math.round(50 * mult);
-      base.defense = Math.round(5 * mult);
+      base.maxHp = Math.round(80 * mult);
+      base.defense = Math.round(8 * mult);
       break;
     case 'helmet':
-      base.maxHp = Math.round(30 * mult);
-      base.defense = Math.round(3 * mult);
+      base.maxHp = Math.round(45 * mult);
+      base.defense = Math.round(4 * mult);
       break;
     case 'boots':
-      base.maxHp = Math.round(20 * mult);
-      base.defense = Math.round(2 * mult);
-      base.speed = 0.05 * mult; // increase cooldown speed
+      base.maxHp = Math.round(35 * mult);
+      base.speed = 10;
       break;
     case 'ring':
-      base.attack = Math.round(4 * mult);
-      base.critRate = 0.02 * mult;
-      base.critDamage = 1.5 + (0.1 * mult);
+      base.attack = Math.round(5 * mult);
+      base.critRate = 0.02;
+      base.critDamage = 1.6;
       break;
   }
+
+  return base;
+}
+
+export function getFinalItemStats(item: EquipmentItem): BaseStats {
+  if (item.isIdentified === false) {
+    return { maxHp: 0, attack: 0, defense: 0, speed: 0, critRate: 0, critDamage: 0 };
+  }
+
+  const base = { ...item.stats };
+
+  // Item Memory evolution
+  let evolutionMult = 1.0;
+  if (item.kills !== undefined) {
+    if (item.kills >= 100000) {
+      evolutionMult = 1.6; // Ancient: +60% base stats
+    } else if (item.kills >= 10000) {
+      evolutionMult = 1.25; // Veteran: +25% base stats
+    }
+  }
+  base.maxHp = Math.round(base.maxHp * evolutionMult);
+  base.attack = Math.round(base.attack * evolutionMult);
+  base.defense = Math.round(base.defense * evolutionMult);
+
+  // Gem stats
+  if (item.sockets) {
+    item.sockets.forEach(gem => {
+      if (gem === 'ruby') {
+        base.attack += 15;
+      } else if (gem === 'emerald') {
+        base.critRate += 0.04;
+      }
+      // Topaz is +gold, which is combat-independent and processed in gameStore
+    });
+  }
+
+  // Affixes stats
+  if (item.affixes) {
+    item.affixes.forEach(affix => {
+      if (affix.stats) {
+        if (affix.stats.maxHp) base.maxHp += affix.stats.maxHp;
+        if (affix.stats.attack) base.attack += affix.stats.attack;
+        if (affix.stats.defense) base.defense += affix.stats.defense;
+        if (affix.stats.speed) base.speed += affix.stats.speed;
+        if (affix.stats.critRate) base.critRate += affix.stats.critRate;
+        if (affix.stats.critDamage) base.critDamage += affix.stats.critDamage;
+      }
+    });
+  }
+
+  // Corrupted multiplier (x2 stats)
+  if (item.isCorrupted) {
+    base.attack = base.attack * 2;
+    base.maxHp = base.maxHp * 2;
+    base.defense = base.defense * 2;
+  }
+
+  // Cursed constraints (+150 Attack, -80 Defense, -20% HP)
+  if (item.isCursed) {
+    base.attack += 150;
+    base.defense -= 80;
+    base.maxHp = Math.round(base.maxHp * 0.8);
+  }
+
+  // Ensure stats don't drop below 0 (especially defense)
+  base.maxHp = Math.max(0, base.maxHp);
+  base.attack = Math.max(0, base.attack);
+  base.defense = Math.max(0, base.defense);
+  base.speed = Math.max(0, base.speed);
+  base.critRate = Math.max(0, base.critRate);
+  base.critDamage = Math.max(0, base.critDamage);
 
   return base;
 }
@@ -89,34 +158,43 @@ export function calculatePrestigePoints(stageCleared: number): number {
 export function recalculateHeroStats(
   level: number,
   prestigePoints: number,
-  equippedItems: EquipmentItem[] = [],
-  heroClass: 'knight' | 'mage' | 'assassin' = 'knight'
+  equippedItems: EquipmentItem[],
+  heroClass?: 'knight' | 'mage' | 'assassin'
 ): BaseStats {
-  // Base stats at level 1 & scaling per level based on class
-  let baseHp = 120;
-  let hpGrowth = 18;
-  let baseAtk = 8;
-  let atkGrowth = 1.6;
-  let baseDef = 8;
-  let defGrowth = 1.2;
-  let baseSpd = 95;
+  let baseHp = 100;
+  let hpGrowth = 15;
+  let baseAtk = 15;
+  let atkGrowth = 2.5;
+  let baseDef = 5;
+  let defGrowth = 1.0;
+  let baseSpd = 100;
   let baseCrit = 0.05;
   let baseCritDmg = 1.5;
 
-  if (heroClass === 'mage') {
-    baseHp = 85;
+  if (heroClass === 'knight') {
+    baseHp = 140;
+    hpGrowth = 22;
+    baseAtk = 12;
+    atkGrowth = 1.8;
+    baseDef = 10;
+    defGrowth = 1.5;
+    baseSpd = 90;
+    baseCrit = 0.03;
+    baseCritDmg = 1.5;
+  } else if (heroClass === 'mage') {
+    baseHp = 80;
     hpGrowth = 12;
-    baseAtk = 14;
-    atkGrowth = 2.8;
+    baseAtk = 25;
+    atkGrowth = 3.2;
     baseDef = 3;
-    defGrowth = 0.6;
-    baseSpd = 100;
+    defGrowth = 0.5;
+    baseSpd = 110;
     baseCrit = 0.08;
-    baseCritDmg = 1.7;
+    baseCritDmg = 1.6;
   } else if (heroClass === 'assassin') {
     baseHp = 90;
-    hpGrowth = 13;
-    baseAtk = 11;
+    hpGrowth = 14;
+    baseAtk = 18;
     atkGrowth = 2.2;
     baseDef = 4;
     defGrowth = 0.8;
@@ -146,18 +224,17 @@ export function recalculateHeroStats(
   let totalCritRate = baseStats.critRate;
   let totalCritDamage = baseStats.critDamage;
 
-  // Add equipment bonuses safely
+  // Add equipment bonuses safely using getFinalItemStats helper
   const items = equippedItems || [];
   for (const item of items) {
     if (!item) continue;
-    const stats = item.stats || { maxHp: 0, attack: 0, defense: 0, speed: 0, critRate: 0, critDamage: 1.5 };
+    const stats = getFinalItemStats(item);
     totalMaxHp += stats.maxHp || 0;
     totalAttack += stats.attack || 0;
     totalDefense += stats.defense || 0;
     totalSpeed += stats.speed || 0;
     totalCritRate += stats.critRate || 0;
-    const critDmg = stats.critDamage ?? 1.5;
-    totalCritDamage += (critDmg - 1.5) > 0 ? (critDmg - 1.5) : 0;
+    totalCritDamage += (stats.critDamage - 1.5) > 0 ? (stats.critDamage - 1.5) : 0;
   }
 
   return {
@@ -170,20 +247,143 @@ export function recalculateHeroStats(
   };
 }
 
+// Prefixes pool
+const PREFIXES = [
+  { name: 'Flaming', stats: { attack: 20 } },
+  { name: 'Lucky', stats: { goldBonus: 0.08 } },
+  { name: 'Frozen', stats: { defense: 15 } },
+  { name: 'Swift', stats: { speed: 12 } },
+  { name: 'Sharp', stats: { critRate: 0.04 } },
+  { name: 'Heavy', stats: { maxHp: 40 } },
+  { name: 'Brutal', stats: { critDamage: 0.15 } },
+  { name: 'Vampiric', stats: { maxHp: 30, attack: 10 } }
+];
+
+// Suffixes pool
+const SUFFIXES = [
+  { name: 'of Giant', stats: { maxHp: 45 } },
+  { name: 'of Swiftness', stats: { speed: 15 } },
+  { name: 'of Phoenix', stats: { maxHp: 30, critRate: 0.01 } },
+  { name: 'of Sage', stats: { attack: 5, defense: 5 } },
+  { name: 'of the Thief', stats: { goldBonus: 0.10 } }
+];
+
 // Generate a random item instance from template
 export function createItemInstance(template: ItemTemplate, level = 1): EquipmentItem {
   const stats = calculateItemStats(template.slot, template.rarity, level);
+  
+  // Sockets roll
+  let socketCount = 0;
+  const socketRoll = Math.random();
+  if (template.rarity === 'common') {
+    if (socketRoll < 0.15) socketCount = 1;
+  } else if (template.rarity === 'uncommon') {
+    if (socketRoll < 0.2) socketCount = 2;
+    else if (socketRoll < 0.6) socketCount = 1;
+  } else if (template.rarity === 'rare') {
+    if (socketRoll < 0.25) socketCount = 3;
+    else if (socketRoll < 0.6) socketCount = 2;
+    else if (socketRoll < 0.9) socketCount = 1;
+  } else if (template.rarity === 'epic') {
+    if (socketRoll < 0.3) socketCount = 4;
+    else if (socketRoll < 0.7) socketCount = 3;
+    else socketCount = 2;
+  } else if (template.rarity === 'legendary') {
+    if (socketRoll < 0.4) socketCount = 5;
+    else if (socketRoll < 0.8) socketCount = 4;
+    else socketCount = 3;
+  }
+  const sockets: Array<string | null> = Array(socketCount).fill(null);
+
+  // Unidentified roll (5% chance)
+  const isIdentified = Math.random() >= 0.05;
+
+  // Corrupted roll (0.2% chance)
+  const isCorrupted = Math.random() < 0.002;
+
+  // Cursed roll (1% chance)
+  const isCursed = !isCorrupted && Math.random() < 0.01;
+
+  // Affixes roll based on rarity
+  const affixes: ItemAffix[] = [];
+  let affixCount = 0;
+  if (template.rarity === 'common') {
+    if (Math.random() < 0.2) affixCount = 1;
+  } else if (template.rarity === 'uncommon') {
+    affixCount = Math.random() < 0.15 ? 2 : 1;
+  } else if (template.rarity === 'rare') {
+    affixCount = Math.random() < 0.35 ? 2 : 1;
+  } else if (template.rarity === 'epic') {
+    affixCount = 2;
+  } else if (template.rarity === 'legendary') {
+    affixCount = Math.random() < 0.4 ? 3 : 2;
+  }
+
+  // Roll scaling factor based on level
+  const scale = Math.max(1, Math.floor(level * 0.5));
+
+  // Keep track of rolled categories to avoid duplicates
+  let rolledPrefix = false;
+  let rolledSuffix = false;
+  
+  for (let i = 0; i < affixCount; i++) {
+    // 50% chance to roll prefix or suffix
+    if (Math.random() < 0.5 && !rolledPrefix || rolledSuffix && !rolledPrefix) {
+      const rolled = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
+      // Scale numerical stats
+      const scaledStats: any = {};
+      Object.entries(rolled.stats).forEach(([k, v]) => {
+        scaledStats[k] = k === 'goldBonus' || k === 'critRate' || k === 'critDamage' ? v : Math.round(v * scale);
+      });
+      affixes.push({
+        name: rolled.name,
+        type: 'prefix',
+        stats: scaledStats
+      });
+      rolledPrefix = true;
+    } else if (!rolledSuffix) {
+      const rolled = SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)];
+      const scaledStats: any = {};
+      Object.entries(rolled.stats).forEach(([k, v]) => {
+        scaledStats[k] = k === 'goldBonus' || k === 'critRate' || k === 'critDamage' ? v : Math.round(v * scale);
+      });
+      affixes.push({
+        name: rolled.name,
+        type: 'suffix',
+        stats: scaledStats
+      });
+      rolledSuffix = true;
+    }
+  }
+
+  // Name construction
+  const prefixObj = affixes.find(a => a.type === 'prefix');
+  const suffixObj = affixes.find(a => a.type === 'suffix');
+  
+  let finalName = template.name;
+  if (prefixObj) finalName = `${prefixObj.name} ${finalName}`;
+  if (suffixObj) finalName = `${finalName} ${suffixObj.name}`;
+  
+  if (isCorrupted) finalName = `[CORRUPTED] ${finalName}`;
+  if (isCursed) finalName = `${finalName} [Cursed]`;
+
   return {
     id: `item_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`,
     templateId: template.id,
-    name: template.name,
+    name: finalName,
     slot: template.slot,
     rarity: template.rarity,
     stats,
     level,
     upgradeCost: calculateUpgradeCost(template.slot, template.rarity, level),
     equipped: false,
-    allowedClass: template.allowedClass
+    allowedClass: template.allowedClass,
+    affixes,
+    isIdentified,
+    isCorrupted,
+    isCursed,
+    kills: 0,
+    sockets
   };
 }
 

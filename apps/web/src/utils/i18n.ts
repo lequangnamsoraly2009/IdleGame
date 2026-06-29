@@ -295,6 +295,11 @@ export const translations = {
     log_claimed_quest: "Nhận thưởng nhiệm vụ [{title}]: Nhận {gold} Vàng, {diamonds} Kim Cương.",
     log_bought_gold: "Mua Túi Vàng: Tiêu {cost} Kim Cương, nhận {gold} Vàng.",
     log_summon_success: "TRIỆU HỒI THÀNH CÔNG! Nhận được [{name}] ({rarity})!",
+    log_item_evolved: "✨ TIẾN HÓA TRANG BỊ: [{name}] đã đạt mốc và tiến hóa thành {stage}!",
+    log_identified: "🔍 GIÁM ĐỊNH THÀNH CÔNG: Mở khóa các chỉ số ẩn của [{name}]!",
+    log_gem_inserted: "💎 KHẢM NGỌC THÀNH CÔNG: Đã khảm ngọc {gem} vào trang bị!",
+    corrupted_upgrade_error: "👿 BỊ CHẶN: Trang bị Hư Hỏng [{name}] không thể nâng cấp!",
+    unidentified_name: "Vật Phẩm Chưa Giám Định",
 
 
 
@@ -543,6 +548,11 @@ export const translations = {
     log_claimed_quest: "Claimed quest [{title}]: Gained {gold} Gold, {diamonds} Diamonds.",
     log_bought_gold: "Bought Gold Pack: Spent {cost} Diamonds, gained {gold} Gold.",
     log_summon_success: "SUMMON SUCCESS! Pulled [{name}] ({rarity})!",
+    log_item_evolved: "✨ EQUIPMENT EVOLVED: [{name}] reached the kill goal and evolved to {stage}!",
+    log_identified: "🔍 IDENTIFICATION SUCCESS: Revealed stats for [{name}]!",
+    log_gem_inserted: "💎 GEM SLOTTED: Inserted gem {gem} into the item!",
+    corrupted_upgrade_error: "👿 BLOCKED: Corrupted equipment [{name}] cannot be upgraded!",
+    unidentified_name: "Unidentified Item",
 
     // Item Templates Translations
     item_t_wpn_rusty: "Rusty Sword",

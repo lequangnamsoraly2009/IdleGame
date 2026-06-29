@@ -61,6 +61,8 @@ interface GameState {
   summonEquipment: () => void;
   triggerPrestige: () => void;
   changeHeroClass: (newClass: 'knight' | 'mage' | 'assassin') => void;
+  identifyEquipment: (itemId: string) => void;
+  insertGem: (itemId: string, gemType: string, socketIdx: number) => void;
   startGuildRaid: () => void;
   exitGuildRaid: () => void;
   addLogMessage: (text: string, category: 'combat' | 'loot' | 'system') => void;
@@ -197,8 +199,43 @@ export const useGameStore = create<GameState>((set, get) => {
       let newInventory = [...saveData.inventory];
       let quests = [...saveData.quests];
       
+      // Track item kills & evolution milestones
+      newInventory = newInventory.map(item => {
+        if (item.equipped) {
+          const currentKills = item.kills || 0;
+          const nextKills = currentKills + 1; // 1 kill per wave monster
+          
+          if (currentKills < 10000 && nextKills >= 10000) {
+            get().addLogMessage(tStore('log_item_evolved', { name: item.name, stage: 'Veteran' }), 'system');
+          } else if (currentKills < 100000 && nextKills >= 100000) {
+            get().addLogMessage(tStore('log_item_evolved', { name: item.name, stage: 'Ancient' }), 'system');
+          }
+          return { ...item, kills: nextKills };
+        }
+        return item;
+      });
+
+      // Calculate Gold Bonus multiplier from equipped gear (Lucky affix + Topaz gems)
+      let goldBonus = 0;
+      const equipped = newInventory.filter(i => i.equipped && i.isIdentified !== false);
+      equipped.forEach(item => {
+        if (item.sockets) {
+          item.sockets.forEach(gem => {
+            if (gem === 'topaz') goldBonus += 0.15; // Topaz gives +15% Gold
+          });
+        }
+        if (item.affixes) {
+          item.affixes.forEach(affix => {
+            if (affix.stats && affix.stats.goldBonus) {
+              goldBonus += affix.stats.goldBonus;
+            }
+          });
+        }
+      });
+      const finalGoldGained = Math.round(goldGained * (1 + goldBonus));
+
       // Update gold, diamonds, exp
-      hero.gold += goldGained;
+      hero.gold += finalGoldGained;
       hero.diamonds += diamondsGained;
       hero.exp += expGained;
 
@@ -214,8 +251,8 @@ export const useGameStore = create<GameState>((set, get) => {
       if (levelUps > 0) {
         get().addLogMessage(tStore('log_level_up', { level: hero.level }), 'system');
         // Recalculate stats
-        const equipped = newInventory.filter(i => i.equipped);
-        hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass);
+        const equippedNow = newInventory.filter(i => i.equipped);
+        hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equippedNow, hero.heroClass);
         hero.currentHp = hero.currentStats.maxHp;
         
         // Audit Level Up quests
@@ -233,7 +270,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Audit Defeat Monster and Earn Gold quests
       quests = checkQuests(quests, 'defeat_monster', 1);
-      quests = checkQuests(quests, 'earn_gold', goldGained);
+      quests = checkQuests(quests, 'earn_gold', finalGoldGained);
 
       const isGuildBoss = get().battleMode === 'guild_boss';
       const nextStage = isGuildBoss ? saveData.activeStage : saveData.activeStage + 1;
@@ -273,6 +310,12 @@ export const useGameStore = create<GameState>((set, get) => {
 
       const inventory = saveData.inventory.map(item => {
         if (item.id !== itemId) return item;
+
+        // Block corrupted items from upgrade
+        if (item.isCorrupted) {
+          get().addLogMessage(tStore('corrupted_upgrade_error', { name: item.name }), 'system');
+          return item;
+        }
 
         // Upgrade item
         if (saveData.hero.gold < item.upgradeCost) {
@@ -611,6 +654,87 @@ export const useGameStore = create<GameState>((set, get) => {
         tStore('log_class_changed', { class: newClass === 'knight' ? tStore('class_knight') : newClass === 'mage' ? tStore('class_mage') : tStore('class_assassin') }), 
         'system'
       );
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        inventory,
+        lastSavedAt: Date.now()
+      };
+
+      autoSave(updatedSave);
+    },
+
+    identifyEquipment: (itemId) => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const item = saveData.inventory.find(i => i.id === itemId);
+      if (!item) return;
+
+      const cost = 200; // Identify costs 200 gold
+      if (saveData.hero.gold < cost) {
+        get().addLogMessage(tStore('insufficient_gold') + ` (${cost} Vàng)`, 'system');
+        return;
+      }
+
+      const hero = { ...saveData.hero };
+      hero.gold -= cost;
+
+      const inventory = saveData.inventory.map(i => {
+        if (i.id === itemId) {
+          return { ...i, isIdentified: true };
+        }
+        return i;
+      });
+
+      get().addLogMessage(tStore('log_identified', { name: item.name }), 'system');
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        inventory,
+        lastSavedAt: Date.now()
+      };
+
+      autoSave(updatedSave);
+    },
+
+    insertGem: (itemId, gemType, socketIdx) => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const item = saveData.inventory.find(i => i.id === itemId);
+      if (!item) return;
+
+      if (!item.sockets || socketIdx < 0 || socketIdx >= item.sockets.length) return;
+
+      // Cost to slot a gem is 100 gold
+      const cost = 100;
+      if (saveData.hero.gold < cost) {
+        get().addLogMessage(tStore('insufficient_gold') + ` (${cost} Vàng)`, 'system');
+        return;
+      }
+
+      const hero = { ...saveData.hero };
+      hero.gold -= cost;
+
+      const inventory = saveData.inventory.map(i => {
+        if (i.id === itemId) {
+          const newSockets = [...(i.sockets || [])];
+          newSockets[socketIdx] = gemType;
+          return { ...i, sockets: newSockets };
+        }
+        return i;
+      });
+
+      // Recalculate hero stats if the item is equipped!
+      const equipped = inventory.filter(i => i.equipped);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass);
+      hero.currentHp = Math.min(hero.currentHp, hero.currentStats.maxHp);
+
+      const gemName = gemType === 'ruby' ? 'Ruby' : gemType === 'emerald' ? 'Emerald' : 'Topaz';
+      get().addLogMessage(tStore('log_gem_inserted', { gem: gemName }), 'system');
 
       const updatedSave: GameSaveData = {
         ...saveData,

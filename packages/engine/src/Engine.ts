@@ -71,6 +71,7 @@ export class GameEngine {
 
   // Callback to communicate with React
   private onEvent: (event: EngineEvent) => void;
+  private corruptedAccumulator: number = 0;
 
   constructor(onEvent: (event: EngineEvent) => void) {
     this.onEvent = onEvent;
@@ -453,6 +454,34 @@ export class GameEngine {
 
   private update(dt: number) {
     if (!this.app) return;
+
+    // Corrupted HP drain (0.5% max HP per second per corrupted item)
+    if (this.isBattleActive && this.equippedItems.length > 0) {
+      let corruptedCount = 0;
+      this.equippedItems.forEach(item => {
+        if (item && item.isCorrupted) corruptedCount++;
+      });
+      
+      if (corruptedCount > 0 && this.allyEntities[0] && this.allyEntities[0].currentHp > 0) {
+        const drainPerSecond = this.heroStats.maxHp * 0.005 * corruptedCount;
+        const drainThisTick = drainPerSecond * dt;
+        
+        this.corruptedAccumulator += drainThisTick;
+        if (this.corruptedAccumulator >= 1) {
+          const hpToDrain = Math.floor(this.corruptedAccumulator);
+          this.corruptedAccumulator -= hpToDrain;
+          
+          this.allyEntities[0].entity.takeDamage(hpToDrain);
+          this.allyEntities[0].currentHp = this.allyEntities[0].entity.currentHp;
+          this.heroCurrentHp = this.allyEntities[0].currentHp;
+          
+          if (this.allyEntities[0].currentHp <= 0) {
+            this.isBattleActive = false;
+            this.handleHeroDefeated();
+          }
+        }
+      }
+    }
 
     // Update Entities visually
     this.allyEntities.forEach(a => a.entity.update(dt * 60));
