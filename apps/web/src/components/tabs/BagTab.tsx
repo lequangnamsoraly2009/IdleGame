@@ -472,46 +472,68 @@ export const BagTab: React.FC = () => {
 
               {/* Sockets Block */}
               {selectedItem.isIdentified !== false && selectedItem.sockets && selectedItem.sockets.length > 0 && (
-                <div className="bg-slate-950/40 border border-slate-900/60 rounded-xl p-3 mb-4">
-                  <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">
-                    💎 Ô khảm ({selectedItem.sockets.filter(Boolean).length} / {selectedItem.sockets.length})
+                <div className="bg-slate-950/40 border border-slate-900/60 rounded-xl p-3.5 mb-4">
+                  <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-3 border-b border-slate-900 pb-1">
+                    💎 Ô KHẢM NGỌC ({selectedItem.sockets.filter(Boolean).length} / {selectedItem.sockets.length})
                   </span>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-3">
                     {selectedItem.sockets.map((gem, idx) => (
-                      <div key={idx} className="flex flex-col items-center gap-1">
+                      <div key={idx} className="flex flex-col gap-1.5 w-full">
+                        <span className="text-[8px] text-slate-500 font-extrabold block">
+                          Ô KHẢM #{idx + 1}:
+                        </span>
                         {gem ? (
-                          <div 
-                            className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-sm font-extrabold select-none pointer-events-none"
-                            title={gem === 'ruby' ? '+15 Tấn Công' : gem === 'emerald' ? '+4% Tỷ Lệ Chí Mạng' : '+15% Tỷ Lệ Vàng'}
-                          >
-                            {gem === 'ruby' ? '🔴' : gem === 'emerald' ? '🟢' : '🟡'}
+                          <div className="w-full flex items-center gap-2.5 p-2 rounded-lg bg-slate-950/80 border border-slate-900 shadow-inner">
+                            <span className="text-lg">{gem === 'ruby' ? '🔴' : gem === 'emerald' ? '🟢' : '🟡'}</span>
+                            <div className="flex-1 text-[10px]">
+                              <span className="font-extrabold text-slate-200 block leading-tight">
+                                {gem === 'ruby' ? 'Hồng Ngọc (Ruby)' : gem === 'emerald' ? 'Phỉ Thúy (Emerald)' : 'Hoàng Ngọc (Topaz)'}
+                              </span>
+                              <span className="text-slate-400 font-medium text-[9px] mt-0.5 block">
+                                Chỉ số cộng thêm: <strong className="text-emerald-400 font-extrabold">{gem === 'ruby' ? '+15 Tấn Công' : gem === 'emerald' ? '+4% Chí Mạng' : '+15% Vàng rơi'}</strong>
+                              </span>
+                            </div>
                           </div>
                         ) : (
-                          <div className="flex gap-0.5">
-                            <button
-                              onClick={() => insertGem(selectedItem.id, 'ruby', idx)}
-                              disabled={hero.gold < 100}
-                              className="w-6 h-6 rounded bg-red-950/50 hover:bg-red-900/70 border border-red-500/20 text-[9px] flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
-                              title="Khảm Ruby (+15 Công) - Phí: 100 vàng"
-                            >
-                              🔴
-                            </button>
-                            <button
-                              onClick={() => insertGem(selectedItem.id, 'emerald', idx)}
-                              disabled={hero.gold < 100}
-                              className="w-6 h-6 rounded bg-emerald-950/50 hover:bg-emerald-900/70 border border-emerald-550/20 text-[9px] flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
-                              title="Khảm Emerald (+4% Chí Mạng) - Phí: 100 vàng"
-                            >
-                              🟢
-                            </button>
-                            <button
-                              onClick={() => insertGem(selectedItem.id, 'topaz', idx)}
-                              disabled={hero.gold < 100}
-                              className="w-6 h-6 rounded bg-amber-950/50 hover:bg-amber-900/70 border border-amber-500/20 text-[9px] flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
-                              title="Khảm Topaz (+15% Vàng) - Phí: 100 vàng"
-                            >
-                              🟡
-                            </button>
+                          <div className="flex flex-col gap-1.5 w-full bg-slate-900/30 p-2 rounded-lg border border-slate-950">
+                            <span className="text-[8.5px] text-slate-450 font-bold uppercase tracking-wider block mb-0.5">
+                              Chọn loại ngọc để khảm (Phí: 100 Vàng 💰):
+                            </span>
+                            <div className="flex flex-col gap-1">
+                              <button
+                                onClick={() => insertGem(selectedItem.id, 'ruby', idx)}
+                                disabled={hero.gold < 100}
+                                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded bg-red-950/20 hover:bg-red-900/30 border border-red-500/20 text-[9.5px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                              >
+                                <span className="flex items-center gap-1.5">
+                                  <span>🔴</span>
+                                  <span className="text-red-400">Hồng Ngọc (Ruby)</span>
+                                </span>
+                                <span className="text-slate-300 font-mono">+15 ATK</span>
+                              </button>
+                              <button
+                                onClick={() => insertGem(selectedItem.id, 'emerald', idx)}
+                                disabled={hero.gold < 100}
+                                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded bg-emerald-950/20 hover:bg-emerald-900/30 border border-emerald-550/20 text-[9.5px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                              >
+                                <span className="flex items-center gap-1.5">
+                                  <span>🟢</span>
+                                  <span className="text-emerald-400">Phỉ Thúy (Emerald)</span>
+                                </span>
+                                <span className="text-slate-300 font-mono">+4% CRIT</span>
+                              </button>
+                              <button
+                                onClick={() => insertGem(selectedItem.id, 'topaz', idx)}
+                                disabled={hero.gold < 100}
+                                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded bg-amber-950/20 hover:bg-amber-900/30 border border-amber-500/20 text-[9.5px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                              >
+                                <span className="flex items-center gap-1.5">
+                                  <span>🟡</span>
+                                  <span className="text-amber-400">Hoàng Ngọc (Topaz)</span>
+                                </span>
+                                <span className="text-slate-300 font-mono">+15% GOLD</span>
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
