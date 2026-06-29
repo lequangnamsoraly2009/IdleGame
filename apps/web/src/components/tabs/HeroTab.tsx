@@ -272,16 +272,16 @@ export const HeroTab: React.FC = () => {
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
                   {statItems.map((stat, i) => (
-                    <div key={i} className="bg-slate-950/40 border border-slate-900/60 rounded-xl p-2.5 flex justify-between items-center">
-                      <div>
-                        <span className="block text-[8px] text-slate-450 font-bold uppercase tracking-wider">
-                          {stat.label}
+                    <div key={i} className="bg-slate-950/40 border border-slate-900/60 rounded-xl p-2.5 flex justify-between items-center gap-2">
+                      <div className="flex-1 min-w-0 pr-1">
+                        <span className="block text-[8.5px] text-slate-450 font-bold uppercase tracking-wider truncate">
+                          {stat.icon} {stat.label}
                         </span>
-                        <span className="block text-[8px] text-slate-500 font-medium">
+                        <span className="block text-[8px] text-slate-500 font-semibold mt-0.5 leading-tight">
                           {stat.desc}
                         </span>
                       </div>
-                      <span className="text-xs sm:text-sm font-black text-blue-400 font-display">
+                      <span className="text-[11px] sm:text-xs font-black text-blue-400 font-display shrink-0 text-right whitespace-nowrap">
                         {stat.value}
                       </span>
                     </div>
