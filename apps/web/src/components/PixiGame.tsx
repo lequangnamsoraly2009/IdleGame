@@ -7,6 +7,30 @@ export const PixiGame: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
+  
+  const activeStage = useGameStore(state => state.saveData?.activeStage || 1);
+
+  const getBackgroundUrl = (stage: number) => {
+    const blockIndex = Math.floor((stage - 1) / 5);
+    const cycle = blockIndex % 6;
+    
+    switch (cycle) {
+      case 0:
+        return '/battle_forest.png';  // Block 1: Stages 1-5 (Forest)
+      case 1:
+        return '/battle_cave.png';    // Block 2: Stages 6-10 (Crystal Cave)
+      case 2:
+        return '/battle_garden.png';  // Block 3: Stages 11-15 (Mythical Garden)
+      case 3:
+        return '/battle_volcano.png'; // Block 4: Stages 16-20 (Volcano Lava)
+      case 4:
+        return '/battle_sky.png';     // Block 5: Stages 21-25 (Sky Castle)
+      case 5:
+        return '/battle_ruins.png';   // Block 6: Stages 26-30 (Dark Ruins)
+      default:
+        return '/battle_forest.png';
+    }
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -129,7 +153,7 @@ export const PixiGame: React.FC = () => {
               };
 
               const guildMembers = [
-                { name: state.user?.email?.split('@')[0] || 'Player', heroClass: hero?.heroClass || 'knight', level: hero?.level || 1 },
+                { name: hero?.name || 'Player', heroClass: hero?.heroClass || 'knight', level: hero?.level || 1 },
                 { name: 'Vanguard Order', heroClass: 'knight' as const, level: Math.max(1, (hero?.level || 1) - 2) },
                 { name: 'Spellweaver', heroClass: 'mage' as const, level: Math.max(1, (hero?.level || 1) + 1) },
                 { name: 'Silent Blade', heroClass: 'assassin' as const, level: Math.max(1, (hero?.level || 1) - 1) }
@@ -141,7 +165,7 @@ export const PixiGame: React.FC = () => {
             }
           } else {
             if (hero) {
-              engine.updateState(hero.level, hero.prestigePoints, equipped, activeStage, hero.heroClass);
+              engine.updateState(hero.level, hero.prestigePoints, equipped, activeStage, hero.heroClass, hero.name || 'Hero');
             }
 
             if ((stageChanged || levelChanged) && state.battleMode === 'stage') {
@@ -166,9 +190,17 @@ export const PixiGame: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full h-full relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60 shadow-inner flex items-center justify-center">
+    <div className="w-full h-full relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/90 shadow-inner flex items-center justify-center">
+      {/* Dynamic Environment Background Image */}
+      <div 
+        className="absolute inset-0 w-full h-full bg-cover bg-bottom transition-all duration-700 ease-in-out opacity-55 pointer-events-none"
+        style={{ backgroundImage: `url(${getBackgroundUrl(activeStage)})` }}
+      />
+      {/* Dark overlay for contrast */}
+      <div className="absolute inset-0 bg-slate-950/20 pointer-events-none" />
+
       {/* Absolute canvas container */}
-      <div ref={containerRef} className="absolute inset-0 w-full h-full" />
+      <div ref={containerRef} className="absolute inset-0 w-full h-full z-10" />
       
       {/* Graceful Canvas Error Overlay */}
       {initError && (

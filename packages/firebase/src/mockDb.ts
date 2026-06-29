@@ -2,7 +2,11 @@ import { GameSaveData, HeroState, EquipmentItem, QuestState } from '@idle-rpg/sh
 import { createItemInstance, DEFAULT_ITEM_TEMPLATES, calculateItemStats, calculateUpgradeCost } from '@idle-rpg/shared';
 
 // Predefined starting stats and equipment
-export function generateStarterSave(userId: string, heroClass: 'knight' | 'mage' | 'assassin' = 'knight'): GameSaveData {
+export function generateStarterSave(
+  userId: string, 
+  heroClass: 'knight' | 'mage' | 'assassin' = 'knight',
+  heroName?: string
+): GameSaveData {
   let initialStats = {
     maxHp: 100,
     attack: 10,
@@ -42,6 +46,7 @@ export function generateStarterSave(userId: string, heroClass: 'knight' | 'mage'
   }
 
   const initialHero: HeroState = {
+    name: heroName || 'Hero',
     level: 1,
     exp: 0,
     maxExp: 100, // levelUpExp(1)
@@ -247,21 +252,24 @@ export const mockDb = {
   loadGame: async (userId: string): Promise<GameSaveData | null> => {
     const data = localStorage.getItem(STORAGE_KEYS.SAVED_GAME + userId);
     const selectedClass = (localStorage.getItem('selected_class') || 'knight') as 'knight' | 'mage' | 'assassin';
+    const selectedName = localStorage.getItem('selected_name') || 'Hero';
     if (!data) {
       // New save initialization
-      const starterSave = generateStarterSave(userId, selectedClass);
+      const starterSave = generateStarterSave(userId, selectedClass, selectedName);
       localStorage.removeItem('selected_class'); // clean up
+      localStorage.removeItem('selected_name'); // clean up
       await mockDb.saveGame(starterSave);
       return starterSave;
     }
     try {
       const parsed = JSON.parse(data) as GameSaveData;
       // Self-heal corrupted or outdated schemas by merging template defaults
-      const starter = generateStarterSave(userId, selectedClass);
+      const starter = generateStarterSave(userId, selectedClass, selectedName);
       if (!parsed.hero) {
         parsed.hero = starter.hero;
       } else {
         parsed.hero = { ...starter.hero, ...parsed.hero };
+        if (!parsed.hero.name) parsed.hero.name = starter.hero.name || 'Hero';
         if (!parsed.hero.baseStats) parsed.hero.baseStats = starter.hero.baseStats;
         if (!parsed.hero.currentStats) parsed.hero.currentStats = starter.hero.currentStats;
         if (!parsed.hero.heroClass) parsed.hero.heroClass = 'knight';

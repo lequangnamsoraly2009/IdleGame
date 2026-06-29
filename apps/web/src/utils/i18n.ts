@@ -38,7 +38,7 @@ export const translations = {
     log_filter_loot: "Rơi đồ",
     
     // Tabs
-    tab_hero: "🛡️ Chỉ số",
+    tab_hero: "👤 Nhân vật",
     tab_bag: "🎒 Hành trang",
     tab_quest: "📜 Nhiệm vụ",
     tab_guild: "🏰 Bang hội",
@@ -373,7 +373,7 @@ export const translations = {
     log_filter_loot: "Loot",
     
     // Tabs
-    tab_hero: "🛡️ Hero",
+    tab_hero: "👤 Character",
     tab_bag: "🎒 Bag",
     tab_quest: "📜 Quest",
     tab_guild: "🏰 Guild",

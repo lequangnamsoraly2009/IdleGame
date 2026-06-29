@@ -10,6 +10,8 @@ import { SummonTab } from './tabs/SummonTab';
 import { GuideTab } from './tabs/GuideTab';
 import { useTranslation, getTranslatedQuestTitle } from '../utils/i18n';
 import { useLanguageStore } from '../stores/languageStore';
+import { ItemInfoModal } from './ItemInfoModal';
+import { calculateHeroCP } from '@idle-rpg/shared';
 
 interface GameHUDProps {
   onNavigate: (to: string) => void;
@@ -32,7 +34,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     onStageChange,
     changeHeroClass,
     battleMode,
-    exitGuildRaid
+    exitGuildRaid,
+    activeInspectItemId
   } = useGameStore();
 
   const { t } = useTranslation();
@@ -62,7 +65,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
   };
   const getTabIconOnly = (tab: 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide') => {
     switch (tab) {
-      case 'hero': return '🛡️';
+      case 'hero': return '👤';
       case 'bag': return '🎒';
       case 'quest': return '📜';
       case 'guild': return '🏰';
@@ -101,7 +104,12 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
             🛡️
           </button>
           <div>
-            <h2 className="text-[10px] sm:text-sm font-extrabold tracking-tight font-display text-white">Lv.{hero.level}</h2>
+            <div className="flex items-baseline gap-1.5 leading-none">
+              <h2 className="text-[10px] sm:text-sm font-extrabold tracking-tight font-display text-white">Lv.{hero.level}</h2>
+              <span className="text-[8.5px] sm:text-[10.5px] font-black text-amber-450 font-mono" title={language === 'vi' ? 'Lực chiến' : 'Combat Power'}>
+                ⚔️{calculateHeroCP(hero.level, hero.prestigePoints, saveData.inventory.filter(item => item.equipped), hero.heroClass).toLocaleString()}
+              </span>
+            </div>
             <div className="w-16 sm:w-24 h-1 sm:h-1.5 bg-slate-900 border border-slate-800 rounded-full mt-1 overflow-hidden">
               <div 
                 className="h-full bg-blue-500 transition-all duration-300"
@@ -397,7 +405,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
         {/* Navigation Tabs Bar */}
         <nav className="flex justify-between items-center border-b border-slate-850 pb-2 mb-4 gap-2 overflow-hidden shrink-0">
           <div className="flex gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none shrink-0 snap-x snap-mandatory">
-            {(['hero', 'bag', 'quest', 'guild', 'shop', 'summon', 'guide'] as const).map(tab => (
+            {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -407,7 +415,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                     : 'bg-slate-950/60 hover:bg-slate-900 border-slate-850 text-slate-400 hover:text-white'
                 }`}
               >
-                {tab === 'hero' ? t('tab_hero') : tab === 'bag' ? t('tab_bag') : tab === 'quest' ? t('tab_quest') : tab === 'guild' ? t('tab_guild') : tab === 'shop' ? t('tab_shop') : tab === 'summon' ? t('tab_summon') : t('tab_guide')}
+                {tab === 'hero' ? t('tab_hero') : tab === 'quest' ? t('tab_quest') : tab === 'guild' ? t('tab_guild') : t('tab_shop')}
               </button>
             ))}
           </div>
@@ -425,7 +433,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
       {/* MOBILE BOTTOM STICKY NAVIGATION BAR (Hidden on desktop) */}
       <nav className="lg:hidden glass-panel rounded-2xl p-1.5 flex justify-around items-center shrink-0 z-20 border-slate-800 shadow-xl select-none mb-1">
-        {(['hero', 'bag', 'quest', 'guild', 'shop', 'summon', 'guide'] as const).map(tab => (
+        {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => {
@@ -473,7 +481,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
           {/* Switcher inside Modal */}
           <nav className="flex justify-around items-center border-t border-slate-850 pt-3 shrink-0 select-none">
-            {(['hero', 'bag', 'quest', 'guild', 'shop', 'summon', 'guide'] as const).map(tab => (
+            {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -597,6 +605,9 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
           </div>
         </div>
       )}
+
+      {/* Item Inspect Popup Overlay */}
+      {activeInspectItemId && <ItemInfoModal />}
     </div>
   );
 };

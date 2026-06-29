@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { useGameStore } from '../stores/gameStore';
 import { isUsingMock } from '@idle-rpg/firebase';
 import { useTranslation } from '../utils/i18n';
+import { useLanguageStore } from '../stores/languageStore';
 
 export const AuthScreen: React.FC = () => {
   const { signIn, signUp, isLoading } = useGameStore();
   const { t } = useTranslation();
+  const { language } = useLanguageStore();
+  const [characterName, setCharacterName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -22,11 +25,20 @@ export const AuthScreen: React.FC = () => {
 
     try {
       if (isRegister) {
+        if (!characterName.trim()) {
+          setError(language === 'vi' ? 'Tên nhân vật không được để trống!' : 'Character name cannot be empty!');
+          return;
+        }
+        if (characterName.length > 12) {
+          setError(language === 'vi' ? 'Tên nhân vật không được dài quá 12 ký tự!' : 'Character name cannot exceed 12 characters!');
+          return;
+        }
         if (password.length < 6) {
           setError(t('auth_error_pass_length'));
           return;
         }
         localStorage.setItem('selected_class', selectedClass);
+        localStorage.setItem('selected_name', characterName.trim());
         await signUp(email, password);
       } else {
         await signIn(email, password);
@@ -93,6 +105,21 @@ export const AuthScreen: React.FC = () => {
 
           {isRegister && (
             <div className="space-y-3 pt-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  {language === 'vi' ? 'Tên Nhân Vật (Tối đa 12 ký tự)' : 'Character Name (Max 12 chars)'}
+                </label>
+                <input
+                  type="text"
+                  value={characterName}
+                  onChange={(e) => setCharacterName(e.target.value.slice(0, 12))}
+                  maxLength={12}
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500/50 transition-colors text-white"
+                  placeholder={language === 'vi' ? 'Nhập tên nhân vật...' : 'Enter character name...'}
+                  disabled={isLoading}
+                />
+              </div>
+
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 {t('select_class_label')}
               </label>

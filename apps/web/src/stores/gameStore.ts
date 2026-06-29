@@ -24,6 +24,7 @@ interface GameState {
   saveData: GameSaveData | null;
   activeTab: 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide';
   isLoading: boolean;
+  activeInspectItemId: string | null;
   
   // Realtime Battle HUD healths (synced with Pixi tick updates)
   heroHp: number;
@@ -52,6 +53,7 @@ interface GameState {
   
   // Gameplay Actions
   setActiveTab: (tab: 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide') => void;
+  setActiveInspectItemId: (itemId: string | null) => void;
   upgradeEquipment: (itemId: string) => void;
   equipEquipment: (itemId: string) => void;
   unequipEquipment: (itemId: string) => void;
@@ -68,6 +70,75 @@ interface GameState {
   exitGuildRaid: () => void;
   addLogMessage: (text: string, category: 'combat' | 'loot' | 'system') => void;
   clearLogs: () => void;
+}
+
+function migrateMonsterResearch(monsterResearch: any): any {
+  if (!monsterResearch) return {};
+  const migrated: any = {};
+  
+  for (const [key, value] of Object.entries(monsterResearch)) {
+    if (!value || typeof value !== 'object') continue;
+    
+    // Strip suffix like _0, _1
+    const cleanId = key.replace(/_\d+$/, '');
+    const val = value as any;
+    
+    if (!migrated[cleanId]) {
+      const entry: any = {
+        level: val.level ?? 1,
+        exp: val.exp ?? 0,
+        kills: val.kills ?? 0
+      };
+      if (val.firstKillTime !== undefined && val.firstKillTime !== null) {
+        entry.firstKillTime = val.firstKillTime;
+      }
+      if (val.fastestKillMs !== undefined && val.fastestKillMs !== null) {
+        entry.fastestKillMs = val.fastestKillMs;
+      }
+      if (val.highestDamage !== undefined && val.highestDamage !== null) {
+        entry.highestDamage = val.highestDamage;
+      }
+      migrated[cleanId] = entry;
+    } else {
+      // Merge kills and exp, choose max level, first/fastest kills
+      const existing = migrated[cleanId];
+      existing.kills += val.kills ?? 0;
+      existing.exp += val.exp ?? 0;
+      existing.level = Math.max(existing.level, val.level ?? 1);
+      
+      if (val.firstKillTime !== undefined && val.firstKillTime !== null) {
+        existing.firstKillTime = existing.firstKillTime !== undefined && existing.firstKillTime !== null
+          ? Math.min(existing.firstKillTime, val.firstKillTime)
+          : val.firstKillTime;
+      }
+      if (val.fastestKillMs !== undefined && val.fastestKillMs !== null) {
+        existing.fastestKillMs = existing.fastestKillMs !== undefined && existing.fastestKillMs !== null
+          ? Math.min(existing.fastestKillMs, val.fastestKillMs)
+          : val.fastestKillMs;
+      }
+      if (val.highestDamage !== undefined && val.highestDamage !== null) {
+        existing.highestDamage = existing.highestDamage !== undefined && existing.highestDamage !== null
+          ? Math.max(existing.highestDamage, val.highestDamage)
+          : val.highestDamage;
+      }
+    }
+  }
+  
+  // Re-evaluate level up for the merged exp if needed
+  for (const [_, res] of Object.entries(migrated)) {
+    const r = res as any;
+    while (r.level < 50) {
+      const expNeeded = r.level * 100;
+      if (r.exp >= expNeeded) {
+        r.exp -= expNeeded;
+        r.level += 1;
+      } else {
+        break;
+      }
+    }
+  }
+  
+  return migrated;
 }
 
 export const useGameStore = create<GameState>((set, get) => {
@@ -107,6 +178,7 @@ export const useGameStore = create<GameState>((set, get) => {
     saveData: null,
     activeTab: 'hero',
     isLoading: true,
+    activeInspectItemId: null,
 
     // Combat HUD state
     heroHp: 100,
@@ -125,7 +197,19 @@ export const useGameStore = create<GameState>((set, get) => {
       const unsubscribe = authService.onAuthStateChanged(async (sessionUser) => {
         if (sessionUser) {
           try {
-            const data = await dbService.loadGame(sessionUser.id);
+            let data = await dbService.loadGame(sessionUser.id);
+            if (data && data.monsterResearch) {
+              const originalKeys = Object.keys(data.monsterResearch);
+              const hasSuffixedKeys = originalKeys.some(k => /_\d+$/.test(k));
+              if (hasSuffixedKeys) {
+                const migratedResearch = migrateMonsterResearch(data.monsterResearch);
+                data = {
+                  ...data,
+                  monsterResearch: migratedResearch
+                };
+                await dbService.saveGame(data);
+              }
+            }
             set({
               user: sessionUser,
               saveData: data,
@@ -188,6 +272,8 @@ export const useGameStore = create<GameState>((set, get) => {
 
     setActiveTab: (tab) => set({ activeTab: tab }),
 
+    setActiveInspectItemId: (itemId) => set({ activeInspectItemId: itemId }),
+
     syncBattleStats: (heroHp, monsterHp, maxHeroHp, maxMonsterHp, heroRage, monsterRage) => {
       set({ heroHp, monsterHp, heroMaxHp: maxHeroHp, monsterMaxHp: maxMonsterHp, heroRage, monsterRage });
     },
@@ -203,7 +289,8 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Update monster research if monsterId is provided
       if (monsterId) {
-        const currentRes = monsterResearch[monsterId] || { level: 1, exp: 0, kills: 0 };
+        const cleanMonsterId = monsterId.replace(/_\d+$/, '');
+        const currentRes = monsterResearch[cleanMonsterId] || { level: 1, exp: 0, kills: 0 };
         const nextKills = currentRes.kills + 1;
         let nextExp = currentRes.exp + 10; // 10 exp per kill
         let nextLevel = currentRes.level;
@@ -213,11 +300,11 @@ export const useGameStore = create<GameState>((set, get) => {
         if (nextExp >= expNeeded && nextLevel < 50) {
           nextExp -= expNeeded;
           nextLevel += 1;
-          get().addLogMessage(`📚 NGHIÊN CỨU: Nghiên cứu của bạn về [${monsterId.replace('s_', '').replace('g_', '').replace('u_', '').replace('e_', '').replace('d_', '').replace('_', ' ').toUpperCase()}] đã đạt Cấp ${nextLevel}!`, 'system');
+          get().addLogMessage(`📚 NGHIÊN CỨU: Nghiên cứu của bạn về [${cleanMonsterId.replace('s_', '').replace('g_', '').replace('u_', '').replace('e_', '').replace('d_', '').replace('_', ' ').toUpperCase()}] đã đạt Cấp ${nextLevel}!`, 'system');
         }
 
         // Check boss record memories
-        const species = MONSTER_SPECIES_DATABASE.find(s => s.id === monsterId);
+        const species = MONSTER_SPECIES_DATABASE.find(s => s.id === cleanMonsterId);
         let firstKillTime = currentRes.firstKillTime;
         let fastestKillMs = currentRes.fastestKillMs;
         let highestDamage = currentRes.highestDamage;
@@ -246,7 +333,7 @@ export const useGameStore = create<GameState>((set, get) => {
         if (fastestKillMs !== undefined) researchUpdate.fastestKillMs = fastestKillMs;
         if (highestDamage !== undefined) researchUpdate.highestDamage = highestDamage;
 
-        monsterResearch[monsterId] = researchUpdate;
+        monsterResearch[cleanMonsterId] = researchUpdate;
       }
 
       // Track item kills & evolution milestones
@@ -693,7 +780,7 @@ export const useGameStore = create<GameState>((set, get) => {
       hero.currentHp = hero.currentStats.maxHp;
 
       // Reset Quests to starter set
-      const initialSaveTemplate = generateStarterSave(saveData.userId, hero.heroClass);
+      const initialSaveTemplate = generateStarterSave(saveData.userId, hero.heroClass, hero.name || 'Hero');
       const quests = initialSaveTemplate.quests;
 
       get().addLogMessage(tStore('log_prestige_complete', { points: pointsEarned }), 'system');

@@ -122,14 +122,16 @@ if (isFirebaseConfigured) {
         const dbRef = ref(fbDb, `idleRpg/users/${userId}`);
         const snapshot = await get(dbRef);
         const selectedClass = (localStorage.getItem('selected_class') || 'knight') as 'knight' | 'mage' | 'assassin';
+        const selectedName = localStorage.getItem('selected_name') || 'Hero';
         if (snapshot.exists()) {
           const parsed = snapshot.val() as GameSaveData;
           // Self-heal corrupted or outdated schemas by merging template defaults
-          const starter = generateStarterSave(userId, selectedClass);
+          const starter = generateStarterSave(userId, selectedClass, selectedName);
           if (!parsed.hero) {
             parsed.hero = starter.hero;
           } else {
             parsed.hero = { ...starter.hero, ...parsed.hero };
+            if (!parsed.hero.name) parsed.hero.name = starter.hero.name || 'Hero';
             if (!parsed.hero.baseStats) parsed.hero.baseStats = starter.hero.baseStats;
             if (!parsed.hero.currentStats) parsed.hero.currentStats = starter.hero.currentStats;
             if (!parsed.hero.heroClass) parsed.hero.heroClass = 'knight';
@@ -161,8 +163,9 @@ if (isFirebaseConfigured) {
           return parsed;
         }
         // New save initialization
-        const starterSave = generateStarterSave(userId, selectedClass);
+        const starterSave = generateStarterSave(userId, selectedClass, selectedName);
         localStorage.removeItem('selected_class'); // clean up
+        localStorage.removeItem('selected_name'); // clean up
         await set(dbRef, starterSave);
         return starterSave;
       } catch (err) {

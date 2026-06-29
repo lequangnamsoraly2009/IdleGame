@@ -1,8 +1,18 @@
 import { Application, Container, Graphics } from 'pixi.js';
-import { BaseStats, MonsterTemplate, EquipmentItem } from '@idle-rpg/shared';
+import { BaseStats, MonsterTemplate, EquipmentItem, calculateMonsterCP, calculateHeroCP } from '@idle-rpg/shared';
 import { recalculateHeroStats, DEFAULT_ITEM_TEMPLATES, createItemInstance } from '@idle-rpg/shared';
 import { Entity } from './entities/Entity';
 import { DamageText } from './effects/DamageText';
+
+function formatCP(cp: number): string {
+  if (cp >= 1000000) {
+    return (cp / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (cp >= 1000) {
+    return (cp / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return cp.toString();
+}
 
 export type EngineEvent =
   | { type: 'DAMAGE_DEALT'; amount: number; isCrit: boolean; isHeroTarget: boolean; currentHp: number }
@@ -164,22 +174,9 @@ export class GameEngine {
 
     this.backgroundLayer.clear();
 
-    // Draw simple grid battle platform
+    // Draw a subtle dark overlay to enhance contrast for characters and damage text
     this.backgroundLayer.rect(0, 0, width, height);
-    this.backgroundLayer.fill({ color: 0x0f172a, alpha: 0.2 }); // faint overlay
-
-    // Floor line
-    const floorY = height * 0.65;
-    this.backgroundLayer.moveTo(0, floorY);
-    this.backgroundLayer.lineTo(width, floorY);
-    this.backgroundLayer.stroke({ color: 0x334155, width: 4 });
-
-    // Grid details for retro vibe
-    for (let i = 0; i < width; i += 40) {
-      this.backgroundLayer.moveTo(i, floorY);
-      this.backgroundLayer.lineTo(i - 20, floorY + 40);
-      this.backgroundLayer.stroke({ color: 0x1e293b, width: 1 });
-    }
+    this.backgroundLayer.fill({ color: 0x090c15, alpha: 0.15 }); // 15% opacity overlay
   }
 
   private positionEntities() {
@@ -220,34 +217,69 @@ export class GameEngine {
         ally.entity.updateStats(ally.currentHp, ally.maxHp, undefined, ally.rage, ally.heroClass);
       });
     } else {
-      // Normal Stage: Single Hero
+      // Normal Stage: Single Hero positioned at center-left
       if (this.heroEntity) {
-        this.heroEntity.setBasePosition(width * 0.25, floorY - 32);
+        this.heroEntity.setBasePosition(width * 0.26, floorY);
         this.heroEntity.resetVisuals();
         this.heroEntity.updateStats(this.heroCurrentHp, this.heroStats.maxHp, undefined, this.heroRage, this.heroClass);
       }
     }
 
-    // Monsters/Boss: Right side
+    // Monsters/Boss: Right side in staggered vertical column (Turn-based style)
     const count = this.activeMonsters.length;
     this.activeMonsters.forEach((m, idx) => {
-      let offsetFactor = 0.75;
-      if (count === 2) {
-        offsetFactor = idx === 0 ? 0.70 : 0.82;
-      } else if (count === 3) {
-        offsetFactor = idx === 0 ? 0.65 : idx === 1 ? 0.76 : 0.87;
+      let x = width * 0.70;
+      let y = floorY;
+
+      if (this.battleMode === 'guild_boss') {
+        // Guild Boss: centered
+        x = width * 0.72;
+        y = floorY;
+      } else {
+        // Normal wave: Staggered columns
+        if (count === 1) {
+          x = width * 0.70;
+          y = floorY;
+        } else if (count === 2) {
+          if (idx === 0) {
+            x = width * 0.76;
+            y = floorY - 60; // Top-Right Back (Increased spacing)
+          } else {
+            x = width * 0.65;
+            y = floorY + 60; // Bottom-Right Front (Increased spacing)
+          }
+        } else if (count === 3) {
+          if (idx === 0) {
+            x = width * 0.77;
+            y = floorY - 75; // Top-Right Back (Increased spacing)
+          } else if (idx === 1) {
+            x = width * 0.64;
+            y = floorY;      // Middle-Right Front (Increased spacing)
+          } else {
+            x = width * 0.77;
+            y = floorY + 75; // Bottom-Right Back (Increased spacing)
+          }
+        } else {
+          // For 4+ monsters, space them evenly with larger vertical gaps
+          const spacing = 90; // vertical spacing between monsters
+          x = width * 0.70;
+          y = floorY + (idx - Math.floor(count / 2)) * spacing;
+        }
       }
-      
-      m.entity.setBasePosition(width * offsetFactor, floorY - 32);
+
+      m.entity.setBasePosition(x, y);
       m.entity.resetVisuals();
       
-      // Giant scale if Raid Boss
-      const lowerName = m.template.name.toLowerCase();
-      const isBoss = lowerName.includes('behemoth') || lowerName.includes('boss') || lowerName.includes('king');
-      if (isBoss) {
-        m.entity.scale.set(2.2); // giant raid boss size
+      // Scale based on Boss type
+      const isRaidBoss = this.battleMode === 'guild_boss';
+      const isStageBoss = this.currentStage % 5 === 0;
+      
+      if (isRaidBoss) {
+        m.entity.scale.set(2.2); // giant raid boss
+      } else if (isStageBoss) {
+        m.entity.scale.set(1.6); // stage boss
       } else {
-        m.entity.scale.set(1.0);
+        m.entity.scale.set(1.0); // minion
       }
       
       m.entity.updateStats(m.currentHp, m.maxHp, undefined, m.rage);
@@ -259,7 +291,8 @@ export class GameEngine {
     prestigePoints: number,
     equippedItems: EquipmentItem[],
     stage: number,
-    heroClass?: 'knight' | 'mage' | 'assassin'
+    heroClass?: 'knight' | 'mage' | 'assassin',
+    heroName?: string
   ) {
     this.heroLevel = level;
     this.prestigePoints = prestigePoints;
@@ -272,10 +305,11 @@ export class GameEngine {
 
     if (this.heroEntity) {
       // Keep hero health capped to new max HP if it increased
-      if (this.heroCurrentHp > this.heroStats.maxHp) {
-        this.heroCurrentHp = this.heroStats.maxHp;
-      }
-      this.heroEntity.updateStats(this.heroCurrentHp, this.heroStats.maxHp, `Lvl ${this.heroLevel} Hero`, this.heroRage, this.heroClass);
+      const heroCP = calculateHeroCP(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass);
+      const displayName = heroName 
+        ? `Lv.${this.heroLevel} ${heroName} (⚔️${formatCP(heroCP)})` 
+        : `Lv.${this.heroLevel} Hero (⚔️${formatCP(heroCP)})`;
+      this.heroEntity.updateStats(this.heroCurrentHp, this.heroStats.maxHp, displayName, this.heroRage, this.heroClass);
 
       if (this.allyEntities[0]) {
         this.allyEntities[0].heroClass = this.heroClass;
@@ -326,7 +360,8 @@ export class GameEngine {
         name: count > 1 ? `${monster.name} ${String.fromCharCode(65 + i)}` : monster.name
       };
 
-      const entity = new Entity(`${template.name} (Lvl ${template.level})`, false, template.baseStats.maxHp);
+      const monsterCP = calculateMonsterCP(template);
+      const entity = new Entity(`${template.name} (Lv.${template.level}) (⚔️${formatCP(monsterCP)})`, false, template.baseStats.maxHp);
       this.entityLayer.addChild(entity);
 
       this.activeMonsters.push({
@@ -361,7 +396,8 @@ export class GameEngine {
     this.entityLayer.removeChildren();
 
     // 1. Re-spawn user hero as first ally
-    this.heroEntity = new Entity(`Lv.${this.heroLevel} ${guildMembers[0].name}`, true, this.heroStats.maxHp);
+    const heroCP = calculateHeroCP(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass);
+    this.heroEntity = new Entity(`Lv.${this.heroLevel} ${guildMembers[0].name} (⚔️${formatCP(heroCP)})`, true, this.heroStats.maxHp);
     this.entityLayer.addChild(this.heroEntity);
 
     this.allyEntities = [];
@@ -383,7 +419,8 @@ export class GameEngine {
       else if (mem.heroClass === 'mage') baseHp = 85 + (mem.level - 1) * 12;
       else if (mem.heroClass === 'assassin') baseHp = 90 + (mem.level - 1) * 13;
 
-      const allyEntity = new Entity(`Lv.${mem.level} ${mem.name}`, true, baseHp);
+      const memCP = calculateHeroCP(mem.level, 0, [], mem.heroClass);
+      const allyEntity = new Entity(`Lv.${mem.level} ${mem.name} (⚔️${formatCP(memCP)})`, true, baseHp);
       this.entityLayer.addChild(allyEntity);
 
       this.allyEntities.push({
@@ -401,7 +438,8 @@ export class GameEngine {
     this.activeMonsters = [];
 
     // 4. Set up Giant Raid Boss
-    const bossEntity = new Entity(`${bossTemplate.name}`, false, bossTemplate.baseStats.maxHp);
+    const bossCP = calculateMonsterCP(bossTemplate);
+    const bossEntity = new Entity(`${bossTemplate.name} (⚔️${formatCP(bossCP)})`, false, bossTemplate.baseStats.maxHp);
     this.entityLayer.addChild(bossEntity);
 
     this.activeMonsters.push({
@@ -464,6 +502,9 @@ export class GameEngine {
 
   private update(dt: number) {
     if (!this.app) return;
+
+    // Sort entities by Y coordinate to handle 2.5D depth layering
+    this.entityLayer.children.sort((a, b) => a.y - b.y);
 
     // Corrupted HP drain (0.5% max HP per second per corrupted item)
     if (this.isBattleActive && this.equippedItems.length > 0) {
@@ -1033,7 +1074,7 @@ export class GameEngine {
       gold: totalGold,
       diamonds: totalDiamonds,
       itemsDropped,
-      monsterId: firstMonster?.template.id,
+      monsterId: firstMonster?.template.id ? firstMonster.template.id.replace(/_\d+$/, '') : undefined,
       isMutated: firstMonster?.template.isMutated,
       durationMs: Date.now() - (this.battleStartTime || Date.now())
     });

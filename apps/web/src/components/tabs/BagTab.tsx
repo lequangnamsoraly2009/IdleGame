@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../../stores/gameStore';
-import { EquipmentItem, getFinalItemStats } from '@idle-rpg/shared';
-import { useTranslation, getTranslatedItemName } from '../../utils/i18n';
-import { useLanguageStore } from '../../stores/languageStore';
+import { EquipmentItem } from '@idle-rpg/shared';
+import { useTranslation } from '../../utils/i18n';
 import { ItemGraphic } from '../ItemGraphic';
 
 export const BagTab: React.FC = () => {
-  const { saveData, equipEquipment, unequipEquipment, upgradeEquipment, sellEquipment, sellMultipleEquipment, identifyEquipment, insertGem } = useGameStore();
-  const { language } = useLanguageStore();
+  const { saveData, sellMultipleEquipment, setActiveInspectItemId } = useGameStore();
   const { t } = useTranslation();
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
   // Bulk sell states
   const [isBulkSellMode, setIsBulkSellMode] = useState(false);
@@ -17,9 +14,7 @@ export const BagTab: React.FC = () => {
 
   if (!saveData) return null;
 
-  const { inventory, hero } = saveData;
-  const selectedItem = inventory.find(item => item.id === selectedItemId);
-  const stats = selectedItem ? getFinalItemStats(selectedItem) : null;
+  const { inventory } = saveData;
 
   const getRarityUIStyles = (item: EquipmentItem) => {
     // Corrupted overrides outline color with glowing red
@@ -161,9 +156,7 @@ export const BagTab: React.FC = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 h-full overflow-hidden pr-1">
       {/* Grid List */}
-      <div className={`lg:col-span-2 flex flex-col justify-between h-full bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 overflow-hidden shrink-0 ${
-        (selectedItemId || isBulkSellMode) ? 'hidden lg:flex' : 'flex'
-      }`}>
+      <div className={`${isBulkSellMode ? 'lg:col-span-2 h-1/2 lg:h-full' : 'lg:col-span-3 h-full'} flex flex-col justify-between bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 overflow-hidden shrink-0`}>
         <div>
           <div className="flex justify-between items-center mb-4 border-b border-slate-850 pb-2 gap-2 flex-wrap">
             <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
@@ -174,7 +167,6 @@ export const BagTab: React.FC = () => {
                 onClick={() => {
                   setIsBulkSellMode(!isBulkSellMode);
                   setSelectedItemIds([]);
-                  setSelectedItemId(null);
                 }}
                 className={`text-xs font-extrabold px-3 py-1.5 rounded-lg border transition active:scale-[0.98] cursor-pointer ${
                   isBulkSellMode 
@@ -194,9 +186,7 @@ export const BagTab: React.FC = () => {
           <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 gap-2 overflow-y-auto flex-1 min-h-0 lg:h-[300px] pr-1">
             {inventory.map((item) => {
               const ui = getRarityUIStyles(item);
-              const isSelected = isBulkSellMode 
-                ? selectedItemIds.includes(item.id) 
-                : item.id === selectedItemId;
+              const isSelected = isBulkSellMode && selectedItemIds.includes(item.id);
 
               const handleItemClick = () => {
                 if (isBulkSellMode) {
@@ -207,7 +197,7 @@ export const BagTab: React.FC = () => {
                     setSelectedItemIds([...selectedItemIds, item.id]);
                   }
                 } else {
-                  setSelectedItemId(item.id);
+                  setActiveInspectItemId(item.id);
                 }
               };
 
@@ -276,11 +266,9 @@ export const BagTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Item Inspector Panel */}
-      <div className={`lg:col-span-1 bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between h-full shrink-0 ${
-        (!selectedItemId && !isBulkSellMode) ? 'hidden lg:flex' : 'flex'
-      }`}>
-        {isBulkSellMode ? (
+      {/* Item Inspector Panel (Bulk Sell Mode only) */}
+      {isBulkSellMode && (
+        <div className="lg:col-span-1 h-1/2 lg:h-full bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between shrink-0">
           <div className="flex flex-col justify-between h-full">
             <div>
               <div className="flex justify-between items-center mb-3">
@@ -345,7 +333,7 @@ export const BagTab: React.FC = () => {
                   <span className="text-slate-200 font-extrabold">{selectedItemIds.length} món</span>
                 </div>
                 <div className="flex justify-between text-xs font-semibold border-t border-slate-900 pt-2">
-                  <span className="text-slate-400">Tổng Vàng nhận lại:</span>
+                  <span className="text-slate-450 font-bold">Tổng Vàng nhận lại:</span>
                   <span className="text-amber-400 font-extrabold">{totalEstimatedGold.toLocaleString()} Vàng 💰</span>
                 </div>
               </div>
@@ -373,268 +361,8 @@ export const BagTab: React.FC = () => {
               </button>
             </div>
           </div>
-        ) : selectedItem ? (
-          <div className="flex flex-col justify-between h-full overflow-hidden">
-            <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin space-y-3 pb-3">
-              {/* Back button on Mobile */}
-              <div className="lg:hidden">
-                <button
-                  onClick={() => setSelectedItemId(null)}
-                  className="flex items-center gap-1.5 text-xs text-slate-400 font-extrabold active:scale-95 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-lg cursor-pointer hover:text-white"
-                >
-                  ◀ Quay lại hành trang
-                </button>
-              </div>
-              {/* Header Rarity info */}
-              <div className="flex justify-between items-center mb-3">
-                <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded ${getRarityUIStyles(selectedItem).bg} ${getRarityUIStyles(selectedItem).text}`}>
-                  {t('rarity_' + selectedItem.rarity)}
-                </span>
-                <span className="text-xs text-slate-400 font-medium">
-                  Slot: {t('slot_' + selectedItem.slot)}
-                </span>
-              </div>
-
-              {/* Title & Level */}
-              <h4 className={`text-lg font-extrabold flex items-center gap-2.5 font-display ${getRarityUIStyles(selectedItem).text}`}>
-                <ItemGraphic templateId={selectedItem.templateId} isCorrupted={selectedItem.isCorrupted} isCursed={selectedItem.isCursed} isIdentified={selectedItem.isIdentified} className="w-8 h-8" />
-                <span>{selectedItem.isIdentified === false ? `??? [${t('slot_' + selectedItem.slot)}]` : getTranslatedItemName(t, selectedItem)}</span>
-                <span className="text-xs opacity-80">+{selectedItem.level}</span>
-              </h4>
-
-              {/* Class Restriction */}
-              {selectedItem.allowedClass && (
-                <div className="mt-1 mb-3 text-[10px] font-bold">
-                  <span className="text-slate-400">Yêu cầu Lớp: </span>
-                  <span className={hero.heroClass === selectedItem.allowedClass ? "text-emerald-400" : "text-red-400 font-extrabold animate-pulse"}>
-                    {selectedItem.allowedClass === 'knight' ? 'Hiệp Sĩ 🛡️' : selectedItem.allowedClass === 'mage' ? 'Pháp Sư 🔮' : 'Sát Thủ 🗡️'}
-                    {hero.heroClass !== selectedItem.allowedClass && ' (Không tương thích)'}
-                  </span>
-                </div>
-              )}
-
-              {/* Description */}
-              <p className="text-xs text-slate-400 italic mt-1 mb-4 leading-relaxed">
-                {selectedItem.isCorrupted ? (
-                  <span className="text-red-400 font-extrabold uppercase tracking-wide">👿 Vật Phẩm Hư Hỏng: Không thể nâng cấp. Sát thương x2, nhưng rút 0.5% máu tối đa mỗi giây trong chiến đấu.</span>
-                ) : selectedItem.isCursed ? (
-                  <span className="text-purple-400 font-extrabold uppercase tracking-wide">💀 Vật Phẩm Bị Nguyền Rủa: Tăng 150 Công nhưng trừ 80 Thủ, giảm 20% sinh mệnh tối đa.</span>
-                ) : selectedItem.rarity === 'legendary' 
-                  ? t('item_desc_legendary')
-                  : t('item_desc_standard', { slot: t('slot_' + selectedItem.slot).toLowerCase() })
-                }
-              </p>
-
-              {/* Kills Memory Evolution */}
-              {selectedItem.kills !== undefined && selectedItem.isIdentified !== false && (
-                <div className="flex justify-between items-center text-[10px] text-slate-500 border-t border-dashed border-slate-800/80 pt-2 pb-3 mb-2">
-                  <span>🎯 Kills: <strong className="text-slate-300 font-extrabold">{selectedItem.kills.toLocaleString()}</strong></span>
-                  <span className="px-1.5 py-0.2 rounded bg-slate-950/60 text-slate-300 border border-slate-800 font-extrabold uppercase">
-                    Tầng: {selectedItem.kills >= 100000 ? '🔥 Ancient' : selectedItem.kills >= 10000 ? '⚡ Veteran' : 'Standard'}
-                  </span>
-                </div>
-              )}
-
-              {/* Stats Block */}
-              <div className="bg-slate-950/50 border border-slate-900 rounded-xl p-4 space-y-2 mb-2">
-                <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">
-                  {t('core_attributes')}
-                </span>
-
-                {selectedItem.isIdentified === false ? (
-                  <div className="text-center py-4 text-amber-500/80 text-xs font-bold italic animate-pulse">
-                    ✨ Vật phẩm chưa giám định. Hãy giám định để khai phá sức mạnh ẩn giấu!
-                  </div>
-                ) : (
-                  <>
-                    {stats && stats.attack > 0 && (
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-slate-400">{t('attack_power')}</span>
-                        <span className="text-blue-400">+{stats.attack}</span>
-                      </div>
-                    )}
-                    {stats && stats.maxHp > 0 && (
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-slate-400">{t('max_health')}</span>
-                        <span className="text-emerald-400">+{stats.maxHp}</span>
-                      </div>
-                    )}
-                    {stats && stats.defense !== 0 && (
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-slate-400">{t('defense_rating')}</span>
-                        <span className={stats.defense > 0 ? "text-indigo-400" : "text-purple-400"}>
-                          {stats.defense > 0 ? `+${stats.defense}` : stats.defense}
-                        </span>
-                      </div>
-                    )}
-                    {stats && stats.speed > 0 && (
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-slate-400">{t('attack_speed')}</span>
-                        <span className="text-cyan-400">+{Math.round(stats.speed * 100) / 100}%</span>
-                      </div>
-                    )}
-                    {stats && stats.critRate > 0 && (
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-slate-400">{t('critical_rate')}</span>
-                        <span className="text-amber-400">+{Math.round(stats.critRate * 100)}%</span>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Sockets Block */}
-              {selectedItem.isIdentified !== false && selectedItem.sockets && selectedItem.sockets.length > 0 && (
-                <div className="bg-slate-950/40 border border-slate-900/60 rounded-xl p-3.5 mb-4">
-                  <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-3 border-b border-slate-900 pb-1">
-                    💎 Ô KHẢM NGỌC ({selectedItem.sockets.filter(Boolean).length} / {selectedItem.sockets.length})
-                  </span>
-                  <div className="flex flex-col gap-3">
-                    {selectedItem.sockets.map((gem, idx) => (
-                      <div key={idx} className="flex flex-col gap-1.5 w-full">
-                        <span className="text-[8px] text-slate-500 font-extrabold block">
-                          Ô KHẢM #{idx + 1}:
-                        </span>
-                        {gem ? (
-                          <div className="w-full flex items-center gap-2.5 p-2 rounded-lg bg-slate-950/80 border border-slate-900 shadow-inner">
-                            <span className="text-lg">{gem === 'ruby' ? '🔴' : gem === 'emerald' ? '🟢' : '🟡'}</span>
-                            <div className="flex-1 text-[10px]">
-                              <span className="font-extrabold text-slate-200 block leading-tight">
-                                {gem === 'ruby' ? 'Hồng Ngọc (Ruby)' : gem === 'emerald' ? 'Phỉ Thúy (Emerald)' : 'Hoàng Ngọc (Topaz)'}
-                              </span>
-                              <span className="text-slate-400 font-medium text-[9px] mt-0.5 block">
-                                Chỉ số cộng thêm: <strong className="text-emerald-400 font-extrabold">{gem === 'ruby' ? '+15 Tấn Công' : gem === 'emerald' ? '+4% Chí Mạng' : '+15% Vàng rơi'}</strong>
-                              </span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col gap-1.5 w-full bg-slate-900/30 p-2 rounded-lg border border-slate-950">
-                            <span className="text-[8.5px] text-slate-450 font-bold uppercase tracking-wider block mb-0.5">
-                              Chọn loại ngọc để khảm (Phí: 100 Vàng 💰):
-                            </span>
-                            <div className="flex flex-col gap-1">
-                              <button
-                                onClick={() => insertGem(selectedItem.id, 'ruby', idx)}
-                                disabled={hero.gold < 100}
-                                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded bg-red-950/20 hover:bg-red-900/30 border border-red-500/20 text-[9.5px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-                              >
-                                <span className="flex items-center gap-1.5">
-                                  <span>🔴</span>
-                                  <span className="text-red-400">Hồng Ngọc (Ruby)</span>
-                                </span>
-                                <span className="text-slate-300 font-mono">+15 ATK</span>
-                              </button>
-                              <button
-                                onClick={() => insertGem(selectedItem.id, 'emerald', idx)}
-                                disabled={hero.gold < 100}
-                                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded bg-emerald-950/20 hover:bg-emerald-900/30 border border-emerald-550/20 text-[9.5px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-                              >
-                                <span className="flex items-center gap-1.5">
-                                  <span>🟢</span>
-                                  <span className="text-emerald-400">Phỉ Thúy (Emerald)</span>
-                                </span>
-                                <span className="text-slate-300 font-mono">+4% CRIT</span>
-                              </button>
-                              <button
-                                onClick={() => insertGem(selectedItem.id, 'topaz', idx)}
-                                disabled={hero.gold < 100}
-                                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded bg-amber-950/20 hover:bg-amber-900/30 border border-amber-500/20 text-[9.5px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-                              >
-                                <span className="flex items-center gap-1.5">
-                                  <span>🟡</span>
-                                  <span className="text-amber-400">Hoàng Ngọc (Topaz)</span>
-                                </span>
-                                <span className="text-slate-300 font-mono">+15% GOLD</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Actions Block */}
-            <div className="space-y-2.5 pt-4 border-t border-slate-850 shrink-0">
-              {selectedItem.isIdentified === false ? (
-                <button
-                  onClick={() => identifyEquipment(selectedItem.id)}
-                  disabled={hero.gold < 200}
-                  className="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white text-xs font-extrabold py-3.5 px-4 rounded-xl border border-amber-400/20 active:scale-[0.98] transition disabled:opacity-40 disabled:pointer-events-none flex justify-between items-center cursor-pointer"
-                >
-                  <span>✨ GIÁM ĐỊNH (Identify)</span>
-                  <span className="bg-slate-950/40 text-amber-300 px-2 py-0.5 rounded border border-amber-500/10 font-bold">
-                    200 Vàng 💰
-                  </span>
-                </button>
-              ) : (
-                <>
-                  <div className="flex gap-2">
-                    {selectedItem.equipped ? (
-                      <button
-                        onClick={() => unequipEquipment(selectedItem.id)}
-                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-3 px-2 rounded-xl transition active:scale-[0.98] cursor-pointer"
-                      >
-                        {t('unequip_btn')}
-                      </button>
-                    ) : (
-                      (() => {
-                        const isClassIncompatible = selectedItem.allowedClass && hero.heroClass && selectedItem.allowedClass !== hero.heroClass;
-                        return (
-                          <button
-                            onClick={() => equipEquipment(selectedItem.id)}
-                            disabled={!!isClassIncompatible}
-                            className={`flex-1 text-xs font-bold py-3 px-2 rounded-xl transition active:scale-[0.98] cursor-pointer ${
-                              isClassIncompatible 
-                                ? 'bg-slate-800 text-slate-500 border border-slate-900/60 cursor-not-allowed opacity-50' 
-                                : 'bg-blue-600 hover:bg-blue-500 text-white'
-                            }`}
-                          >
-                            {isClassIncompatible ? (language === 'vi' ? 'Sai Class 🔒' : 'Incompatible 🔒') : t('equip_btn')}
-                          </button>
-                        );
-                      })()
-                    )}
-
-                    <button
-                      onClick={() => {
-                        sellEquipment(selectedItem.id);
-                        setSelectedItemId(null);
-                      }}
-                      disabled={selectedItem.equipped}
-                      className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold py-3 px-3 rounded-xl transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-                      title={selectedItem.equipped ? t('sell_warn') : ''}
-                    >
-                      {t('sell_btn')} ({calculateSellPrice(selectedItem)}💰)
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => upgradeEquipment(selectedItem.id)}
-                    disabled={hero.gold < selectedItem.upgradeCost || selectedItem.isCorrupted}
-                    className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold py-3.5 px-4 rounded-xl border border-emerald-400/20 active:scale-[0.98] transition disabled:opacity-40 disabled:pointer-events-none flex justify-between items-center cursor-pointer"
-                  >
-                    <span>🚀 {t('upgrade_btn')}</span>
-                    <span className="bg-slate-950/40 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/10 font-bold">
-                      {selectedItem.upgradeCost} Gold 💰
-                    </span>
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-slate-500 py-12">
-            <span className="text-3xl mb-2">🔍</span>
-            <span className="text-xs font-semibold uppercase tracking-wider">{t('no_items')}</span>
-            <p className="text-[11px] text-center text-slate-600 mt-1 max-w-[180px]">
-              {t('bag_inspect_tip')}
-            </p>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

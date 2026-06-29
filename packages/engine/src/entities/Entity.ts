@@ -56,18 +56,38 @@ export class Entity extends Container {
     this.drawRageBar(0);
     this.addChild(this.rageBarFill);
 
-    // Create text label for level/name
+    // Parse rank prefix for monster color coding
+    let displayName = name;
+    let rankColor = isHero ? 0x60a5fa : 0xfca5a5; // default ally / normal monster
+
+    if (!isHero) {
+      if (name.includes('[Boss]')) {
+        displayName = name.replace('[Boss] ', '');
+        rankColor = 0xef4444; // vibrant red for Boss
+      } else if (name.includes('[Champion]')) {
+        displayName = name.replace('[Champion] ', '');
+        rankColor = 0xd946ef; // fuchsia for Champion
+      } else if (name.includes('[Elite]')) {
+        displayName = name.replace('[Elite] ', '');
+        rankColor = 0xf59e0b; // amber for Elite
+      } else if (name.includes('[Normal]')) {
+        displayName = name.replace('[Normal] ', '');
+        rankColor = 0xcbd5e1; // slate for Normal
+      }
+    }
+
     const labelStyle = new TextStyle({
       fontFamily: 'Outfit, Inter, Arial, sans-serif',
-      fontSize: 12,
+      fontSize: 9,
       fontWeight: 'bold',
-      fill: 0xffffff,
+      fill: rankColor,
+      stroke: { color: 0x0f172a, width: 3.5 }, // thick outline for premium contrast
       align: 'center'
     });
 
-    this.nameText = new Text({ text: name, style: labelStyle });
+    this.nameText = new Text({ text: displayName, style: labelStyle });
     this.nameText.anchor.set(0.5);
-    this.nameText.y = -75;
+    this.nameText.y = -95; // increased vertical offset to avoid overlapping labels
     this.addChild(this.nameText);
   }
 
@@ -318,7 +338,31 @@ export class Entity extends Container {
     if (name) {
       const nameChanged = this.name !== name;
       this.name = name;
-      this.nameText.text = name;
+      
+      let displayName = name;
+      let rankColor = this.isHero ? 0x60a5fa : 0xfca5a5;
+
+      if (!this.isHero) {
+        if (name.includes('[Boss]')) {
+          displayName = name.replace('[Boss] ', '');
+          rankColor = 0xef4444;
+        } else if (name.includes('[Champion]')) {
+          displayName = name.replace('[Champion] ', '');
+          rankColor = 0xd946ef;
+        } else if (name.includes('[Elite]')) {
+          displayName = name.replace('[Elite] ', '');
+          rankColor = 0xf59e0b;
+        } else if (name.includes('[Normal]')) {
+          displayName = name.replace('[Normal] ', '');
+          rankColor = 0xcbd5e1;
+        }
+      }
+
+      // Positioning of entities is handled in Engine.positionEntities; no local positioning needed here.
+
+      this.nameText.text = displayName;
+      this.nameText.style.fill = rankColor;
+      this.nameText.y = -95; // align with increased offset
       if (nameChanged || classChanged) {
         this.drawBody();
       }

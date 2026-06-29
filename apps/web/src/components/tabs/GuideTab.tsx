@@ -128,7 +128,7 @@ export const GuideTab: React.FC = () => {
 
       <div className="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden relative">
         {/* Left column: grid view species list */}
-        <div className={`flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 gap-2 scrollbar-thin ${
+        <div className={`flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 gap-2 scrollbar-thin content-start ${
           showDetailOnMobile ? 'hidden md:grid' : 'grid'
         }`}>
           {filteredList.map(monster => {
@@ -181,7 +181,7 @@ export const GuideTab: React.FC = () => {
           })}
         </div>
 
-        <div className={`w-full md:w-[280px] bg-slate-900/60 border border-slate-850 rounded-xl p-4 flex flex-col justify-between overflow-y-auto scrollbar-thin shrink-0 ${
+        <div className={`w-full h-full md:w-[280px] bg-slate-900/60 border border-slate-850 rounded-xl p-4 flex flex-col justify-between overflow-y-auto scrollbar-thin shrink-0 ${
           !showDetailOnMobile ? 'hidden md:flex' : 'flex'
         }`}>
           

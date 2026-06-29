@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { useLanguageStore } from '../../stores/languageStore';
-import { calculatePrestigePoints } from '@idle-rpg/shared';
+import { calculatePrestigePoints, calculateHeroCP } from '@idle-rpg/shared';
 import { useTranslation, getTranslatedItemName } from '../../utils/i18n';
 import { ItemGraphic } from '../ItemGraphic';
+import { BagTab } from './BagTab';
+import { GuideTab } from './GuideTab';
 
 export const HeroTab: React.FC = () => {
-  const { saveData, triggerPrestige } = useGameStore();
+  const { saveData, triggerPrestige, setActiveInspectItemId } = useGameStore();
   const { language } = useLanguageStore();
   const { t } = useTranslation();
+  const [subTab, setSubTab] = useState<'stats' | 'bag' | 'guide'>('stats');
   
   if (!saveData) return null;
 
@@ -160,6 +163,7 @@ export const HeroTab: React.FC = () => {
       return (
         <div 
           key={slot} 
+          onClick={() => setActiveInspectItemId(item.id)}
           className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl border-2 flex flex-col items-center justify-center relative cursor-pointer group hover:scale-[1.03] transition duration-200 select-none ${borderClass}`}
         >
           <ItemGraphic 
@@ -199,126 +203,158 @@ export const HeroTab: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full overflow-y-auto pr-1 pb-4 scrollbar-thin">
-      
-      {/* COLUMN 1: Character Equipment Doll & Statistics Grid */}
-      <div className="space-y-4">
-        {/* Gear slots around Avatar */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex items-center justify-between gap-4">
-          {/* Left slots */}
-          <div className="flex flex-col gap-2">
-            {leftSlots.map(s => renderEquippedSlot(s.slot, s.icon, s.label))}
-          </div>
-
-          {/* Center Class Doll */}
-          <div className={`flex-1 flex flex-col items-center justify-center py-2 px-3 rounded-2xl border bg-gradient-to-b relative overflow-hidden h-44 sm:h-52 ${classDetails.bgClass}`}>
-            <div className="absolute w-24 h-24 bg-white/5 rounded-full blur-xl -top-6 -left-6" />
-            <div className="absolute w-24 h-24 bg-white/5 rounded-full blur-xl -bottom-6 -right-6" />
-
-            <div className="relative z-10 flex items-center justify-center">
-              {renderCharacterSVG(hero.heroClass || 'knight')}
-            </div>
-
-            <span className="text-xs sm:text-sm font-black text-white mt-3 relative z-10 tracking-wide uppercase">
-              {language === 'vi' ? classDetails.titleVi : classDetails.titleEn}
-            </span>
-            <span className="text-[9px] bg-slate-950/80 border border-slate-800/80 text-yellow-400 font-extrabold px-2 py-0.5 rounded-full mt-1 relative z-10 uppercase tracking-widest font-mono shadow">
-              Lv.{hero.level}
-            </span>
-          </div>
-
-          {/* Right slots */}
-          <div className="flex flex-col gap-2">
-            {rightSlots.map(s => renderEquippedSlot(s.slot, s.icon, s.label))}
-          </div>
-        </div>
-
-        {/* Character stats display */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4">
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-850 pb-1.5 flex items-center gap-1.5">
-            <span>🛡️</span> {t('core_attributes')}
-          </h3>
-          <div className="grid grid-cols-2 gap-2">
-            {statItems.map((stat, i) => (
-              <div key={i} className="bg-slate-950/40 border border-slate-900/60 rounded-xl p-2.5 flex justify-between items-center">
-                <div>
-                  <span className="block text-[8px] text-slate-450 font-bold uppercase tracking-wider">
-                    {stat.label}
-                  </span>
-                  <span className="block text-[8px] text-slate-500 font-medium">
-                    {stat.desc}
-                  </span>
-                </div>
-                <span className="text-xs sm:text-sm font-black text-blue-400 font-display">
-                  {stat.value}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Sub tabs selector */}
+      <div className="flex gap-1 bg-slate-950/85 p-1.5 rounded-xl border border-slate-900 mb-4 select-none shrink-0 max-w-fit">
+        {([
+          { id: 'stats', label: language === 'vi' ? '🛡️ Chỉ Số' : '🛡️ Stats' },
+          { id: 'bag', label: language === 'vi' ? '🎒 Hành Trang' : '🎒 Bag' },
+          { id: 'guide', label: language === 'vi' ? '📖 Sổ Tay' : '📖 Bestiary' }
+        ] as const).map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setSubTab(tab.id)}
+            className={`text-[10px] sm:text-xs font-bold py-2 px-4 rounded-lg cursor-pointer transition active:scale-95 ${
+              subTab === tab.id
+                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/10'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* COLUMN 2: Prestige Ascension Panel */}
-      <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between h-fit md:h-full">
-        <div>
-          <h3 className="text-sm font-black text-white mb-2 flex items-center gap-2 border-b border-slate-850 pb-2">
-            <span className="text-yellow-500">🏆</span> {t('ascension_prestige')}
-          </h3>
-          <p className="text-[11px] text-slate-400 leading-relaxed mb-4">
-            {t('prestige_desc')}
-          </p>
+      {/* Sub tab content */}
+      <div className="flex-1 overflow-hidden relative">
+        {subTab === 'stats' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full overflow-y-auto pr-1 pb-4 scrollbar-thin">
+            {/* COLUMN 1: Character Equipment Doll & Statistics Grid */}
+            <div className="space-y-4">
+              {/* Gear slots around Avatar */}
+              <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex items-center justify-between gap-4">
+                {/* Left slots */}
+                <div className="flex flex-col gap-2">
+                  {leftSlots.map(s => renderEquippedSlot(s.slot, s.icon, s.label))}
+                </div>
 
-          <div className="bg-slate-950/50 border border-slate-900 rounded-xl p-4 space-y-3 mb-6">
-            <div className="flex justify-between items-center text-xs border-b border-slate-900 pb-2">
-              <span className="text-slate-450">{t('total_prestige_runs')}</span>
-              <span className="font-bold text-yellow-500">{hero.prestigeCount}</span>
-            </div>
-            <div className="flex justify-between items-center text-xs border-b border-slate-900 pb-2">
-              <span className="text-slate-450">{t('active_prestige_points')}</span>
-              <span className="font-bold text-yellow-400">{hero.prestigePoints}</span>
-            </div>
-            
-            {hero.prestigePoints > 0 && (
-              <div className="pt-1 space-y-1.5">
-                <span className="block text-[8px] text-slate-500 uppercase tracking-widest font-semibold mb-1">
-                  {t('active_buffs')}
-                </span>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-slate-450">{t('damage_modifier')}</span>
-                  <span className="font-bold text-emerald-400">+{prestigeDmgBonus}%</span>
+                {/* Center Class Doll */}
+                <div className={`flex-1 flex flex-col items-center justify-center py-2 px-3 rounded-2xl border bg-gradient-to-b relative overflow-hidden h-44 sm:h-52 ${classDetails.bgClass}`}>
+                  <div className="absolute w-24 h-24 bg-white/5 rounded-full blur-xl -top-6 -left-6" />
+                  <div className="absolute w-24 h-24 bg-white/5 rounded-full blur-xl -bottom-6 -right-6" />
+
+                  <div className="relative z-10 flex items-center justify-center">
+                    {renderCharacterSVG(hero.heroClass || 'knight')}
+                  </div>
+
+                  <span className="text-xs sm:text-sm font-black text-white mt-3 relative z-10 tracking-wide uppercase">
+                    {language === 'vi' ? classDetails.titleVi : classDetails.titleEn}
+                  </span>
+                  <span className="text-[9px] bg-slate-950/80 border border-slate-800/80 text-yellow-450 font-extrabold px-2 py-0.5 rounded-full mt-1 relative z-10 uppercase tracking-widest font-mono shadow">
+                    Lv.{hero.level}
+                  </span>
+                  <span className="text-[9px] bg-slate-950/90 border border-slate-850 text-amber-450 font-black px-2 py-0.5 rounded-full mt-1.5 relative z-10 font-mono shadow flex items-center gap-0.5">
+                    ⚔️ {calculateHeroCP(hero.level, hero.prestigePoints, inventory.filter(item => item.equipped), hero.heroClass).toLocaleString()}
+                  </span>
                 </div>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-slate-450">{t('hp_modifier')}</span>
-                  <span className="font-bold text-emerald-400">+{prestigeHpBonus}%</span>
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-slate-450">{t('defense_modifier')}</span>
-                  <span className="font-bold text-emerald-400">+{prestigeDefBonus}%</span>
+
+                {/* Right slots */}
+                <div className="flex flex-col gap-2">
+                  {rightSlots.map(s => renderEquippedSlot(s.slot, s.icon, s.label))}
                 </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        <div>
-          {prestigeReward > 0 ? (
-            <button
-              onClick={triggerPrestige}
-              className="w-full bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-slate-950 font-extrabold py-3 px-4 rounded-xl shadow-lg shadow-yellow-500/10 active:scale-[0.98] transition-all text-[11px] tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>✨</span> {t('ascend_now')} (+{prestigeReward} {t('prestige_points')})
-            </button>
-          ) : (
-            <div className="text-center p-3.5 bg-slate-950/80 border border-slate-900 rounded-xl">
-              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                {t('ascension_locked')}
-              </span>
-              <p className="text-[10px] text-slate-500 leading-relaxed">
-                {t('ascension_locked_desc', { stage: stagesCleared + 1 })}
-              </p>
+              {/* Character stats display */}
+              <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-850 pb-1.5 flex items-center gap-1.5">
+                  <span>🛡️</span> {t('core_attributes')}
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {statItems.map((stat, i) => (
+                    <div key={i} className="bg-slate-950/40 border border-slate-900/60 rounded-xl p-2.5 flex justify-between items-center">
+                      <div>
+                        <span className="block text-[8px] text-slate-450 font-bold uppercase tracking-wider">
+                          {stat.label}
+                        </span>
+                        <span className="block text-[8px] text-slate-500 font-medium">
+                          {stat.desc}
+                        </span>
+                      </div>
+                      <span className="text-xs sm:text-sm font-black text-blue-400 font-display">
+                        {stat.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* COLUMN 2: Prestige Ascension Panel */}
+            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between h-fit md:h-full">
+              <div>
+                <h3 className="text-sm font-black text-white mb-2 flex items-center gap-2 border-b border-slate-850 pb-2">
+                  <span className="text-yellow-500">🏆</span> {t('ascension_prestige')}
+                </h3>
+                <p className="text-[11px] text-slate-400 leading-relaxed mb-4">
+                  {t('prestige_desc')}
+                </p>
+
+                <div className="bg-slate-950/50 border border-slate-900 rounded-xl p-4 space-y-3 mb-6">
+                  <div className="flex justify-between items-center text-xs border-b border-slate-900 pb-2">
+                    <span className="text-slate-450">{t('total_prestige_runs')}</span>
+                    <span className="font-bold text-yellow-500">{hero.prestigeCount}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs border-b border-slate-900 pb-2">
+                    <span className="text-slate-450">{t('active_prestige_points')}</span>
+                    <span className="font-bold text-yellow-400">{hero.prestigePoints}</span>
+                  </div>
+                  
+                  {hero.prestigePoints > 0 && (
+                    <div className="pt-1 space-y-1.5">
+                      <span className="block text-[8px] text-slate-500 uppercase tracking-widest font-semibold mb-1">
+                        {t('active_buffs')}
+                      </span>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-450">{t('damage_modifier')}</span>
+                        <span className="font-bold text-emerald-400">+{prestigeDmgBonus}%</span>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-450">{t('hp_modifier')}</span>
+                        <span className="font-bold text-emerald-400">+{prestigeHpBonus}%</span>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-450">{t('defense_modifier')}</span>
+                        <span className="font-bold text-emerald-400">+{prestigeDefBonus}%</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                {prestigeReward > 0 ? (
+                  <button
+                    onClick={triggerPrestige}
+                    className="w-full bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-slate-950 font-extrabold py-3 px-4 rounded-xl shadow-lg shadow-yellow-500/10 active:scale-[0.98] transition-all text-[11px] tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>✨</span> {t('ascend_now')} (+{prestigeReward} {t('prestige_points')})
+                  </button>
+                ) : (
+                  <div className="text-center p-3.5 bg-slate-950/80 border border-slate-900 rounded-xl">
+                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      {t('ascension_locked')}
+                    </span>
+                    <p className="text-[10px] text-slate-500 leading-relaxed">
+                      {t('ascension_locked_desc', { stage: stagesCleared + 1 })}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        {subTab === 'bag' && <BagTab />}
+        {subTab === 'guide' && <GuideTab />}
       </div>
     </div>
   );

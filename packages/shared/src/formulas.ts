@@ -727,3 +727,73 @@ export function generateMonsterForStage(
     weaknesses: selectedSpecies.weaknesses
   };
 }
+
+export function calculateItemCP(item: EquipmentItem): number {
+  if (!item) return 0;
+  const stats = getFinalItemStats(item);
+
+  // base stats CP
+  let cp = (stats.attack || 0) * 6.0 +
+           (stats.maxHp || 0) * 0.5 +
+           (stats.defense || 0) * 4.0 +
+           (stats.speed || 0) * 5.0 +
+           (stats.critRate || 0) * 100 * 15.0 +
+           ((stats.critDamage || 1.5) - 1.5) * 100 * 8.0;
+
+  // rarity bonus
+  const rarityBonuses: Record<string, number> = {
+    common: 0,
+    uncommon: 50,
+    rare: 150,
+    epic: 400,
+    legendary: 1000
+  };
+  cp += rarityBonuses[item.rarity] || 0;
+
+  // gem bonus
+  if (item.sockets) {
+    const gemCount = item.sockets.filter(Boolean).length;
+    cp += gemCount * 100;
+  }
+
+  return Math.round(cp);
+}
+
+export function calculateHeroCP(
+  level: number,
+  prestigePoints: number,
+  equippedItems: EquipmentItem[],
+  heroClass?: 'knight' | 'mage' | 'assassin'
+): number {
+  const stats = recalculateHeroStats(level, prestigePoints, equippedItems, heroClass);
+
+  // Calculate basic CP based on final stats
+  let cp = stats.attack * 6.0 +
+           stats.maxHp * 0.5 +
+           stats.defense * 4.0 +
+           stats.speed * 5.0 +
+           stats.critRate * 100 * 15.0 +
+           (stats.critDamage - 1.5) * 100 * 8.0;
+
+  // Add equipped items CP
+  const items = equippedItems || [];
+  for (const item of items) {
+    if (item) {
+      cp += calculateItemCP(item);
+    }
+  }
+
+  return Math.round(cp);
+}
+
+export function calculateMonsterCP(monster: { baseStats: BaseStats; level: number }): number {
+  if (!monster || !monster.baseStats) return 0;
+  const stats = monster.baseStats;
+  let cp = (stats.attack || 0) * 6.0 +
+           (stats.maxHp || 0) * 0.5 +
+           (stats.defense || 0) * 4.0 +
+           (stats.speed || 0) * 5.0 +
+           (stats.critRate || 0) * 100 * 15.0 +
+           ((stats.critDamage || 1.5) - 1.5) * 100 * 8.0;
+  return Math.round(cp);
+}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { useTranslation } from '../../utils/i18n';
 import { useLanguageStore } from '../../stores/languageStore';
+import { calculateHeroCP } from '@idle-rpg/shared';
 
 export const GuildTab: React.FC = () => {
   const { saveData, addLogMessage, startGuildRaid, battleMode } = useGameStore();
@@ -12,7 +13,7 @@ export const GuildTab: React.FC = () => {
 
   if (!saveData) return null;
 
-  const { hero } = saveData;
+  const { hero, inventory } = saveData;
 
   const handleGoldDonation = () => {
     if (hero.gold < 500) {
@@ -97,7 +98,58 @@ export const GuildTab: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-5 space-y-2 flex-1">
+          <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 border-t border-slate-850/80 pt-3">
+            👥 {language === 'vi' ? 'THÀNH VIÊN ĐỘI RAID' : 'RAID TEAM MEMBERS'}
+          </span>
+          <div className="space-y-1.5 overflow-y-auto max-h-[160px] pr-1 scrollbar-none">
+            {/* You */}
+            <div className="flex justify-between items-center bg-slate-950/40 border border-slate-900/60 p-2 rounded-lg text-[11px]">
+              <div className="flex flex-col">
+                <span className="font-extrabold text-blue-400 block truncate max-w-[100px]">{hero.name || 'Hero'} (Bạn)</span>
+                <span className="text-[9px] text-slate-500">{hero.heroClass === 'knight' ? '🛡️ Hiệp Sĩ' : hero.heroClass === 'mage' ? '🔮 Pháp Sư' : '🗡️ Sát Thủ'} • Lv.{hero.level}</span>
+              </div>
+              <span className="font-extrabold text-amber-450 font-mono">
+                ⚔️{calculateHeroCP(hero.level, hero.prestigePoints, inventory.filter(item => item.equipped), hero.heroClass).toLocaleString()}
+              </span>
+            </div>
+
+            {/* Vanguard Order */}
+            <div className="flex justify-between items-center bg-slate-950/20 border border-slate-900/30 p-2 rounded-lg text-[11px]">
+              <div className="flex flex-col">
+                <span className="font-extrabold text-slate-300 block">Vanguard Order</span>
+                <span className="text-[9px] text-slate-500">🛡️ Hiệp Sĩ • Lv.{Math.max(1, hero.level - 2)}</span>
+              </div>
+              <span className="font-extrabold text-slate-400 font-mono">
+                ⚔️{calculateHeroCP(Math.max(1, hero.level - 2), 0, [], 'knight').toLocaleString()}
+              </span>
+            </div>
+
+            {/* Spellweaver */}
+            <div className="flex justify-between items-center bg-slate-950/20 border border-slate-900/30 p-2 rounded-lg text-[11px]">
+              <div className="flex flex-col">
+                <span className="font-extrabold text-slate-300 block">Spellweaver</span>
+                <span className="text-[9px] text-slate-500">🔮 Pháp Sư • Lv.{hero.level + 1}</span>
+              </div>
+              <span className="font-extrabold text-slate-400 font-mono">
+                ⚔️{calculateHeroCP(hero.level + 1, 0, [], 'mage').toLocaleString()}
+              </span>
+            </div>
+
+            {/* Silent Blade */}
+            <div className="flex justify-between items-center bg-slate-950/20 border border-slate-900/30 p-2 rounded-lg text-[11px]">
+              <div className="flex flex-col">
+                <span className="font-extrabold text-slate-300 block">Silent Blade</span>
+                <span className="text-[9px] text-slate-500">🗡️ Sát Thủ • Lv.{Math.max(1, hero.level - 1)}</span>
+              </div>
+              <span className="font-extrabold text-slate-400 font-mono">
+                ⚔️{calculateHeroCP(Math.max(1, hero.level - 1), 0, [], 'assassin').toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
           <div className="w-full bg-slate-950/80 border border-slate-900 p-3 rounded-lg text-[10px] text-slate-500 leading-relaxed text-center">
             {t('guild_announcement')}
           </div>

@@ -49,6 +49,7 @@ export interface EquipmentItem {
 }
 
 export interface HeroState {
+  name?: string;
   level: number;
   exp: number;
   maxExp: number;

@@ -1,0 +1,425 @@
+import React from 'react';
+import { useGameStore } from '../stores/gameStore';
+import { getFinalItemStats, EquipmentItem, calculateItemCP } from '@idle-rpg/shared';
+import { useTranslation, getTranslatedItemName } from '../utils/i18n';
+import { useLanguageStore } from '../stores/languageStore';
+import { ItemGraphic } from './ItemGraphic';
+
+export const ItemInfoModal: React.FC = () => {
+  const { 
+    saveData, 
+    activeInspectItemId, 
+    setActiveInspectItemId,
+    equipEquipment, 
+    unequipEquipment, 
+    upgradeEquipment, 
+    sellEquipment, 
+    identifyEquipment, 
+    insertGem 
+  } = useGameStore();
+
+  const { t } = useTranslation();
+  const { language } = useLanguageStore();
+
+  if (!saveData || !activeInspectItemId) return null;
+
+  const item = saveData.inventory.find(i => i.id === activeInspectItemId);
+  if (!item) return null;
+
+  const stats = getFinalItemStats(item);
+  const hero = saveData.hero;
+
+  const getRarityUIStyles = (item: EquipmentItem) => {
+    if (item.isCorrupted) {
+      return {
+        border: 'border-red-600/90 ring-1 ring-red-600/50',
+        bg: 'bg-gradient-to-br from-red-950/40 via-red-900/10 to-red-950/40',
+        glow: 'shadow-[0_0_15px_rgba(239,68,68,0.7)] animate-pulse',
+        text: 'text-red-500 font-extrabold',
+        extraElements: (
+          <div className="absolute top-1 right-1 text-[8px] animate-pulse text-red-400 pointer-events-none">👿</div>
+        )
+      };
+    }
+    if (item.isCursed) {
+      return {
+        border: 'border-purple-600/80 ring-1 ring-purple-600/40',
+        bg: 'bg-gradient-to-br from-purple-950/40 via-slate-900 to-purple-950/40',
+        glow: 'shadow-[0_0_12px_rgba(147,51,234,0.5)]',
+        text: 'text-purple-400 font-extrabold',
+        extraElements: (
+          <div className="absolute top-1 right-1 text-[8px] animate-pulse text-purple-400 pointer-events-none">💀</div>
+        )
+      };
+    }
+
+    switch (item.rarity) {
+      case 'common':
+        return {
+          border: 'border-slate-850',
+          bg: 'bg-slate-950/90',
+          glow: '',
+          text: 'text-slate-400',
+          extraElements: null
+        };
+      case 'uncommon':
+        return {
+          border: 'border-emerald-500/35',
+          bg: 'bg-emerald-950/20',
+          glow: '',
+          text: 'text-emerald-400',
+          extraElements: (
+            <>
+              <div className="absolute top-1.5 left-1.5 w-1 h-1 bg-emerald-500/70 rounded-full pointer-events-none" />
+              <div className="absolute top-1.5 right-1.5 w-1 h-1 bg-emerald-500/70 rounded-full pointer-events-none" />
+              <div className="absolute bottom-1.5 left-1.5 w-1 h-1 bg-emerald-500/70 rounded-full pointer-events-none" />
+              <div className="absolute bottom-1.5 right-1.5 w-1 h-1 bg-emerald-500/70 rounded-full pointer-events-none" />
+            </>
+          )
+        };
+      case 'rare':
+        return {
+          border: 'border-blue-500/40',
+          bg: 'bg-blue-950/25',
+          glow: 'shadow-[0_0_8px_rgba(59,130,246,0.2)]',
+          text: 'text-blue-400',
+          extraElements: (
+            <>
+              <div className="absolute top-1.5 left-1.5 border-t border-l border-blue-400/40 w-1.5 h-1.5 rounded-tl-sm pointer-events-none" />
+              <div className="absolute bottom-1.5 right-1.5 border-b border-r border-blue-400/40 w-1.5 h-1.5 rounded-br-sm pointer-events-none" />
+              <div className="absolute w-7 h-7 rounded-full border border-blue-500/5 bg-blue-500/5 pointer-events-none" />
+            </>
+          )
+        };
+      case 'epic':
+        return {
+          border: 'border-purple-500/70',
+          bg: 'bg-purple-950/30',
+          glow: 'shadow-[0_0_12px_rgba(168,85,247,0.35)]',
+          text: 'text-purple-400',
+          extraElements: (
+            <>
+              <div className="absolute inset-1 border border-purple-500/15 rounded-lg animate-pulse pointer-events-none" />
+              <div className="absolute top-1 left-1 border-t border-l border-purple-400 w-2 h-2 rounded-tl-md pointer-events-none" />
+              <div className="absolute top-1 right-1 border-t border-r border-purple-400 w-2 h-2 rounded-tr-md pointer-events-none" />
+              <div className="absolute bottom-1 left-1 border-b border-l border-purple-400 w-2 h-2 rounded-bl-md pointer-events-none" />
+              <div className="absolute bottom-1 right-1 border-b border-r border-purple-400 w-2 h-2 rounded-br-md pointer-events-none" />
+              <div className="absolute w-9 h-9 rounded-full bg-purple-500/10 blur-sm animate-pulse pointer-events-none" />
+            </>
+          )
+        };
+      case 'legendary':
+        return {
+          border: 'border-transparent',
+          bg: 'bg-gradient-to-br from-amber-500/30 via-yellow-600/15 to-orange-500/30',
+          glow: 'shadow-[0_0_18px_rgba(245,158,11,0.55)] ring-1 ring-amber-400/20',
+          text: 'text-amber-500 font-extrabold neon-text-gold',
+          extraElements: (
+            <>
+              <div 
+                className="absolute w-[180%] h-[180%] bg-[conic-gradient(from_0deg,transparent_10%,#f59e0b_45%,#fbbf24_55%,transparent_90%)] animate-spin pointer-events-none rounded-full" 
+                style={{ animationDuration: '2.5s' }}
+              />
+              <div className="absolute inset-[1px] bg-slate-950 rounded-[11px] pointer-events-none" />
+              <div className="absolute inset-0.5 bg-gradient-to-br from-amber-500/15 to-orange-600/10 rounded-[10px] pointer-events-none" />
+              <div className="absolute w-10 h-10 rounded-full bg-amber-500/15 blur-sm animate-pulse pointer-events-none" />
+              <div className="absolute top-1 left-1 text-[8px] animate-pulse text-amber-300 pointer-events-none">✨</div>
+              <div className="absolute bottom-1 right-1.5 text-[8px] animate-pulse text-amber-300 pointer-events-none" style={{ animationDelay: '0.6s' }}>✨</div>
+            </>
+          )
+        };
+    }
+  };
+
+  const calculateSellPrice = (item: EquipmentItem) => {
+    const baseCost = {
+      common: 50,
+      uncommon: 75,
+      rare: 110,
+      epic: 175,
+      legendary: 300
+    }[item.rarity];
+    return Math.floor(baseCost * 0.3 * (1 + (item.level - 1) * 0.1));
+  };
+
+  const ui = getRarityUIStyles(item);
+
+  return (
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {/* Modal Card container */}
+      <div className="bg-slate-900/95 border border-slate-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col max-h-[85vh] overflow-hidden animate-fade-in relative">
+        
+        {/* Header Block */}
+        <div className="flex justify-between items-start border-b border-slate-850 pb-3 mb-4 shrink-0 pr-6">
+          <div className="space-y-1">
+            <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded ${ui.bg} ${ui.text}`}>
+              {t('rarity_' + item.rarity)}
+            </span>
+            <span className="text-[10px] text-slate-500 font-bold block mt-1">
+              Slot: {t('slot_' + item.slot)}
+            </span>
+          </div>
+          
+          <button 
+            onClick={() => setActiveInspectItemId(null)}
+            className="absolute top-4 right-4 w-7 h-7 rounded-full bg-slate-950 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white font-extrabold text-xs active:scale-95 cursor-pointer z-10"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Scrollable Content wrapper - Hidden scrollbar, still scrollable! */}
+        <div className="flex-1 overflow-y-auto scrollbar-none space-y-4 pr-1 pb-4">
+          
+          {/* Visual card */}
+          <div className={`p-4 rounded-xl border relative flex flex-col items-center justify-center select-none ${ui.border} ${ui.bg} ${ui.glow}`}>
+            {ui.extraElements}
+            {item.equipped && (
+              <span className="absolute top-2 left-2 bg-blue-600 text-[8px] text-white px-2 py-0.5 rounded font-extrabold uppercase leading-none shadow z-10">
+                {language === 'vi' ? 'ĐANG DÙNG' : 'EQUIPPED'}
+              </span>
+            )}
+            
+            <ItemGraphic templateId={item.templateId} isCorrupted={item.isCorrupted} isCursed={item.isCursed} isIdentified={item.isIdentified} className="w-14 h-14 mb-2 relative z-10" />
+            <h4 className={`text-base font-extrabold flex items-center gap-1.5 font-display ${ui.text}`}>
+              <span>{item.isIdentified === false ? `??? [${t('slot_' + item.slot)}]` : getTranslatedItemName(t, item)}</span>
+              <span className="text-xs opacity-90">+{item.level}</span>
+            </h4>
+            {item.isIdentified !== false && (
+              <span className="mt-1 text-[10px] font-extrabold bg-slate-950/80 px-2 py-0.5 rounded-full border border-slate-800 text-yellow-450 tracking-wider relative z-10 font-mono shadow">
+                ⚔️ {language === 'vi' ? 'Lực chiến: ' : 'CP: '}{calculateItemCP(item).toLocaleString()}
+              </span>
+            )}
+          </div>
+
+          {/* Class Restriction */}
+          {item.allowedClass && (
+            <div className="text-[10px] font-bold bg-slate-950/60 p-2.5 rounded-xl border border-slate-900">
+              <span className="text-slate-450">{language === 'vi' ? 'Yêu cầu Lớp: ' : 'Required Class: '}</span>
+              <span className={hero.heroClass === item.allowedClass ? "text-emerald-400" : "text-red-400 font-extrabold animate-pulse"}>
+                {item.allowedClass === 'knight' ? (language === 'vi' ? 'Hiệp Sĩ 🛡️' : 'Knight 🛡️') : item.allowedClass === 'mage' ? (language === 'vi' ? 'Pháp Sư 🔮' : 'Mage 🔮') : (language === 'vi' ? 'Sát Thủ 🗡️' : 'Assassin 🗡️')}
+                {hero.heroClass !== item.allowedClass && (language === 'vi' ? ' (Không tương thích)' : ' (Incompatible)')}
+              </span>
+            </div>
+          )}
+
+          {/* Description */}
+          <p className="text-xs text-slate-400 italic leading-relaxed bg-slate-950/40 p-3 rounded-xl border border-slate-900/60">
+            {item.isCorrupted ? (
+              <span className="text-red-400 font-extrabold uppercase tracking-wide">👿 {language === 'vi' ? 'Vật Phẩm Hư Hỏng: Không thể nâng cấp. Sát thương x2, nhưng rút 0.5% máu tối đa mỗi giây trong chiến đấu.' : 'Corrupted Item: Cannot upgrade. x2 Dmg, but drains 0.5% max HP per second in battle.'}</span>
+            ) : item.isCursed ? (
+              <span className="text-purple-400 font-extrabold uppercase tracking-wide">💀 {language === 'vi' ? 'Vật Phẩm Bị Nguyền Rủa: Tăng 150 Công nhưng trừ 80 Thủ, giảm 20% sinh mệnh tối đa.' : 'Cursed Item: +150 Atk but -80 Def, -20% max HP.'}</span>
+            ) : item.rarity === 'legendary' 
+              ? t('item_desc_legendary')
+              : t('item_desc_standard', { slot: t('slot_' + item.slot).toLowerCase() })
+            }
+          </p>
+
+          {/* Kills Evolution */}
+          {item.kills !== undefined && item.isIdentified !== false && (
+            <div className="flex justify-between items-center text-[10px] text-slate-500 bg-slate-950/40 border border-slate-900/60 px-3 py-2 rounded-xl">
+              <span>🎯 Kills: <strong className="text-slate-350 font-extrabold">{item.kills.toLocaleString()}</strong></span>
+              <span className="px-1.5 py-0.2 rounded bg-slate-950/80 text-slate-300 border border-slate-800 text-[8px] font-extrabold uppercase font-mono">
+                {language === 'vi' ? 'BẬC: ' : 'TIER: '}{item.kills >= 100000 ? 'Ancient 🔥' : item.kills >= 10000 ? 'Veteran ⚡' : 'Standard'}
+              </span>
+            </div>
+          )}
+
+          {/* Stats Attributes */}
+          <div className="bg-slate-950/60 border border-slate-900 rounded-xl p-3.5 space-y-2">
+            <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider border-b border-slate-900 pb-1">
+              {t('core_attributes')}
+            </span>
+
+            {item.isIdentified === false ? (
+              <div className="text-center py-2 text-amber-500/80 text-[10px] font-bold italic animate-pulse">
+                ✨ {language === 'vi' ? 'Vật phẩm chưa giám định. Hãy giám định để khai phá sức mạnh ẩn!' : 'Unidentified item. Identify to unlock attributes!'}
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {stats && stats.attack > 0 && (
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-slate-450">{t('attack_power')}</span>
+                    <span className="text-blue-400">+{stats.attack}</span>
+                  </div>
+                )}
+                {stats && stats.maxHp > 0 && (
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-slate-455">{t('max_health')}</span>
+                    <span className="text-emerald-400">+{stats.maxHp}</span>
+                  </div>
+                )}
+                {stats && stats.defense !== 0 && (
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-slate-455">{t('defense_rating')}</span>
+                    <span className={stats.defense > 0 ? "text-indigo-400" : "text-purple-400"}>
+                      {stats.defense > 0 ? `+${stats.defense}` : stats.defense}
+                    </span>
+                  </div>
+                )}
+                {stats && stats.speed > 0 && (
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-slate-455">{t('attack_speed')}</span>
+                    <span className="text-cyan-400">+{Math.round(stats.speed * 100) / 100}%</span>
+                  </div>
+                )}
+                {stats && stats.critRate > 0 && (
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-slate-455">{t('critical_rate')}</span>
+                    <span className="text-amber-400">+{Math.round(stats.critRate * 100)}%</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Sockets khảm ngọc */}
+          {item.isIdentified !== false && item.sockets && item.sockets.length > 0 && (
+            <div className="bg-slate-950/60 border border-slate-900 rounded-xl p-3.5">
+              <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2.5 border-b border-slate-900 pb-1">
+                💎 {language === 'vi' ? 'Ô KHẢM NGỌC' : 'GEMS/SOCKETS'} ({item.sockets.filter(Boolean).length} / {item.sockets.length})
+              </span>
+              <div className="flex flex-col gap-3">
+                {item.sockets.map((gem, idx) => (
+                  <div key={idx} className="flex flex-col gap-1 w-full">
+                    <span className="text-[8px] text-slate-500 font-extrabold block">
+                      {language === 'vi' ? `Ô KHẢM #${idx + 1}:` : `SOCKET #${idx + 1}:`}
+                    </span>
+                    {gem ? (
+                      <div className="w-full flex items-center gap-2 p-1.5 rounded-lg bg-slate-950/80 border border-slate-900 shadow-inner">
+                        <span className="text-base">{gem === 'ruby' ? '🔴' : gem === 'emerald' ? '🟢' : '🟡'}</span>
+                        <div className="flex-1 text-[10px]">
+                          <span className="font-extrabold text-slate-200 block leading-tight">
+                            {gem === 'ruby' ? (language === 'vi' ? 'Hồng Ngọc (Ruby)' : 'Ruby') : gem === 'emerald' ? (language === 'vi' ? 'Phỉ Thúy (Emerald)' : 'Emerald') : (language === 'vi' ? 'Hoàng Ngọc (Topaz)' : 'Topaz')}
+                          </span>
+                          <span className="text-slate-400 font-medium text-[8px] mt-0.5 block">
+                            {gem === 'ruby' ? '+15 ATK' : gem === 'emerald' ? '+4% CRIT' : '+15% GOLD'}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1 w-full bg-slate-900/30 p-2 rounded-lg border border-slate-950">
+                        <span className="text-[8px] text-slate-450 font-bold uppercase tracking-wider block mb-0.5">
+                          {language === 'vi' ? 'Khảm ngọc (Phí: 100 Vàng 💰):' : 'Slot Gem (Fee: 100 Gold 💰):'}
+                        </span>
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={() => insertGem(item.id, 'ruby', idx)}
+                            disabled={hero.gold < 100}
+                            className="w-full flex items-center justify-between px-2 py-1 rounded bg-red-950/20 hover:bg-red-900/35 border border-red-500/20 text-[9px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                          >
+                            <span className="flex items-center gap-1">
+                              <span>🔴</span>
+                              <span className="text-red-400">Ruby</span>
+                            </span>
+                            <span className="text-slate-350 font-mono">+15 ATK</span>
+                          </button>
+                          <button
+                            onClick={() => insertGem(item.id, 'emerald', idx)}
+                            disabled={hero.gold < 100}
+                            className="w-full flex items-center justify-between px-2 py-1 rounded bg-emerald-950/20 hover:bg-emerald-900/35 border border-emerald-550/20 text-[9px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                          >
+                            <span className="flex items-center gap-1">
+                              <span>🟢</span>
+                              <span className="text-emerald-400">Emerald</span>
+                            </span>
+                            <span className="text-slate-350 font-mono">+4% CRIT</span>
+                          </button>
+                          <button
+                            onClick={() => insertGem(item.id, 'topaz', idx)}
+                            disabled={hero.gold < 100}
+                            className="w-full flex items-center justify-between px-2 py-1 rounded bg-amber-950/20 hover:bg-amber-900/35 border border-amber-500/20 text-[9px] font-extrabold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                          >
+                            <span className="flex items-center gap-1">
+                              <span>🟡</span>
+                              <span className="text-amber-400">Topaz</span>
+                            </span>
+                            <span className="text-slate-350 font-mono">+15% GOLD</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer Action buttons */}
+        <div className="pt-3 border-t border-slate-850 shrink-0 space-y-2">
+          {item.isIdentified === false ? (
+            <button
+              onClick={() => identifyEquipment(item.id)}
+              disabled={hero.gold < 200}
+              className="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-slate-950 text-xs font-extrabold py-3 px-4 rounded-xl border border-amber-400/20 active:scale-[0.98] transition disabled:opacity-40 disabled:pointer-events-none flex justify-between items-center cursor-pointer"
+            >
+              <span>✨ {language === 'vi' ? 'GIÁM ĐỊNH VẬT PHẨM' : 'IDENTIFY EQUIPMENT'}</span>
+              <span className="bg-slate-950/40 text-amber-950 px-2 py-0.5 rounded border border-amber-500/10 font-bold font-mono">
+                200 💰
+              </span>
+            </button>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                {item.equipped ? (
+                  <button
+                    onClick={() => {
+                      unequipEquipment(item.id);
+                    }}
+                    className="flex-1 bg-slate-800 hover:bg-slate-750 text-white text-xs font-bold py-2.5 rounded-xl border border-slate-700 transition active:scale-[0.98] cursor-pointer"
+                  >
+                    {t('unequip_btn')}
+                  </button>
+                ) : (
+                  (() => {
+                    const isClassIncompatible = item.allowedClass && hero.heroClass && item.allowedClass !== hero.heroClass;
+                    return (
+                      <button
+                        onClick={() => {
+                          equipEquipment(item.id);
+                        }}
+                        disabled={!!isClassIncompatible}
+                        className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition active:scale-[0.98] cursor-pointer ${
+                          isClassIncompatible 
+                            ? 'bg-slate-800 text-slate-500 border border-slate-900/60 cursor-not-allowed opacity-50' 
+                            : 'bg-blue-600 hover:bg-blue-500 text-white border border-blue-500/20'
+                        }`}
+                      >
+                        {isClassIncompatible ? (language === 'vi' ? 'Sai Class 🔒' : 'Class Locked 🔒') : t('equip_btn')}
+                      </button>
+                    );
+                  })()
+                )}
+
+                <button
+                  onClick={() => {
+                    sellEquipment(item.id);
+                    // sellEquipment will delete it from inventory, making 'item' undefined in this modal and auto-closing it!
+                  }}
+                  disabled={item.equipped}
+                  className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold py-2.5 px-4 rounded-xl transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                  title={item.equipped ? t('sell_warn') : ''}
+                >
+                  {t('sell_btn')} ({calculateSellPrice(item)}💰)
+                </button>
+              </div>
+
+              <button
+                onClick={() => upgradeEquipment(item.id)}
+                disabled={hero.gold < item.upgradeCost || item.isCorrupted}
+                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold py-3 px-4 rounded-xl border border-emerald-400/20 active:scale-[0.98] transition disabled:opacity-40 disabled:pointer-events-none flex justify-between items-center cursor-pointer"
+              >
+                <span>🚀 {t('upgrade_btn')}</span>
+                <span className="bg-slate-950/40 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/10 font-bold font-mono">
+                  {item.upgradeCost} 💰
+                </span>
+              </button>
+            </>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+};
