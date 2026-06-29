@@ -335,6 +335,17 @@ export const translations = {
     monster_base_Drake: "Rồng Nhỏ",
     monster_base_Dragon: "Rồng",
     monster_base_Titan: "Khổng Lồ",
+
+    // Hero Revival
+    revive_title: "ANH HÙNG GỤC NGÃ",
+    revive_subtitle: "Sinh lực đã cạn, vui lòng chọn phương án hồi sinh:",
+    revive_gold: "Hồi sinh bằng Vàng",
+    revive_diamonds: "Hồi sinh bằng Kim Cương",
+    revive_time: "Hồi sinh miễn phí",
+    revive_countdown: "Tự động hồi sinh miễn phí sau {seconds} giây",
+    keep_stage_note: "(Giữ nguyên Ải hiện tại)",
+    drop_stage_note: "(Giảm đi 1 Ải phạt)",
+    log_hero_revived: "Anh Hùng đã hồi sinh và sẵn sàng chiến đấu!",
   },
   en: {
     // Auth Screen
@@ -607,6 +618,17 @@ export const translations = {
     monster_base_Drake: "Drake",
     monster_base_Dragon: "Dragon",
     monster_base_Titan: "Titan",
+
+    // Hero Revival
+    revive_title: "HERO DEFEATED",
+    revive_subtitle: "Your HP reached 0, select a revival option:",
+    revive_gold: "Revive with Gold",
+    revive_diamonds: "Revive with Diamonds",
+    revive_time: "Free Revive",
+    revive_countdown: "Auto free revive in {seconds}s",
+    keep_stage_note: "(Keep active Stage)",
+    drop_stage_note: "(Drop 1 Stage penalty)",
+    log_hero_revived: "Hero has revived and is ready to fight!",
   }
 };
 

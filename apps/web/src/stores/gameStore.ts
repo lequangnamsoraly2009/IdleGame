@@ -36,10 +36,19 @@ interface GameState {
   monsterName: string;
   battleMode: 'stage' | 'guild_boss';
 
+  // Hero Revival System State
+  isDead: boolean;
+  reviveCostGold: number;
+  reviveCostDiamonds: number;
+  engineInstance: any | null;
+
   // Combat Log List
   combatLogs: CombatLogEntry[];
 
   // Actions
+  registerEngine: (engine: any) => void;
+  triggerHeroDefeated: () => void;
+  reviveHero: (method: 'gold' | 'diamonds' | 'time') => boolean;
   initializeAuth: () => () => void;
   signIn: (email: string, pass: string) => Promise<void>;
   signUp: (email: string, pass: string) => Promise<void>;
@@ -189,6 +198,12 @@ export const useGameStore = create<GameState>((set, get) => {
     monsterRage: 0,
     monsterName: 'Loading monster...',
     battleMode: 'stage',
+
+    // Hero Revival System State
+    isDead: false,
+    reviveCostGold: 0,
+    reviveCostDiamonds: 0,
+    engineInstance: null,
 
     combatLogs: [],
 
@@ -949,6 +964,72 @@ export const useGameStore = create<GameState>((set, get) => {
         const logs = [entry, ...state.combatLogs].slice(0, 50);
         return { combatLogs: logs };
       });
+    },
+
+    registerEngine: (engine) => {
+      set({ engineInstance: engine });
+    },
+
+    triggerHeroDefeated: () => {
+      const { saveData } = get();
+      if (!saveData) return;
+      const stage = saveData.activeStage;
+      const goldCost = Math.max(500, stage * 300);
+      const diamondCost = Math.max(5, Math.floor(stage / 10));
+      set({
+        isDead: true,
+        reviveCostGold: goldCost,
+        reviveCostDiamonds: diamondCost
+      });
+    },
+
+    reviveHero: (method) => {
+      const { saveData, reviveCostGold, reviveCostDiamonds, engineInstance } = get();
+      if (!saveData) return false;
+
+      const hero = { ...saveData.hero };
+      let sameStage = true;
+
+      if (method === 'gold') {
+        if (hero.gold < reviveCostGold) {
+          get().addLogMessage(tStore('insufficient_gold'), 'system');
+          return false;
+        }
+        hero.gold -= reviveCostGold;
+      } else if (method === 'diamonds') {
+        if (hero.diamonds < reviveCostDiamonds) {
+          get().addLogMessage(tStore('insufficient_diamonds'), 'system');
+          return false;
+        }
+        hero.diamonds -= reviveCostDiamonds;
+      } else if (method === 'time') {
+        sameStage = false;
+      }
+
+      // Restore health
+      hero.currentHp = hero.currentStats.maxHp;
+
+      let updatedStage = saveData.activeStage;
+      if (!sameStage) {
+        updatedStage = Math.max(1, saveData.activeStage - 1);
+      }
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        activeStage: updatedStage,
+        lastSavedAt: Date.now()
+      };
+
+      set({ isDead: false, heroHp: hero.currentStats.maxHp });
+
+      if (engineInstance) {
+        engineInstance.reviveHero(sameStage);
+      }
+
+      get().addLogMessage(tStore('log_hero_revived'), 'system');
+      autoSave(updatedSave);
+      return true;
     },
 
     clearLogs: () => set({ combatLogs: [] })

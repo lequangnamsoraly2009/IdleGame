@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../stores/gameStore';
 import { GameEngine } from '@idle-rpg/engine';
 import { generateMonsterForStage } from '@idle-rpg/shared';
+import { useTranslation } from '../utils/i18n';
 
 export const PixiGame: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -9,6 +10,7 @@ export const PixiGame: React.FC = () => {
   const [initError, setInitError] = useState<string | null>(null);
   
   const activeStage = useGameStore(state => state.saveData?.activeStage || 1);
+  const { isDead, reviveCostGold, reviveCostDiamonds, reviveHero, saveData } = useGameStore();
 
   const getBackgroundUrl = (stage: number) => {
     const blockIndex = Math.floor((stage - 1) / 5);
@@ -31,6 +33,25 @@ export const PixiGame: React.FC = () => {
         return '/battle_forest.png';
     }
   };
+
+  const { t } = useTranslation();
+  const [reviveCountdown, setReviveCountdown] = useState(30);
+
+  useEffect(() => {
+    if (!isDead) return;
+    setReviveCountdown(30);
+    const timer = setInterval(() => {
+      setReviveCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          reviveHero('time');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isDead, reviveHero]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -57,9 +78,13 @@ export const PixiGame: React.FC = () => {
           case 'GUILD_RAID_ENDED':
             store.exitGuildRaid();
             break;
+          case 'HERO_DEFEATED':
+            store.triggerHeroDefeated();
+            break;
         }
       });
       engineRef.current = engine;
+      useGameStore.getState().registerEngine(engine);
     } catch (err: any) {
       console.error("PixiJS Engine creation failed:", err);
       setInitError(`Engine Creation: ${err.stack || err.message || String(err)}`);
@@ -182,6 +207,7 @@ export const PixiGame: React.FC = () => {
 
     return () => {
       unsubscribe();
+      useGameStore.getState().registerEngine(null);
       if (engineRef.current) {
         engineRef.current.destroy();
         engineRef.current = null;
@@ -220,6 +246,85 @@ export const PixiGame: React.FC = () => {
       
       {/* Gradient Vignette overlay for RPG mood */}
       <div className="absolute inset-0 pointer-events-none bg-radial-vignette opacity-20 border border-slate-900 rounded-2xl" />
+
+      {/* Hero Defeated Revival Modal Overlay */}
+      {isDead && saveData && (
+        <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center z-30 select-none animate-fade-in">
+          {/* Gravestone logo */}
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-red-950/50 border border-red-500/30 flex items-center justify-center text-3xl sm:text-4xl shadow-[0_0_25px_rgba(239,68,68,0.3)] animate-pulse mb-3 sm:mb-4">
+            ☠️
+          </div>
+          
+          <h3 className="text-base sm:text-xl font-black text-rose-500 tracking-wider uppercase drop-shadow-[0_0_10px_rgba(244,63,94,0.4)] mb-1">
+            {t('revive_title')}
+          </h3>
+          <p className="text-[10px] sm:text-xs text-slate-400 max-w-sm mb-4 sm:mb-5 px-4 leading-normal">
+            {t('revive_subtitle')}
+          </p>
+
+          {/* Options deck */}
+          <div className="flex flex-col gap-2 w-full max-w-[280px] sm:max-w-[310px] px-2">
+            
+            {/* OPTION 1: Revive with Gold */}
+            <button
+              onClick={() => reviveHero('gold')}
+              disabled={saveData.hero.gold < reviveCostGold}
+              className="group relative flex flex-col items-center justify-center bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-450 hover:to-yellow-400 disabled:from-slate-800 disabled:to-slate-800 text-slate-950 disabled:text-slate-500 font-black py-1.5 px-3 sm:py-2 sm:px-4 rounded-xl shadow-lg hover:shadow-yellow-500/10 active:scale-[0.98] transition cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <span>💰</span>
+                <span>{t('revive_gold')}</span>
+              </div>
+              <div className="text-[9px] font-bold opacity-80 mt-0.5 flex items-center gap-1">
+                <span>{reviveCostGold.toLocaleString()} G</span>
+                <span className="text-[8px] italic">({t('keep_stage_note')})</span>
+              </div>
+            </button>
+
+            {/* OPTION 2: Revive with Diamonds */}
+            <button
+              onClick={() => reviveHero('diamonds')}
+              disabled={saveData.hero.diamonds < reviveCostDiamonds}
+              className="group relative flex flex-col items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-800 disabled:to-slate-800 text-white disabled:text-slate-500 font-bold py-1.5 px-3 sm:py-2 sm:px-4 rounded-xl shadow-lg hover:shadow-blue-500/10 active:scale-[0.98] transition cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <span>💎</span>
+                <span>{t('revive_diamonds')}</span>
+              </div>
+              <div className="text-[9px] font-medium opacity-95 mt-0.5 flex items-center gap-1">
+                <span>{reviveCostDiamonds} 💎</span>
+                <span className="text-[8px] italic text-blue-200">({t('keep_stage_note')})</span>
+              </div>
+            </button>
+
+            {/* divider line */}
+            <div className="flex items-center my-0.5">
+              <div className="flex-1 h-[1px] bg-slate-900" />
+              <span className="px-3 text-[9px] text-slate-600 uppercase tracking-widest font-mono">or</span>
+              <div className="flex-1 h-[1px] bg-slate-900" />
+            </div>
+
+            {/* OPTION 3: Free revive immediately */}
+            <button
+              onClick={() => reviveHero('time')}
+              className="flex flex-col items-center justify-center border border-slate-800 bg-slate-900/60 hover:bg-slate-850 hover:border-slate-700 text-slate-300 font-bold py-1.5 px-3 sm:py-2 sm:px-4 rounded-xl active:scale-[0.98] transition cursor-pointer"
+            >
+              <div className="text-xs">
+                {t('revive_time')}
+              </div>
+              <div className="text-[8.5px] text-slate-500 font-normal mt-0.5">
+                {t('drop_stage_note')}
+              </div>
+            </button>
+
+          </div>
+
+          {/* Countdown display */}
+          <div className="mt-4 text-[10px] sm:text-xs text-rose-400 font-bold font-mono tracking-wide bg-rose-950/20 border border-rose-900/30 px-3.5 py-1.5 rounded-full shadow-inner animate-pulse">
+            ⏳ {t('revive_countdown', { seconds: reviveCountdown })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

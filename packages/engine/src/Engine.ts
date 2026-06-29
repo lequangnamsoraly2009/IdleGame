@@ -1119,26 +1119,45 @@ export class GameEngine {
 
     this.onEvent({
       type: 'LOG_MESSAGE',
-      text: 'Hero was defeated! Recovering health...',
+      text: 'Hero was defeated! Please choose a revival option.',
       category: 'system'
     });
 
     this.onEvent({
       type: 'HERO_DEFEATED'
     });
+  }
 
-    // Healing phase - 2 seconds respawn/heal
-    this.respawnTimeout = setTimeout(() => {
+  public reviveHero(sameStage: boolean) {
+    if (this.respawnTimeout) {
+      clearTimeout(this.respawnTimeout);
       this.respawnTimeout = null;
-      this.heroCurrentHp = this.heroStats.maxHp;
-      if (this.heroEntity) {
-        this.heroEntity.updateStats(this.heroCurrentHp, this.heroStats.maxHp);
-        this.heroEntity.resetVisuals();
-      }
-      
-      // Stage backdown: if hero dies, downstage by 1 (minimum Stage 1)
+    }
+
+    // Fully restore health
+    this.heroCurrentHp = this.heroStats.maxHp;
+    if (this.heroEntity) {
+      this.heroEntity.updateStats(this.heroCurrentHp, this.heroStats.maxHp);
+      this.heroEntity.resetVisuals();
+    }
+
+    if (this.allyEntities[0]) {
+      this.allyEntities[0].currentHp = this.heroStats.maxHp;
+      this.allyEntities[0].entity.updateStats(this.heroStats.maxHp, this.heroStats.maxHp);
+      this.allyEntities[0].entity.resetVisuals();
+    }
+
+    this.onEvent({
+      type: 'LOG_MESSAGE',
+      text: 'Hero has revived and is ready to fight!',
+      category: 'system'
+    });
+
+    if (!sameStage) {
+      // Stage penalty: downstage by 1 (minimum Stage 1)
       const penaltyStage = Math.max(1, this.currentStage - 1);
       if (penaltyStage !== this.currentStage) {
+        this.currentStage = penaltyStage;
         this.onEvent({
           type: 'STAGE_ADVANCED',
           nextStage: penaltyStage
@@ -1149,7 +1168,14 @@ export class GameEngine {
           this.startBattle(this.monsterTemplate);
         }
       }
-    }, 2000);
+    } else {
+      // Restart battle at same stage
+      if (this.monsterTemplate) {
+        this.startBattle(this.monsterTemplate);
+      }
+    }
+
+    this.isBattleActive = true;
   }
 
   public forceHealHero() {
