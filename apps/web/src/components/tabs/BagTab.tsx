@@ -349,7 +349,7 @@ export const BagTab: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-xs font-semibold border-t border-slate-900 pt-2">
                   <span className="text-slate-400">Tổng Vàng nhận lại:</span>
-                  <span className="text-amber-400 font-extrabold">{totalEstimatedGold.toLocaleString()} Vàng 🪙</span>
+                  <span className="text-amber-400 font-extrabold">{totalEstimatedGold.toLocaleString()} Vàng 💰</span>
                 </div>
               </div>
             </div>
@@ -527,7 +527,7 @@ export const BagTab: React.FC = () => {
                 >
                   <span>✨ GIÁM ĐỊNH (Identify)</span>
                   <span className="bg-slate-950/40 text-amber-300 px-2 py-0.5 rounded border border-amber-500/10 font-bold">
-                    200 Vàng 🪙
+                    200 Vàng 💰
                   </span>
                 </button>
               ) : (
@@ -569,7 +569,7 @@ export const BagTab: React.FC = () => {
                   >
                     <span>🚀 {t('upgrade_btn')}</span>
                     <span className="bg-slate-950/40 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/10 font-bold">
-                      {selectedItem.upgradeCost} Gold 🪙
+                      {selectedItem.upgradeCost} Gold 💰
                     </span>
                   </button>
                 </>

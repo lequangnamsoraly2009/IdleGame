@@ -84,7 +84,7 @@ export const QuestTab: React.FC = () => {
                   {!quest.claimed && (
                     <div className="flex gap-2">
                       <div className="bg-slate-900 border border-slate-850 rounded px-2 py-1 text-[10px] font-extrabold text-yellow-400 flex items-center gap-1">
-                        <span>🪙</span> {quest.rewardGold}
+                        <span>💰</span> {quest.rewardGold}
                       </div>
                       <div className="bg-slate-900 border border-slate-850 rounded px-2 py-1 text-[10px] font-extrabold text-blue-400 flex items-center gap-1">
                         <span>💎</span> {quest.rewardDiamonds}

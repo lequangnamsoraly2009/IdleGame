@@ -126,7 +126,7 @@ export const GuildTab: React.FC = () => {
                 <span className="text-[10px] text-slate-500">{t('guild_yield_xp', { xp: 25 })}</span>
               </div>
               <span className="bg-slate-900 border border-slate-800 text-yellow-400 font-bold px-2 py-1 rounded">
-                500 Gold 🪙
+                500 Gold 💰
               </span>
             </button>
 
