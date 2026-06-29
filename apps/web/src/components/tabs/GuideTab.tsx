@@ -10,6 +10,7 @@ export const GuideTab: React.FC = () => {
   const { language } = useLanguageStore();
   const [activeTab, setActiveTab] = useState<BestiaryTab>('normal');
   const [selectedId, setSelectedId] = useState<string>(MONSTER_SPECIES_DATABASE[0].id);
+  const [showDetailOnMobile, setShowDetailOnMobile] = useState<boolean>(false);
 
   if (!saveData) return null;
 
@@ -96,7 +97,7 @@ export const GuideTab: React.FC = () => {
     <div className="flex flex-col h-full bg-slate-950/40 backdrop-blur-md rounded-2xl border border-slate-800/80 p-4 font-sans text-slate-200">
       
       {/* Tab selectors */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 bg-slate-950/80 p-1.5 rounded-xl border border-slate-900 mb-4 select-none">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 bg-slate-950/80 p-1.5 rounded-xl border border-slate-900 mb-4 select-none shrink-0">
         {(['normal', 'boss', 'king', 'mutated', 'mystery', 'extinct'] as const).map(tab => (
           <button
             key={tab}
@@ -107,6 +108,7 @@ export const GuideTab: React.FC = () => {
                 return s.category === tab;
               });
               if (list.length > 0) setSelectedId(list[0].id);
+              setShowDetailOnMobile(false); // Back to list on tab change
             }}
             className={`text-[9px] sm:text-xs font-bold py-2 rounded-lg cursor-pointer transition active:scale-95 ${
               activeTab === tab
@@ -124,9 +126,11 @@ export const GuideTab: React.FC = () => {
         ))}
       </div>
 
-      <div className="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden relative">
         {/* Left column: grid view species list */}
-        <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[160px] md:max-h-none scrollbar-thin">
+        <div className={`flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 gap-2 scrollbar-thin ${
+          showDetailOnMobile ? 'hidden md:grid' : 'grid'
+        }`}>
           {filteredList.map(monster => {
             const isSelected = currentMonster.id === monster.id;
             const mRes = monsterResearch[monster.id] || { level: 0, exp: 0, kills: 0 };
@@ -135,7 +139,10 @@ export const GuideTab: React.FC = () => {
             return (
               <button
                 key={monster.id}
-                onClick={() => setSelectedId(monster.id)}
+                onClick={() => {
+                  setSelectedId(monster.id);
+                  setShowDetailOnMobile(true);
+                }}
                 className={`p-3 rounded-xl border text-left cursor-pointer transition active:scale-95 flex items-center justify-between gap-3 ${
                   isSelected
                     ? 'bg-violet-950/30 border-violet-500/60 shadow-[0_0_12px_rgba(139,92,246,0.2)]'
@@ -174,10 +181,18 @@ export const GuideTab: React.FC = () => {
           })}
         </div>
 
-        {/* Right column: detailed species details & research levels */}
-        <div className="w-full md:w-[280px] bg-slate-900/60 border border-slate-850 rounded-xl p-4 flex flex-col justify-between overflow-y-auto max-h-[300px] md:max-h-none scrollbar-thin shrink-0">
+        <div className={`w-full md:w-[280px] bg-slate-900/60 border border-slate-850 rounded-xl p-4 flex flex-col justify-between overflow-y-auto scrollbar-thin shrink-0 ${
+          !showDetailOnMobile ? 'hidden md:flex' : 'flex'
+        }`}>
           
           <div>
+            {/* Mobile Back Button */}
+            <button
+              onClick={() => setShowDetailOnMobile(false)}
+              className="md:hidden w-full mb-4 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-slate-300 hover:text-white text-[10px] font-extrabold py-2 px-4 rounded-xl transition cursor-pointer active:scale-95 flex items-center justify-center gap-1.5 shadow"
+            >
+              ⬅️ {language === 'vi' ? 'QUAY LẠI DANH SÁCH' : 'BACK TO LIST'}
+            </button>
             {/* Visual element and metadata */}
             <div className="flex flex-col items-center border-b border-slate-850 pb-3 mb-3">
               <div
