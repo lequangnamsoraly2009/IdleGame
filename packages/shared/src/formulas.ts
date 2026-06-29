@@ -514,7 +514,8 @@ export const DEFAULT_ITEM_TEMPLATES: ItemTemplate[] = [
 export function generateMonsterForStage(
   stage: number, 
   _heroLevel: number = 1, 
-  monsterResearch?: Record<string, { level: number; exp: number; kills: number }>
+  monsterResearch?: Record<string, { level: number; exp: number; kills: number }>,
+  wave: number = 1
 ): MonsterTemplate {
   // 1. Time / Weather cycle
   const currentHour = new Date().getHours();
@@ -588,14 +589,18 @@ export function generateMonsterForStage(
   // 3. Rank & Mutation Calculations
   let rank: MonsterRank = 'normal';
   const roll = Math.random();
-  const isBossStage = stage % 5 === 0;
+  const isMiniBoss = wave === 5 || wave === 10 || wave === 15;
+  const isStageBoss = wave === 20;
+  const isBossStage = isMiniBoss || isStageBoss;
 
-  if (isBossStage) {
+  if (isStageBoss) {
     if (stage % 50 === 0) rank = 'world_boss';
     else if (stage % 30 === 0) rank = 'ancient';
     else if (stage % 20 === 0) rank = 'mythic';
     else if (stage % 10 === 0) rank = 'legend';
     else rank = 'king';
+  } else if (isMiniBoss) {
+    rank = wave === 15 ? 'king' : 'champion';
   } else {
     if (roll < 0.0005) rank = 'ancient';
     else if (roll < 0.002) rank = 'mythic';

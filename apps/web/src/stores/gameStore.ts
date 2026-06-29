@@ -8,7 +8,8 @@ import {
   calculateItemStats,
   createItemInstance, 
   DEFAULT_ITEM_TEMPLATES, 
-  calculatePrestigePoints
+  calculatePrestigePoints,
+  generateMonsterForStage
 } from '@idle-rpg/shared';
 import { authService, dbService, UserSession, generateStarterSave } from '@idle-rpg/firebase';
 
@@ -59,6 +60,9 @@ interface GameState {
   syncBattleStats: (heroHp: number, monsterHp: number, maxHeroHp: number, maxMonsterHp: number, heroRage: number, monsterRage: number) => void;
   onMonsterDefeated: (expGained: number, goldGained: number, diamondsGained: number, itemsDropped: EquipmentItem[], monsterId?: string, isMutated?: boolean, durationMs?: number) => void;
   onStageChange: (newStage: number) => void;
+  toggleAutoAdvance: () => void;
+  challengeBoss: () => void;
+  startNextBattle: () => void;
   
   // Gameplay Actions
   setActiveTab: (tab: 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide') => void;
@@ -224,6 +228,10 @@ export const useGameStore = create<GameState>((set, get) => {
                 };
                 await dbService.saveGame(data);
               }
+            }
+            if (data) {
+              if (data.currentWave === undefined) data.currentWave = 1;
+              if (data.autoAdvance === undefined) data.autoAdvance = true;
             }
             set({
               user: sessionUser,
@@ -425,13 +433,34 @@ export const useGameStore = create<GameState>((set, get) => {
       quests = checkQuests(quests, 'earn_gold', finalGoldGained);
 
       const isGuildBoss = get().battleMode === 'guild_boss';
-      const nextStage = isGuildBoss ? saveData.activeStage : saveData.activeStage + 1;
-      const stagesCleared = isGuildBoss ? saveData.stagesCleared : Math.max(saveData.stagesCleared, saveData.activeStage);
+      let nextStage = saveData.activeStage;
+      let stagesCleared = saveData.stagesCleared;
+      let nextWave = saveData.currentWave || 1;
+
+      if (!isGuildBoss) {
+        const autoAdvance = saveData.autoAdvance !== false;
+        if (nextWave < 19) {
+          nextWave += 1;
+        } else if (nextWave === 19) {
+          if (autoAdvance) {
+            nextWave = 20; // Stage Boss Wave
+          } else {
+            nextWave = 1; // Loop back to wave 1 of current stage in farming mode
+          }
+        } else if (nextWave === 20) {
+          // Stage Boss wave cleared -> Advance stage!
+          nextStage = saveData.activeStage + 1;
+          nextWave = 1;
+          stagesCleared = Math.max(saveData.stagesCleared, saveData.activeStage);
+          get().addLogMessage(`🎉 VƯỢT ẢI THÀNH CÔNG: Chúc mừng! Bạn đã hoàn thành Ải ${saveData.activeStage} và bước sang Ải ${nextStage}!`, 'system');
+        }
+      }
 
       // Save updated state
       const updatedSave: GameSaveData = {
         ...saveData,
         activeStage: nextStage,
+        currentWave: nextWave,
         stagesCleared,
         hero,
         inventory: newInventory,
@@ -455,6 +484,51 @@ export const useGameStore = create<GameState>((set, get) => {
       };
 
       autoSave(updatedSave);
+    },
+
+    toggleAutoAdvance: () => {
+      const { saveData } = get();
+      if (!saveData) return;
+      const nextAuto = saveData.autoAdvance === false; // toggle
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        autoAdvance: nextAuto
+      };
+      set({ saveData: updatedSave });
+      autoSave(updatedSave);
+
+      get().addLogMessage(
+        nextAuto ? "🔄 Tự động vượt ải: BẬT" : "⏹️ Tự động vượt ải: TẮT (Chế độ Farm)",
+        'system'
+      );
+    },
+
+    challengeBoss: () => {
+      const { saveData, engineInstance } = get();
+      if (!saveData || !engineInstance) return;
+
+      // Force currentWave to 20 (Boss wave) and challenge Boss immediately
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        currentWave: 20
+      };
+      set({ saveData: updatedSave });
+      autoSave(updatedSave);
+
+      const hero = updatedSave.hero;
+      const monster = generateMonsterForStage(updatedSave.activeStage, hero.level, updatedSave.monsterResearch, 20);
+      engineInstance.startBattle(monster);
+
+      get().addLogMessage(`⚔️ KHIÊU CHIẾN: Đang khiêu chiến Boss Ải ${updatedSave.activeStage}!`, 'system');
+    },
+
+    startNextBattle: () => {
+      const { saveData, engineInstance } = get();
+      if (!saveData || !engineInstance) return;
+
+      const hero = saveData.hero;
+      const monster = generateMonsterForStage(saveData.activeStage, hero.level, saveData.monsterResearch, saveData.currentWave || 1);
+      engineInstance.startBattle(monster);
     },
 
     upgradeEquipment: (itemId) => {
@@ -1018,6 +1092,8 @@ export const useGameStore = create<GameState>((set, get) => {
         ...saveData,
         hero,
         activeStage: updatedStage,
+        currentWave: 1,
+        autoAdvance: false,
         lastSavedAt: Date.now()
       };
 

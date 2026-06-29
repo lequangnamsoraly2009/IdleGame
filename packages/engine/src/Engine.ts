@@ -632,8 +632,6 @@ export class GameEngine {
       if (this.respawnTimer <= 0) {
         if (this.battleMode === 'guild_boss') {
           this.exitGuildRaid();
-        } else if (this.monsterTemplate) {
-          this.startBattle(this.monsterTemplate);
         }
       }
     }

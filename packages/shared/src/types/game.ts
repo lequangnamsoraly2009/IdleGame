@@ -131,6 +131,8 @@ export interface GameSaveData {
   };
   stagesCleared: number;
   activeStage: number;
+  currentWave?: number;
+  autoAdvance?: boolean;
   monsterResearch?: Record<string, {
     level: number;
     exp: number;

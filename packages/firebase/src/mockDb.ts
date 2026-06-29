@@ -147,7 +147,9 @@ export function generateStarterSave(
       goldMultiplier: 1.0
     },
     stagesCleared: 0,
-    activeStage: 1
+    activeStage: 1,
+    currentWave: 1,
+    autoAdvance: true
   };
 }
 
