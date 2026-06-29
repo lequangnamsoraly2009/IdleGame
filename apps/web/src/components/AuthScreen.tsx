@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../stores/gameStore';
 import { isUsingMock } from '@idle-rpg/firebase';
+import { useTranslation } from '../utils/i18n';
 
 export const AuthScreen: React.FC = () => {
   const { signIn, signUp, isLoading } = useGameStore();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isRegister, setIsRegister] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<'knight' | 'mage' | 'assassin'>('knight');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +22,11 @@ export const AuthScreen: React.FC = () => {
 
     try {
       if (isRegister) {
+        if (password.length < 6) {
+          setError(t('auth_error_pass_length'));
+          return;
+        }
+        localStorage.setItem('selected_class', selectedClass);
         await signUp(email, password);
       } else {
         await signIn(email, password);
@@ -41,26 +49,23 @@ export const AuthScreen: React.FC = () => {
             <span className="text-4xl">⚔️</span>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent font-display">
-            IDLE RPG WEB
+            {t('auth_title')}
           </h1>
-          <p className="text-slate-400 text-sm mt-2">
-            A modern browser idle adventure
+          <p className="text-slate-400 text-xs mt-2 uppercase tracking-widest">
+            {t('auth_subtitle')}
           </p>
         </div>
 
         {error && (
           <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl text-center space-y-1">
             <p className="font-bold">⚠️ {error}</p>
-            <p className="text-[10px] text-slate-400 font-normal leading-relaxed pt-1 border-t border-red-500/10 mt-1">
-              Tip: Hãy bật <strong>"Email/Password"</strong> Provider trong bảng điều khiển <strong>Firebase Console &gt; Authentication</strong> cho dự án <em>soraly-todo</em>, hoặc xóa tệp <code>.env</code> để chơi ở chế độ Offline giả lập.
-            </p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              Email Address
+              {t('email_label')}
             </label>
             <input
               type="email"
@@ -74,7 +79,7 @@ export const AuthScreen: React.FC = () => {
 
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              Password
+              {t('password_label')}
             </label>
             <input
               type="password"
@@ -86,10 +91,44 @@ export const AuthScreen: React.FC = () => {
             />
           </div>
 
+          {isRegister && (
+            <div className="space-y-3 pt-2">
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                {t('select_class_label')}
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'knight', name: t('class_knight'), icon: '🛡️', color: 'border-emerald-500/40 text-emerald-400 bg-emerald-950/20' },
+                  { id: 'mage', name: t('class_mage'), icon: '🔮', color: 'border-purple-500/40 text-purple-400 bg-purple-950/20' },
+                  { id: 'assassin', name: t('class_assassin'), icon: '🗡️', color: 'border-amber-500/40 text-amber-400 bg-amber-950/20' },
+                ].map((cls) => (
+                  <button
+                    key={cls.id}
+                    type="button"
+                    onClick={() => setSelectedClass(cls.id as any)}
+                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all duration-200 cursor-pointer ${
+                      selectedClass === cls.id 
+                        ? `${cls.color} scale-105 border-2 shadow-lg ring-1 ring-white/10` 
+                        : 'border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                    }`}
+                  >
+                    <span className="text-xl">{cls.icon}</span>
+                    <span className="text-[10px] font-bold tracking-tight">{cls.name}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="p-2.5 bg-slate-900/40 border border-slate-900 rounded-xl text-[10px] text-slate-400 leading-relaxed text-center">
+                {selectedClass === 'knight' && t('class_desc_knight')}
+                {selectedClass === 'mage' && t('class_desc_mage')}
+                {selectedClass === 'assassin' && t('class_desc_assassin')}
+              </div>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 px-4 rounded-xl border border-blue-400/20 shadow-lg shadow-blue-500/10 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 text-sm tracking-wider uppercase"
+            className="w-full mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 px-4 rounded-xl border border-blue-400/20 shadow-lg shadow-blue-500/10 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 text-sm tracking-wider uppercase cursor-pointer"
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
@@ -97,24 +136,23 @@ export const AuthScreen: React.FC = () => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                Logging in...
+                ...
               </span>
             ) : isRegister ? (
-              'Create Account'
+              t('register_btn')
             ) : (
-              'Enter Adventure'
+              t('login_btn')
             )}
           </button>
         </form>
 
         <div className="text-center mt-6">
           <p className="text-xs text-slate-400">
-            {isRegister ? 'Already have a hero?' : 'New to the realm?'}
             <button
               onClick={() => setIsRegister(!isRegister)}
-              className="text-blue-400 hover:text-blue-300 font-bold ml-1.5 focus:outline-none transition-colors"
+              className="text-blue-400 hover:text-blue-300 font-bold focus:outline-none transition-colors cursor-pointer"
             >
-              {isRegister ? 'Login Here' : 'Create Character (Instantly)'}
+              {isRegister ? t('auth_mode_toggle_login') : t('auth_mode_toggle_register')}
             </button>
           </p>
         </div>
@@ -123,10 +161,10 @@ export const AuthScreen: React.FC = () => {
           {isUsingMock ? (
             <>
               <span className="text-[10px] text-blue-400 uppercase tracking-widest block mb-1 font-semibold">
-                ⚡ Chế độ Giả lập Offline (LocalStorage)
+                ⚡ {t('auth_offline_mode')}
               </span>
               <span className="text-[10px] text-slate-500 block leading-relaxed max-w-xs mx-auto">
-                Không cần mạng hay mật khẩu. Điền email bất kỳ để trải nghiệm game ngay lập tức.
+                {t('auth_offline_desc')}
               </span>
               {localStorage.getItem('idle_rpg_force_mock') === 'true' && (
                 <button
@@ -134,19 +172,19 @@ export const AuthScreen: React.FC = () => {
                     localStorage.removeItem('idle_rpg_force_mock');
                     window.location.reload();
                   }}
-                  className="mt-3 text-[10px] text-indigo-400 hover:text-indigo-300 block mx-auto font-bold focus:outline-none hover:underline"
+                  className="mt-3 text-[10px] text-indigo-400 hover:text-indigo-300 block mx-auto font-bold focus:outline-none hover:underline cursor-pointer"
                 >
-                  🔄 Kết nối lại với Firebase Online
+                  🔄 {t('auth_reconnect_firebase')}
                 </button>
               )}
             </>
           ) : (
             <>
               <span className="text-[10px] text-indigo-400 uppercase tracking-widest block mb-1 font-semibold">
-                🌐 Chế độ Online (Firebase Live)
+                🌐 {t('auth_online_mode')}
               </span>
               <span className="text-[10px] text-slate-500 block leading-relaxed max-w-xs mx-auto mb-3">
-                Đang kết nối tới Realtime Database. Bạn cần đăng nhập bằng tài khoản Firebase thực tế.
+                {t('auth_online_desc')}
               </span>
               <button
                 type="button"
@@ -154,9 +192,9 @@ export const AuthScreen: React.FC = () => {
                   localStorage.setItem('idle_rpg_force_mock', 'true');
                   window.location.reload();
                 }}
-                className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold py-2.5 px-4 rounded-xl text-[10px] tracking-wider uppercase transition-colors"
+                className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold py-2.5 px-4 rounded-xl text-[10px] tracking-wider uppercase transition-colors cursor-pointer"
               >
-                🕹️ Chơi Chế độ Offline (Demo)
+                🕹️ {t('auth_play_offline')}
               </button>
             </>
           )}

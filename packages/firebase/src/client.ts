@@ -1,7 +1,7 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as fbSignOut, onAuthStateChanged as fbOnAuthStateChanged } from 'firebase/auth';
 import { getDatabase, ref, get, set } from 'firebase/database';
-import { GameSaveData } from '@idle-rpg/shared';
+import { GameSaveData, DEFAULT_ITEM_TEMPLATES, calculateItemStats, calculateUpgradeCost } from '@idle-rpg/shared';
 import { mockAuth, mockDb, generateStarterSave } from './mockDb';
 
 export interface UserSession {
@@ -121,19 +121,48 @@ if (isFirebaseConfigured) {
       try {
         const dbRef = ref(fbDb, `idleRpg/users/${userId}`);
         const snapshot = await get(dbRef);
+        const selectedClass = (localStorage.getItem('selected_class') || 'knight') as 'knight' | 'mage' | 'assassin';
         if (snapshot.exists()) {
           const parsed = snapshot.val() as GameSaveData;
           // Self-heal corrupted or outdated schemas by merging template defaults
-          const starter = generateStarterSave(userId);
-          if (!parsed.hero) parsed.hero = starter.hero;
+          const starter = generateStarterSave(userId, selectedClass);
+          if (!parsed.hero) {
+            parsed.hero = starter.hero;
+          } else {
+            parsed.hero = { ...starter.hero, ...parsed.hero };
+            if (!parsed.hero.baseStats) parsed.hero.baseStats = starter.hero.baseStats;
+            if (!parsed.hero.currentStats) parsed.hero.currentStats = starter.hero.currentStats;
+            if (!parsed.hero.heroClass) parsed.hero.heroClass = 'knight';
+          }
           if (!parsed.inventory) parsed.inventory = starter.inventory;
           if (!parsed.quests) parsed.quests = starter.quests;
           if (parsed.activeStage === undefined) parsed.activeStage = starter.activeStage;
           if (!parsed.prestigeBonuses) parsed.prestigeBonuses = starter.prestigeBonuses;
+
+          // Ensure each item in the inventory is fully formed
+          if (Array.isArray(parsed.inventory)) {
+            parsed.inventory = parsed.inventory.map(item => {
+              if (!item) return item;
+              if (!item.stats) {
+                const template = DEFAULT_ITEM_TEMPLATES.find(t => t.id === item.templateId);
+                if (template) {
+                  item.stats = calculateItemStats(item.slot, item.rarity, item.level || 1);
+                } else {
+                  item.stats = { maxHp: 0, attack: 0, defense: 0, speed: 0, critRate: 0, critDamage: 1.5 };
+                }
+              }
+              if (item.upgradeCost === undefined) {
+                item.upgradeCost = calculateUpgradeCost(item.slot, item.rarity, item.level || 1);
+              }
+              return item;
+            }).filter(Boolean);
+          }
+
           return parsed;
         }
         // New save initialization
-        const starterSave = generateStarterSave(userId);
+        const starterSave = generateStarterSave(userId, selectedClass);
+        localStorage.removeItem('selected_class'); // clean up
         await set(dbRef, starterSave);
         return starterSave;
       } catch (err) {

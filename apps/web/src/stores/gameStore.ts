@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { GameSaveData, EquipmentItem, QuestState } from '@idle-rpg/shared';
+import { tStore, translateEngineLog } from '../utils/i18n';
 import { 
   recalculateHeroStats, 
   calculateLevelUpExp, 
@@ -21,15 +22,18 @@ interface CombatLogEntry {
 interface GameState {
   user: UserSession | null;
   saveData: GameSaveData | null;
-  activeTab: 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon';
+  activeTab: 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide';
   isLoading: boolean;
   
   // Realtime Battle HUD healths (synced with Pixi tick updates)
   heroHp: number;
   heroMaxHp: number;
+  heroRage: number;
   monsterHp: number;
   monsterMaxHp: number;
+  monsterRage: number;
   monsterName: string;
+  battleMode: 'stage' | 'guild_boss';
 
   // Combat Log List
   combatLogs: CombatLogEntry[];
@@ -42,12 +46,12 @@ interface GameState {
   saveGame: () => Promise<void>;
   
   // Combat Loops
-  syncBattleStats: (heroHp: number, monsterHp: number, maxHeroHp: number, maxMonsterHp: number) => void;
+  syncBattleStats: (heroHp: number, monsterHp: number, maxHeroHp: number, maxMonsterHp: number, heroRage: number, monsterRage: number) => void;
   onMonsterDefeated: (expGained: number, goldGained: number, diamondsGained: number, itemsDropped: EquipmentItem[]) => void;
   onStageChange: (newStage: number) => void;
   
   // Gameplay Actions
-  setActiveTab: (tab: 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon') => void;
+  setActiveTab: (tab: 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide') => void;
   upgradeEquipment: (itemId: string) => void;
   equipEquipment: (itemId: string) => void;
   unequipEquipment: (itemId: string) => void;
@@ -56,6 +60,9 @@ interface GameState {
   buyGoldPack: () => void;
   summonEquipment: () => void;
   triggerPrestige: () => void;
+  changeHeroClass: (newClass: 'knight' | 'mage' | 'assassin') => void;
+  startGuildRaid: () => void;
+  exitGuildRaid: () => void;
   addLogMessage: (text: string, category: 'combat' | 'loot' | 'system') => void;
   clearLogs: () => void;
 }
@@ -101,9 +108,12 @@ export const useGameStore = create<GameState>((set, get) => {
     // Combat HUD state
     heroHp: 100,
     heroMaxHp: 100,
+    heroRage: 0,
     monsterHp: 50,
     monsterMaxHp: 50,
+    monsterRage: 0,
     monsterName: 'Loading monster...',
+    battleMode: 'stage',
 
     combatLogs: [],
 
@@ -116,11 +126,11 @@ export const useGameStore = create<GameState>((set, get) => {
             set({
               user: sessionUser,
               saveData: data,
-              heroHp: data ? data.hero.currentHp : 100,
-              heroMaxHp: data ? data.hero.currentStats.maxHp : 100,
+              heroHp: (data && data.hero) ? (data.hero.currentHp ?? 100) : 100,
+              heroMaxHp: (data && data.hero && data.hero.currentStats) ? (data.hero.currentStats.maxHp ?? 100) : 100,
               isLoading: false
             });
-            get().addLogMessage(`Welcome back, ${sessionUser.email}! Game data loaded.`, 'system');
+            get().addLogMessage(tStore('log_welcome', { email: sessionUser.email }), 'system');
           } catch (err) {
             console.error('Error loading game save:', err);
             set({ user: sessionUser, isLoading: false });
@@ -175,8 +185,8 @@ export const useGameStore = create<GameState>((set, get) => {
 
     setActiveTab: (tab) => set({ activeTab: tab }),
 
-    syncBattleStats: (heroHp, monsterHp, maxHeroHp, maxMonsterHp) => {
-      set({ heroHp, monsterHp, heroMaxHp: maxHeroHp, monsterMaxHp: maxMonsterHp });
+    syncBattleStats: (heroHp, monsterHp, maxHeroHp, maxMonsterHp, heroRage, monsterRage) => {
+      set({ heroHp, monsterHp, heroMaxHp: maxHeroHp, monsterMaxHp: maxMonsterHp, heroRage, monsterRage });
     },
 
     onMonsterDefeated: (expGained, goldGained, diamondsGained, itemsDropped) => {
@@ -202,10 +212,10 @@ export const useGameStore = create<GameState>((set, get) => {
       }
 
       if (levelUps > 0) {
-        get().addLogMessage(`LEVEL UP! Hero reached Level ${hero.level}!`, 'system');
+        get().addLogMessage(tStore('log_level_up', { level: hero.level }), 'system');
         // Recalculate stats
         const equipped = newInventory.filter(i => i.equipped);
-        hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped);
+        hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass);
         hero.currentHp = hero.currentStats.maxHp;
         
         // Audit Level Up quests
@@ -217,7 +227,7 @@ export const useGameStore = create<GameState>((set, get) => {
         if (newInventory.length < 50) {
           newInventory.push(item);
         } else {
-          get().addLogMessage(`Inventory full! Loot lost: [${item.name}]`, 'system');
+          get().addLogMessage(tStore('log_inventory_full', { name: item.name }), 'system');
         }
       }
 
@@ -225,9 +235,15 @@ export const useGameStore = create<GameState>((set, get) => {
       quests = checkQuests(quests, 'defeat_monster', 1);
       quests = checkQuests(quests, 'earn_gold', goldGained);
 
+      const isGuildBoss = get().battleMode === 'guild_boss';
+      const nextStage = isGuildBoss ? saveData.activeStage : saveData.activeStage + 1;
+      const stagesCleared = isGuildBoss ? saveData.stagesCleared : Math.max(saveData.stagesCleared, saveData.activeStage);
+
       // Save updated state
       const updatedSave: GameSaveData = {
         ...saveData,
+        activeStage: nextStage,
+        stagesCleared,
         hero,
         inventory: newInventory,
         quests,
@@ -260,7 +276,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
         // Upgrade item
         if (saveData.hero.gold < item.upgradeCost) {
-          get().addLogMessage(`Insufficient gold to upgrade ${item.name}`, 'system');
+          get().addLogMessage(tStore('insufficient_gold') + ` ${item.name}`, 'system');
           return item;
         }
 
@@ -273,7 +289,7 @@ export const useGameStore = create<GameState>((set, get) => {
         const updatedStats = calculateItemStats(item.slot, item.rarity, nextLevel);
         const nextUpgradeCost = calculateUpgradeCost(item.slot, item.rarity, nextLevel);
 
-        get().addLogMessage(`Upgraded [${item.name}] to +${nextLevel}!`, 'system');
+        get().addLogMessage(tStore('log_upgraded_item', { name: item.name, level: nextLevel }), 'system');
 
         return {
           ...item,
@@ -286,8 +302,8 @@ export const useGameStore = create<GameState>((set, get) => {
       // Recalculate Hero stats in case item is equipped
       const equipped = inventory.filter(i => i.equipped);
       const hero = { ...saveData.hero };
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped);
-      hero.currentHp = Math.min(hero.currentStats.maxHp, get().heroHp);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass);
+      hero.currentHp = get().battleMode === 'guild_boss' ? hero.currentHp : Math.min(hero.currentStats.maxHp, get().heroHp);
 
       // Audit upgrade equipment quests
       const quests = checkQuests(saveData.quests, 'upgrade_equipment', 1);
@@ -310,6 +326,17 @@ export const useGameStore = create<GameState>((set, get) => {
       const itemToEquip = saveData.inventory.find(i => i.id === itemId);
       if (!itemToEquip) return;
 
+      // Check class restrictions
+      if (itemToEquip.allowedClass && saveData.hero.heroClass && itemToEquip.allowedClass !== saveData.hero.heroClass) {
+        const className = itemToEquip.allowedClass === 'knight' 
+          ? tStore('class_knight') 
+          : itemToEquip.allowedClass === 'mage' 
+            ? tStore('class_mage') 
+            : tStore('class_assassin');
+        get().addLogMessage(tStore('class_restriction_error', { class: className }), 'system');
+        return;
+      }
+
       const slot = itemToEquip.slot;
 
       const inventory = saveData.inventory.map(item => {
@@ -327,10 +354,10 @@ export const useGameStore = create<GameState>((set, get) => {
       // Recalculate stats
       const equipped = inventory.filter(i => i.equipped);
       const hero = { ...saveData.hero };
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass);
       hero.currentHp = hero.currentStats.maxHp; // Refill HP on equip change
 
-      get().addLogMessage(`Equipped [${itemToEquip.name}]`, 'system');
+      get().addLogMessage(tStore('log_equipped_item', { name: itemToEquip.name }), 'system');
 
       const updatedSave: GameSaveData = {
         ...saveData,
@@ -356,11 +383,11 @@ export const useGameStore = create<GameState>((set, get) => {
       // Recalculate stats
       const equipped = inventory.filter(i => i.equipped);
       const hero = { ...saveData.hero };
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass);
       hero.currentHp = Math.min(hero.currentHp, hero.currentStats.maxHp);
 
       const item = saveData.inventory.find(i => i.id === itemId);
-      if (item) get().addLogMessage(`Unequipped [${item.name}]`, 'system');
+      if (item) get().addLogMessage(tStore('log_unequipped_item', { name: item.name }), 'system');
 
       const updatedSave: GameSaveData = {
         ...saveData,
@@ -380,7 +407,7 @@ export const useGameStore = create<GameState>((set, get) => {
       if (!item) return;
 
       if (item.equipped) {
-        get().addLogMessage(`Cannot sell equipped item: [${item.name}]`, 'system');
+        get().addLogMessage(tStore('equipped_label') + ` [${item.name}]`, 'system');
         return;
       }
 
@@ -391,7 +418,7 @@ export const useGameStore = create<GameState>((set, get) => {
       const hero = { ...saveData.hero };
       hero.gold += sellPrice;
 
-      get().addLogMessage(`Sold [${item.name}] for ${sellPrice} Gold`, 'system');
+      get().addLogMessage(tStore('log_sold_item', { name: item.name, gold: sellPrice }), 'system');
 
       const updatedSave: GameSaveData = {
         ...saveData,
@@ -421,7 +448,7 @@ export const useGameStore = create<GameState>((set, get) => {
       hero.gold += quest.rewardGold;
       hero.diamonds += quest.rewardDiamonds;
 
-      get().addLogMessage(`Claimed quest [${quest.title}]: Gained ${quest.rewardGold} Gold, ${quest.rewardDiamonds} Diamonds.`, 'system');
+      get().addLogMessage(tStore('log_claimed_quest', { title: quest.title, gold: quest.rewardGold, diamonds: quest.rewardDiamonds }), 'system');
 
       const updatedSave: GameSaveData = {
         ...saveData,
@@ -439,7 +466,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       const cost = 15; // 15 diamonds
       if (saveData.hero.diamonds < cost) {
-        get().addLogMessage('Insufficient diamonds to buy Gold Pack!', 'system');
+        get().addLogMessage(tStore('insufficient_diamonds'), 'system');
         return;
       }
 
@@ -448,7 +475,7 @@ export const useGameStore = create<GameState>((set, get) => {
       hero.diamonds -= cost;
       hero.gold += goldGained;
 
-      get().addLogMessage(`Bought Gold Pack: Spent ${cost} Diamonds, gained ${goldGained} Gold.`, 'loot');
+      get().addLogMessage(tStore('log_bought_gold', { cost, gold: goldGained }), 'loot');
 
       // Audit gold quests
       const quests = checkQuests(saveData.quests, 'earn_gold', goldGained);
@@ -469,12 +496,12 @@ export const useGameStore = create<GameState>((set, get) => {
 
       const cost = 10; // 10 diamonds
       if (saveData.hero.diamonds < cost) {
-        get().addLogMessage('Insufficient diamonds to Summon Equipment!', 'system');
+        get().addLogMessage(tStore('insufficient_diamonds'), 'system');
         return;
       }
 
       if (saveData.inventory.length >= 50) {
-        get().addLogMessage('Inventory full! Clear items before summoning.', 'system');
+        get().addLogMessage(tStore('summon_inventory_warning'), 'system');
         return;
       }
 
@@ -497,7 +524,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       const inventory = [...saveData.inventory, newItem];
 
-      get().addLogMessage(`SUMMON SUCCESS! Pulled [${newItem.name}] (${newItem.rarity.toUpperCase()})!`, 'loot');
+      get().addLogMessage(tStore('log_summon_success', { name: newItem.name, rarity: newItem.rarity.toUpperCase() }), 'loot');
 
       const updatedSave: GameSaveData = {
         ...saveData,
@@ -515,7 +542,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       const pointsEarned = calculatePrestigePoints(saveData.stagesCleared);
       if (pointsEarned <= 0) {
-        get().addLogMessage('You need to clear at least Stage 10 to prestige!', 'system');
+        get().addLogMessage(tStore('ascension_locked'), 'system');
         return;
       }
 
@@ -538,14 +565,14 @@ export const useGameStore = create<GameState>((set, get) => {
       }));
 
       // Recalculate stats with prestige points, no items equipped
-      hero.currentStats = recalculateHeroStats(1, hero.prestigePoints, []);
+      hero.currentStats = recalculateHeroStats(1, hero.prestigePoints, [], hero.heroClass);
       hero.currentHp = hero.currentStats.maxHp;
 
       // Reset Quests to starter set
-      const initialSaveTemplate = generateStarterSave(saveData.userId);
+      const initialSaveTemplate = generateStarterSave(saveData.userId, hero.heroClass);
       const quests = initialSaveTemplate.quests;
 
-      get().addLogMessage(`PRESTIGE COMPLETE! Reset level to 1, earned +${pointsEarned} Prestige Points.`, 'system');
+      get().addLogMessage(tStore('log_prestige_complete', { points: pointsEarned }), 'system');
 
       const updatedSave: GameSaveData = {
         ...saveData,
@@ -560,13 +587,68 @@ export const useGameStore = create<GameState>((set, get) => {
       autoSave(updatedSave);
     },
 
+    changeHeroClass: (newClass) => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      hero.heroClass = newClass;
+      
+      // Auto-unequip items of other classes
+      const inventory = saveData.inventory.map(item => {
+        if (item.equipped && item.allowedClass && item.allowedClass !== newClass) {
+          get().addLogMessage(tStore('log_unequipped_item', { name: item.name }), 'system');
+          return { ...item, equipped: false };
+        }
+        return item;
+      });
+
+      const equipped = inventory.filter(i => i.equipped);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, newClass);
+      hero.currentHp = Math.min(hero.currentStats.maxHp, hero.currentHp);
+
+      get().addLogMessage(
+        tStore('log_class_changed', { class: newClass === 'knight' ? tStore('class_knight') : newClass === 'mage' ? tStore('class_mage') : tStore('class_assassin') }), 
+        'system'
+      );
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        inventory,
+        lastSavedAt: Date.now()
+      };
+
+      autoSave(updatedSave);
+    },
+
+    startGuildRaid: () => {
+      set({ battleMode: 'guild_boss', monsterName: 'Void Behemoth' });
+    },
+
+    exitGuildRaid: () => {
+      const { saveData } = get();
+      if (saveData) {
+        const hero = { ...saveData.hero };
+        hero.currentHp = hero.currentStats.maxHp;
+        
+        const updatedSave: GameSaveData = {
+          ...saveData,
+          hero,
+          lastSavedAt: Date.now()
+        };
+        autoSave(updatedSave);
+      }
+      set({ battleMode: 'stage' });
+    },
+
     addLogMessage: (text, category) => {
       const timestamp = new Date();
       const timeStr = timestamp.toTimeString().split(' ')[0];
       const entry: CombatLogEntry = {
         id: `log_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`,
         time: timeStr,
-        text,
+        text: translateEngineLog(text),
         category
       };
 

@@ -362,7 +362,7 @@
       "notifications": {
         "$uid": {
           "$notificationId": {
-            ".read": "auth != null && auth.uid === $uid",
+            ".read": "auth != null && auth.uid == $uid",
             ".write": "false",
             "title": {
               ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
@@ -378,13 +378,13 @@
             }
           }
         }
-      },
-      "idleRpg": {
-        "users": {
-          "$uid": {
-            ".read": "auth != null && auth.uid === $uid",
-            ".write": "auth != null && auth.uid === $uid"
-          }
+      }
+    },
+    "idleRpg": {
+      "users": {
+        "$uid": {
+          ".read": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && auth.uid == $uid"
         }
       }
     }

@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../../stores/gameStore';
+import { useTranslation } from '../../utils/i18n';
+import { useLanguageStore } from '../../stores/languageStore';
 
 export const GuildTab: React.FC = () => {
-  const { saveData, addLogMessage } = useGameStore();
+  const { saveData, addLogMessage, startGuildRaid, battleMode } = useGameStore();
+  const { language } = useLanguageStore();
+  const { t } = useTranslation();
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
   const [contributionPoints, setContributionPoints] = useState(120);
 
@@ -12,7 +16,7 @@ export const GuildTab: React.FC = () => {
 
   const handleGoldDonation = () => {
     if (hero.gold < 500) {
-      addLogMessage('Not enough gold to donate to the guild!', 'system');
+      addLogMessage(t('insufficient_gold'), 'system');
       return;
     }
     // Deduct gold
@@ -33,12 +37,12 @@ export const GuildTab: React.FC = () => {
 
     setContributionPoints(prev => prev + 25);
     setHasCheckedIn(true);
-    addLogMessage('Guild Contribution: Donated 500 Gold! Earned +25 Guild XP.', 'system');
+    addLogMessage(t('log_guild_gold_donate'), 'system');
   };
 
   const handleDiamondDonation = () => {
     if (hero.diamonds < 25) {
-      addLogMessage('Not enough diamonds to donate to the guild!', 'system');
+      addLogMessage(t('insufficient_diamonds'), 'system');
       return;
     }
     // Deduct diamonds
@@ -59,7 +63,7 @@ export const GuildTab: React.FC = () => {
 
     setContributionPoints(prev => prev + 100);
     setHasCheckedIn(true);
-    addLogMessage('Guild Contribution: Donated 25 Diamonds! Earned +100 Guild XP.', 'system');
+    addLogMessage(t('log_guild_diamond_donate'), 'system');
   };
 
   return (
@@ -70,24 +74,24 @@ export const GuildTab: React.FC = () => {
           <div className="text-center p-4 bg-slate-950/60 border border-slate-900 rounded-xl">
             <span className="text-4xl block mb-2">🏰</span>
             <h4 className="text-md font-extrabold text-white font-display">Vanguard Order</h4>
-            <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">Level 4 Guild</span>
+            <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">{t('guild_level')} 4</span>
           </div>
 
           <div className="space-y-2 text-xs">
             <div className="flex justify-between border-b border-slate-850 pb-1.5 text-slate-400">
-              <span>Guild Leader</span>
+              <span>{t('guild_leader')}</span>
               <span className="font-semibold text-white">LordVanguard</span>
             </div>
             <div className="flex justify-between border-b border-slate-850 pb-1.5 text-slate-400">
-              <span>Members</span>
+              <span>{t('guild_members')}</span>
               <span className="font-semibold text-white">24 / 30</span>
             </div>
             <div className="flex justify-between border-b border-slate-850 pb-1.5 text-slate-400">
-              <span>Your Contribution</span>
+              <span>{t('guild_contrib')}</span>
               <span className="font-semibold text-blue-400">{contributionPoints} GP</span>
             </div>
             <div className="flex justify-between text-slate-400">
-              <span>Guild Rank</span>
+              <span>{t('guild_rank')}</span>
               <span className="font-semibold text-yellow-500">Gold Tier (Rank #18)</span>
             </div>
           </div>
@@ -95,7 +99,7 @@ export const GuildTab: React.FC = () => {
 
         <div className="mt-6">
           <div className="w-full bg-slate-950/80 border border-slate-900 p-3 rounded-lg text-[10px] text-slate-500 leading-relaxed text-center">
-            📢 Announcement: Guild Raid boss Behemoth starts tonight! Complete your check-ins and donations to earn raid tickets.
+            {t('guild_announcement')}
           </div>
         </div>
       </div>
@@ -103,11 +107,11 @@ export const GuildTab: React.FC = () => {
       {/* Center Column: Check-in / Contribution */}
       <div className="md:col-span-1 bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between">
         <div>
-          <h4 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            🙌 Guild Check-In
+          <h4 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center gap-1.5 font-display">
+            🙌 {t('guild_checkin')}
           </h4>
           <p className="text-xs text-slate-400 leading-relaxed mb-4">
-            Contribute gold or diamonds to your guild to level up guild facilities and earn Guild Tokens for the specialty shop.
+            {t('guild_desc')}
           </p>
 
           <div className="space-y-3">
@@ -115,11 +119,11 @@ export const GuildTab: React.FC = () => {
             <button
               onClick={handleGoldDonation}
               disabled={hasCheckedIn || hero.gold < 500}
-              className="w-full p-3 bg-slate-950/50 hover:bg-slate-950 border border-slate-850 hover:border-slate-700 rounded-xl transition flex justify-between items-center text-xs disabled:opacity-40 disabled:pointer-events-none"
+              className="w-full p-3 bg-slate-950/50 hover:bg-slate-950 border border-slate-850 hover:border-slate-700 rounded-xl transition flex justify-between items-center text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
             >
               <div className="text-left">
-                <span className="font-bold text-white block">Gold Donation</span>
-                <span className="text-[10px] text-slate-500">Yields 25 Guild XP</span>
+                <span className="font-bold text-white block">{t('guild_gold_donate')}</span>
+                <span className="text-[10px] text-slate-500">{t('guild_yield_xp', { xp: 25 })}</span>
               </div>
               <span className="bg-slate-900 border border-slate-800 text-yellow-400 font-bold px-2 py-1 rounded">
                 500 Gold 🪙
@@ -130,11 +134,11 @@ export const GuildTab: React.FC = () => {
             <button
               onClick={handleDiamondDonation}
               disabled={hasCheckedIn || hero.diamonds < 25}
-              className="w-full p-3 bg-slate-950/50 hover:bg-slate-950 border border-slate-850 hover:border-slate-700 rounded-xl transition flex justify-between items-center text-xs disabled:opacity-40 disabled:pointer-events-none"
+              className="w-full p-3 bg-slate-950/50 hover:bg-slate-950 border border-slate-850 hover:border-slate-700 rounded-xl transition flex justify-between items-center text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
             >
               <div className="text-left">
-                <span className="font-bold text-white block">Elite Donation</span>
-                <span className="text-[10px] text-slate-500">Yields 100 Guild XP</span>
+                <span className="font-bold text-white block">{t('guild_diamond_donate')}</span>
+                <span className="text-[10px] text-slate-500">{t('guild_yield_xp', { xp: 100 })}</span>
               </div>
               <span className="bg-slate-900 border border-slate-800 text-blue-400 font-bold px-2 py-1 rounded">
                 25 Gems 💎
@@ -144,12 +148,12 @@ export const GuildTab: React.FC = () => {
         </div>
 
         {hasCheckedIn ? (
-          <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-center rounded-xl text-xs font-bold uppercase tracking-wider">
-            ✔️ Donated for Today
+          <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-center rounded-xl text-xs font-bold uppercase tracking-wider font-display">
+            ✔️ {t('guild_donated_today')}
           </div>
         ) : (
           <div className="mt-4 text-[10px] text-slate-500 text-center italic">
-            You can make one donation contribution per day.
+            {t('guild_donation_limit')}
           </div>
         )}
       </div>
@@ -157,11 +161,11 @@ export const GuildTab: React.FC = () => {
       {/* Right Column: Guild Raid Boss */}
       <div className="md:col-span-1 bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between">
         <div>
-          <h4 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-            👹 Guild Raid Boss
+          <h4 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-2.5 flex items-center gap-1.5 font-display">
+            👹 {t('guild_raid_boss')}
           </h4>
-          <span className="inline-flex px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-[9px] font-extrabold uppercase tracking-widest mb-3">
-            Upcoming Event
+          <span className="inline-flex px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-[9px] font-extrabold uppercase tracking-widest mb-3 font-display">
+            {t('guild_upcoming')}
           </span>
 
           <div className="bg-slate-950/60 border border-slate-900 rounded-xl p-4 text-center">
@@ -177,25 +181,33 @@ export const GuildTab: React.FC = () => {
             <div className="grid grid-cols-3 gap-1 max-w-[180px] mx-auto bg-slate-900 border border-slate-850 p-1.5 rounded-lg text-center">
               <div>
                 <span className="font-extrabold text-xs text-white font-display block">04</span>
-                <span className="text-[8px] text-slate-500 uppercase">Hours</span>
+                <span className="text-[8px] text-slate-500 uppercase">{t('hours')}</span>
               </div>
               <div className="border-x border-slate-850">
                 <span className="font-extrabold text-xs text-white font-display block">12</span>
-                <span className="text-[8px] text-slate-500 uppercase">Mins</span>
+                <span className="text-[8px] text-slate-500 uppercase">{t('mins')}</span>
               </div>
               <div>
                 <span className="font-extrabold text-xs text-white font-display block">35</span>
-                <span className="text-[8px] text-slate-500 uppercase">Secs</span>
+                <span className="text-[8px] text-slate-500 uppercase">{t('secs')}</span>
               </div>
             </div>
           </div>
         </div>
 
         <button
-          disabled
-          className="w-full mt-4 bg-slate-950 border border-slate-900 text-slate-600 text-xs font-bold py-2.5 px-4 rounded-xl cursor-not-allowed uppercase tracking-wider"
+          onClick={() => {
+            if (battleMode === 'guild_boss') {
+              addLogMessage(language === 'vi' ? 'Đang trong trận đấu Raid Boss!' : 'Already challenging Raid Boss!', 'system');
+              return;
+            }
+            startGuildRaid();
+          }}
+          className={`w-full mt-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold py-2.5 px-4 rounded-xl active:scale-[0.97] transition uppercase tracking-wider font-display cursor-pointer flex justify-center items-center shadow-lg border border-red-500/25 ${
+            battleMode === 'guild_boss' ? 'opacity-50 pointer-events-none' : ''
+          }`}
         >
-          🔒 Raid Locked
+          ⚔️ {battleMode === 'guild_boss' ? (language === 'vi' ? 'ĐANG CHIẾN BOSS' : 'BATTLING BOSS') : (language === 'vi' ? 'THÁCH ĐẤU BOSS' : 'CHALLENGE BOSS')}
         </button>
       </div>
     </div>

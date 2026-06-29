@@ -18,6 +18,7 @@ export interface ItemTemplate {
   rarity: ItemRarity;
   stats: Partial<BaseStats>;
   description?: string;
+  allowedClass?: 'knight' | 'mage' | 'assassin';
 }
 
 export interface EquipmentItem {
@@ -30,6 +31,7 @@ export interface EquipmentItem {
   level: number;
   upgradeCost: number;
   equipped: boolean;
+  allowedClass?: 'knight' | 'mage' | 'assassin';
 }
 
 export interface HeroState {
@@ -43,6 +45,7 @@ export interface HeroState {
   diamonds: number;
   prestigePoints: number;
   prestigeCount: number;
+  heroClass?: 'knight' | 'mage' | 'assassin';
 }
 
 export interface MonsterTemplate {

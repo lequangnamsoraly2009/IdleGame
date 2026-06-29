@@ -1,39 +1,78 @@
 import { GameSaveData, HeroState, EquipmentItem, QuestState } from '@idle-rpg/shared';
-import { createItemInstance, DEFAULT_ITEM_TEMPLATES } from '@idle-rpg/shared';
+import { createItemInstance, DEFAULT_ITEM_TEMPLATES, calculateItemStats, calculateUpgradeCost } from '@idle-rpg/shared';
 
 // Predefined starting stats and equipment
-export function generateStarterSave(userId: string): GameSaveData {
+export function generateStarterSave(userId: string, heroClass: 'knight' | 'mage' | 'assassin' = 'knight'): GameSaveData {
+  let initialStats = {
+    maxHp: 100,
+    attack: 10,
+    defense: 5,
+    speed: 100,
+    critRate: 0.05,
+    critDamage: 1.5
+  };
+
+  if (heroClass === 'knight') {
+    initialStats = {
+      maxHp: 120,
+      attack: 8,
+      defense: 8,
+      speed: 95,
+      critRate: 0.05,
+      critDamage: 1.5
+    };
+  } else if (heroClass === 'mage') {
+    initialStats = {
+      maxHp: 85,
+      attack: 14,
+      defense: 3,
+      speed: 100,
+      critRate: 0.08,
+      critDamage: 1.7
+    };
+  } else if (heroClass === 'assassin') {
+    initialStats = {
+      maxHp: 90,
+      attack: 11,
+      defense: 4,
+      speed: 125,
+      critRate: 0.15,
+      critDamage: 1.8
+    };
+  }
+
   const initialHero: HeroState = {
     level: 1,
     exp: 0,
     maxExp: 100, // levelUpExp(1)
-    baseStats: {
-      maxHp: 100,
-      attack: 10,
-      defense: 5,
-      speed: 100,
-      critRate: 0.05,
-      critDamage: 1.5
-    },
-    currentStats: {
-      maxHp: 100,
-      attack: 10,
-      defense: 5,
-      speed: 100,
-      critRate: 0.05,
-      critDamage: 1.5
-    },
-    currentHp: 100,
+    baseStats: { ...initialStats },
+    currentStats: { ...initialStats },
+    currentHp: initialStats.maxHp,
     gold: 500,
     diamonds: 50,
     prestigePoints: 0,
-    prestigeCount: 0
+    prestigeCount: 0,
+    heroClass
   };
 
-  // Generate starting equipment
-  const startingWeapon = DEFAULT_ITEM_TEMPLATES.find(t => t.id === 't_wpn_rusty');
-  const startingArmor = DEFAULT_ITEM_TEMPLATES.find(t => t.id === 't_arm_rag');
-  const startingBoots = DEFAULT_ITEM_TEMPLATES.find(t => t.id === 't_bts_worn');
+  // Generate starting equipment based on class
+  let wpnId = 't_wpn_rusty';
+  let armId = 't_arm_rag';
+  let btsId = 't_bts_worn';
+  
+  if (heroClass === 'mage') {
+    wpnId = 't_wpn_rusty_staff';
+    armId = 't_arm_rag_robe';
+    btsId = 't_bts_worn_mage';
+  } else if (heroClass === 'assassin') {
+    wpnId = 't_wpn_rusty_dagger';
+    armId = 't_arm_rag_cloak';
+    btsId = 't_bts_worn_assassin';
+  }
+
+  const startingWeapon = DEFAULT_ITEM_TEMPLATES.find(t => t.id === wpnId);
+  const startingArmor = DEFAULT_ITEM_TEMPLATES.find(t => t.id === armId);
+  const startingBoots = DEFAULT_ITEM_TEMPLATES.find(t => t.id === btsId);
 
   const inventory: EquipmentItem[] = [];
   if (startingWeapon) {
@@ -207,21 +246,50 @@ export const mockDb = {
 
   loadGame: async (userId: string): Promise<GameSaveData | null> => {
     const data = localStorage.getItem(STORAGE_KEYS.SAVED_GAME + userId);
+    const selectedClass = (localStorage.getItem('selected_class') || 'knight') as 'knight' | 'mage' | 'assassin';
     if (!data) {
       // New save initialization
-      const starterSave = generateStarterSave(userId);
+      const starterSave = generateStarterSave(userId, selectedClass);
+      localStorage.removeItem('selected_class'); // clean up
       await mockDb.saveGame(starterSave);
       return starterSave;
     }
     try {
       const parsed = JSON.parse(data) as GameSaveData;
       // Self-heal corrupted or outdated schemas by merging template defaults
-      const starter = generateStarterSave(userId);
-      if (!parsed.hero) parsed.hero = starter.hero;
+      const starter = generateStarterSave(userId, selectedClass);
+      if (!parsed.hero) {
+        parsed.hero = starter.hero;
+      } else {
+        parsed.hero = { ...starter.hero, ...parsed.hero };
+        if (!parsed.hero.baseStats) parsed.hero.baseStats = starter.hero.baseStats;
+        if (!parsed.hero.currentStats) parsed.hero.currentStats = starter.hero.currentStats;
+        if (!parsed.hero.heroClass) parsed.hero.heroClass = 'knight';
+      }
       if (!parsed.inventory) parsed.inventory = starter.inventory;
       if (!parsed.quests) parsed.quests = starter.quests;
       if (parsed.activeStage === undefined) parsed.activeStage = starter.activeStage;
       if (!parsed.prestigeBonuses) parsed.prestigeBonuses = starter.prestigeBonuses;
+
+      // Ensure each item in the inventory is fully formed
+      if (Array.isArray(parsed.inventory)) {
+        parsed.inventory = parsed.inventory.map(item => {
+          if (!item) return item;
+          if (!item.stats) {
+            const template = DEFAULT_ITEM_TEMPLATES.find(t => t.id === item.templateId);
+            if (template) {
+              item.stats = calculateItemStats(item.slot, item.rarity, item.level || 1);
+            } else {
+              item.stats = { maxHp: 0, attack: 0, defense: 0, speed: 0, critRate: 0, critDamage: 1.5 };
+            }
+          }
+          if (item.upgradeCost === undefined) {
+            item.upgradeCost = calculateUpgradeCost(item.slot, item.rarity, item.level || 1);
+          }
+          return item;
+        }).filter(Boolean);
+      }
+
       return parsed;
     } catch {
       const starterSave = generateStarterSave(userId);
