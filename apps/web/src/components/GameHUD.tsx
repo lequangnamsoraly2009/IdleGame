@@ -25,20 +25,19 @@ interface GameHUDProps {
 }
 
 export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
-  const { 
+  const {
     user,
-    saveData, 
-    activeTab, 
-    setActiveTab, 
+    saveData,
+    activeTab,
+    setActiveTab,
     signOut,
-    heroHp, 
-    heroMaxHp, 
+    heroHp,
+    heroMaxHp,
     heroRage,
-    monsterHp, 
+    monsterHp,
     monsterMaxHp,
     monsterRage,
     combatLogs,
-    changeHeroClass,
     battleMode,
     exitGuildRaid,
     activeInspectItemId,
@@ -114,7 +113,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
       <header className="glass-panel rounded-2xl py-2 px-3 sm:py-3 sm:px-6 flex justify-between items-center relative z-10 border-slate-800 shadow-xl gap-2 sm:gap-4 shrink-0">
         {/* Profile/Ranks */}
         <div className="flex items-center gap-1.5 sm:gap-3">
-          <button 
+          <button
             onClick={() => setIsSettingsOpen(true)}
             className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center font-bold text-base sm:text-xl shadow hover:bg-blue-500/20 active:scale-95 transition cursor-pointer"
             title={language === 'vi' ? 'Cài đặt' : 'Settings'}
@@ -130,12 +129,12 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
             </div>
             <div className="flex flex-col gap-0.5 mt-1">
               <div className="w-16 sm:w-24 h-1 sm:h-1.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-blue-500 transition-all duration-300"
                   style={{ width: `${Math.min(100, Math.floor((hero.exp / hero.maxExp) * 100))}%` }}
                 />
               </div>
-              <span className="text-[7.5px] sm:text-[9.5px] font-extrabold text-slate-400 font-mono leading-none mt-0.5">
+              <span className="text-[9.5px] sm:text-[11.5px] font-extrabold text-slate-400 font-mono leading-none mt-0.5">
                 EXP: {hero.exp}/{hero.maxExp}
               </span>
             </div>
@@ -179,7 +178,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
       {/* CORE LAYOUT WORKSPACE */}
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-2 sm:gap-3 my-2 sm:my-3 overflow-hidden relative z-10">
-        
+
         {/* COLUMN 1: Live Combat Log */}
         <section className="hidden lg:flex lg:col-span-1 glass-panel rounded-2xl p-4 flex-col justify-between overflow-hidden shadow-lg border-slate-800">
           <div className="flex flex-col h-full overflow-hidden">
@@ -197,11 +196,10 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                   <button
                     key={tab.filter}
                     onClick={() => setLogFilter(tab.filter)}
-                    className={`text-[9px] font-bold uppercase px-2 py-0.8 rounded-md transition cursor-pointer ${
-                      logFilter === tab.filter 
-                        ? 'bg-blue-600 text-white shadow shadow-blue-500/10' 
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                    className={`text-[9px] font-bold uppercase px-2 py-0.8 rounded-md transition cursor-pointer ${logFilter === tab.filter
+                      ? 'bg-blue-600 text-white shadow shadow-blue-500/10'
+                      : 'text-slate-400 hover:text-white'
+                      }`}
                   >
                     {tab.label}
                   </button>
@@ -220,11 +218,11 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                   <div key={log.id} className="text-[10.5px] leading-relaxed border-b border-slate-900 pb-1 flex gap-2">
                     <span className="text-slate-600 shrink-0 select-none">[{log.time}]</span>
                     <span className={
-                      log.category === 'loot' 
-                        ? getRarityTextClass(log.text) 
-                        : log.category === 'combat' 
-                        ? 'text-red-400/90' 
-                        : 'text-blue-400/90'
+                      log.category === 'loot'
+                        ? getRarityTextClass(log.text)
+                        : log.category === 'combat'
+                          ? 'text-red-400/90'
+                          : 'text-blue-400/90'
                     }>
                       {log.text}
                     </span>
@@ -237,7 +235,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
         {/* COLUMN 2 & 3: Game Scene Screen & Life indicators */}
         <section className="lg:col-span-2 flex flex-col gap-2 sm:gap-3 overflow-hidden">
-          
+
           {/* Stage & Wave Panel (Single row below header) */}
           <div className="flex justify-center shrink-0">
             <div className="flex items-center gap-2 bg-slate-950/70 border border-slate-850/80 rounded-xl px-3 py-1.5 text-xs shadow-inner">
@@ -302,7 +300,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
               )}
             </div>
           </div>
-          
+
           {/* Pixi Canvas Viewport Container */}
           <div className="flex-1 relative min-h-[160px] sm:min-h-[220px] lg:min-h-[300px] overflow-hidden">
             <PixiGame />
@@ -318,18 +316,18 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                 </button>
               </div>
             )}
-            
+
             {/* Mobile battle log overlay (renders only on mobile/tablet viewports) */}
             <div className="lg:hidden absolute bottom-2 left-2 right-2 h-[65px] overflow-y-auto bg-slate-950/70 backdrop-blur-sm border border-slate-900/60 rounded-xl p-2 flex flex-col justify-end pointer-events-none select-none text-[9.5px] sm:text-[10px] space-y-0.5 scrollbar-none shadow-lg">
               {combatLogs.slice(-3).map((log) => (
                 <div key={log.id} className="leading-relaxed flex gap-1.5 truncate">
                   <span className="text-slate-500 shrink-0 select-none">[{log.time}]</span>
                   <span className={
-                    log.category === 'loot' 
-                      ? getRarityTextClass(log.text) 
-                      : log.category === 'combat' 
-                      ? 'text-red-400/90' 
-                      : 'text-blue-400/90'
+                    log.category === 'loot'
+                      ? getRarityTextClass(log.text)
+                      : log.category === 'combat'
+                        ? 'text-red-400/90'
+                        : 'text-blue-400/90'
                   }>
                     {log.text}
                   </span>
@@ -340,7 +338,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
           {/* Health Indicators Console */}
           <div className="glass-panel rounded-2xl p-3 sm:p-4 border-slate-800 shadow-lg grid grid-cols-2 gap-3 sm:gap-4 shrink-0">
-            
+
             {/* Hero Health & Rage */}
             <div className="space-y-2">
               {/* HP Row */}
@@ -349,7 +347,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                   🛡️ <span className="hidden sm:inline">{t('max_health')}</span><span className="sm:hidden">HP</span>
                 </div>
                 <div className="flex-1 h-2 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-emerald-500 transition-all duration-200"
                     style={{ width: `${Math.min(100, Math.max(0, Math.floor((heroHp / heroMaxHp) * 100)))}%` }}
                   />
@@ -365,7 +363,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                   ⚡ <span className="hidden sm:inline">{language === 'vi' ? 'Nộ khí' : 'Rage'}</span><span className="sm:hidden">RGE</span>
                 </div>
                 <div className="flex-1 h-1.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className={`h-full bg-orange-500 transition-all duration-200 ${heroRage >= 100 ? 'animate-pulse' : ''}`}
                     style={{ width: `${Math.min(100, Math.max(0, Math.floor(heroRage)))}%` }}
                   />
@@ -384,7 +382,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                   👹 <span className="hidden sm:inline">{battleMode === 'guild_boss' ? 'Raid Boss' : t('quest_target_defeat')}</span><span className="sm:hidden">{battleMode === 'guild_boss' ? 'BOSS' : 'MOB'}</span>
                 </div>
                 <div className="flex-1 h-2 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-red-500 transition-all duration-200"
                     style={{ width: `${Math.min(100, Math.max(0, Math.floor((monsterHp / monsterMaxHp) * 100)))}%` }}
                   />
@@ -400,7 +398,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                   ⚡ <span className="hidden sm:inline">{language === 'vi' ? 'Nộ khí' : 'Rage'}</span><span className="sm:hidden">RGE</span>
                 </div>
                 <div className="flex-1 h-1.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className={`h-full bg-orange-500 transition-all duration-200 ${monsterRage >= 100 ? 'animate-pulse' : ''}`}
                     style={{ width: `${Math.min(100, Math.max(0, Math.floor(monsterRage)))}%` }}
                   />
@@ -441,13 +439,13 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                           </span>
                         )}
                       </div>
-                      
+
                       <div className="flex justify-between items-center text-[9px] text-slate-500 font-medium">
                         <span>{t('progress_label')}: {q.currentCount} / {q.targetCount}</span>
                         <span>{percentage}%</span>
                       </div>
                       <div className="h-1 bg-slate-900 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className={`h-full rounded-full transition-all duration-350 ${q.completed ? 'bg-emerald-500' : 'bg-blue-500'}`}
                           style={{ width: `${percentage}%` }}
                         />
@@ -474,22 +472,21 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                   onClick={() => {
                     if (locked) {
                       useGameStore.getState().addLogMessage(
-                        language === 'vi' 
-                          ? `🔒 Tính năng khóa! Đạt cấp ${LEVEL_LOCKS[tab]} để mở khóa.` 
-                          : `🔒 Feature locked! Reach level ${LEVEL_LOCKS[tab]} to unlock.`, 
+                        language === 'vi'
+                          ? `🔒 Tính năng khóa! Đạt cấp ${LEVEL_LOCKS[tab]} để mở khóa.`
+                          : `🔒 Feature locked! Reach level ${LEVEL_LOCKS[tab]} to unlock.`,
                         'system'
                       );
                       return;
                     }
                     setActiveTab(tab);
                   }}
-                  className={`shrink-0 snap-start px-4 py-2 text-xs font-extrabold uppercase rounded-xl border tracking-wider transition-all duration-150 cursor-pointer ${
-                    activeTab === tab
-                      ? 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white shadow shadow-blue-500/20'
-                      : locked
+                  className={`shrink-0 snap-start px-4 py-2 text-xs font-extrabold uppercase rounded-xl border tracking-wider transition-all duration-150 cursor-pointer ${activeTab === tab
+                    ? 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white shadow shadow-blue-500/20'
+                    : locked
                       ? 'bg-slate-950/20 border-slate-900 text-slate-650 opacity-40 cursor-not-allowed'
                       : 'bg-slate-950/60 hover:bg-slate-900 border-slate-850 text-slate-400 hover:text-white'
-                  }`}
+                    }`}
                   title={locked ? (language === 'vi' ? `Khóa đến cấp ${LEVEL_LOCKS[tab]}` : `Locked until level ${LEVEL_LOCKS[tab]}`) : ''}
                 >
                   {locked ? '🔒 ' : ''}
@@ -498,7 +495,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
               );
             })}
           </div>
-          
+
           <div className="hidden md:block text-[10px] text-slate-500 font-bold uppercase tracking-widest shrink-0">
             {t('hud_control_deck')}
           </div>
@@ -520,9 +517,9 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
               onClick={() => {
                 if (locked) {
                   useGameStore.getState().addLogMessage(
-                    language === 'vi' 
-                      ? `🔒 Tính năng khóa! Đạt cấp ${LEVEL_LOCKS[tab]} để mở khóa.` 
-                      : `🔒 Feature locked! Reach level ${LEVEL_LOCKS[tab]} to unlock.`, 
+                    language === 'vi'
+                      ? `🔒 Tính năng khóa! Đạt cấp ${LEVEL_LOCKS[tab]} để mở khóa.`
+                      : `🔒 Feature locked! Reach level ${LEVEL_LOCKS[tab]} to unlock.`,
                     'system'
                   );
                   return;
@@ -530,13 +527,12 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                 setActiveTab(tab);
                 setIsMobilePanelOpen(true);
               }}
-              className={`flex-1 flex justify-center py-2 text-2xl transition cursor-pointer active:scale-90 ${
-                activeTab === tab && isMobilePanelOpen
-                  ? 'text-blue-400 scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
-                  : locked
+              className={`flex-1 flex justify-center py-2 text-2xl transition cursor-pointer active:scale-90 ${activeTab === tab && isMobilePanelOpen
+                ? 'text-blue-400 scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+                : locked
                   ? 'text-slate-800 opacity-30 cursor-not-allowed'
                   : 'text-slate-500 opacity-60 grayscale'
-              }`}
+                }`}
             >
               {locked ? '🔒' : getTabIconOnly(tab)}
             </button>
@@ -558,8 +554,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
               {activeTab === 'summon' && t('tab_summon')}
               {activeTab === 'guide' && t('tab_guide')}
             </h3>
-            
-            <button 
+
+            <button
               onClick={() => setIsMobilePanelOpen(false)}
               className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white font-extrabold text-sm active:scale-95 cursor-pointer"
             >
@@ -582,22 +578,21 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                   onClick={() => {
                     if (locked) {
                       useGameStore.getState().addLogMessage(
-                        language === 'vi' 
-                          ? `🔒 Tính năng khóa! Đạt cấp ${LEVEL_LOCKS[tab]} để mở khóa.` 
-                          : `🔒 Feature locked! Reach level ${LEVEL_LOCKS[tab]} to unlock.`, 
+                        language === 'vi'
+                          ? `🔒 Tính năng khóa! Đạt cấp ${LEVEL_LOCKS[tab]} để mở khóa.`
+                          : `🔒 Feature locked! Reach level ${LEVEL_LOCKS[tab]} to unlock.`,
                         'system'
                       );
                       return;
                     }
                     setActiveTab(tab);
                   }}
-                  className={`flex-1 flex justify-center py-2 text-2xl transition cursor-pointer active:scale-90 ${
-                    activeTab === tab
-                      ? 'text-blue-400 scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
-                      : locked
+                  className={`flex-1 flex justify-center py-2 text-2xl transition cursor-pointer active:scale-90 ${activeTab === tab
+                    ? 'text-blue-400 scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+                    : locked
                       ? 'text-slate-800 opacity-30 cursor-not-allowed'
                       : 'text-slate-500 opacity-60 grayscale'
-                  }`}
+                    }`}
                 >
                   {locked ? '🔒' : getTabIconOnly(tab)}
                 </button>
@@ -615,7 +610,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-1.5 font-display">
                 ⚙️ {language === 'vi' ? 'Cài Đặt' : 'Settings'}
               </h3>
-              <button 
+              <button
                 onClick={() => setIsSettingsOpen(false)}
                 className="text-slate-400 hover:text-white font-bold text-sm cursor-pointer"
               >
@@ -631,58 +626,25 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setLanguage('vi')}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-[11px] font-extrabold transition cursor-pointer ${
-                    language === 'vi'
-                      ? 'bg-blue-600/20 border-blue-500 text-blue-400'
-                      : 'bg-slate-950/40 border-slate-850 text-slate-400 hover:text-white'
-                  }`}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-[11px] font-extrabold transition cursor-pointer ${language === 'vi'
+                    ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                    : 'bg-slate-950/40 border-slate-850 text-slate-400 hover:text-white'
+                    }`}
                 >
                   <span>🇻🇳</span> Tiếng Việt
                 </button>
                 <button
                   onClick={() => setLanguage('en')}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-[11px] font-extrabold transition cursor-pointer ${
-                    language === 'en'
-                      ? 'bg-blue-600/20 border-blue-500 text-blue-400'
-                      : 'bg-slate-950/40 border-slate-850 text-slate-400 hover:text-white'
-                  }`}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-[11px] font-extrabold transition cursor-pointer ${language === 'en'
+                    ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                    : 'bg-slate-950/40 border-slate-850 text-slate-400 hover:text-white'
+                    }`}
                 >
                   <span>🇬🇧</span> English
                 </button>
               </div>
             </div>
 
-            {/* Character Class Swap */}
-            {saveData?.hero && (
-              <div className="space-y-2 pt-2.5 border-t border-slate-850">
-                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">
-                  {language === 'vi' ? 'Lớp nhân vật' : 'Hero Class'}
-                </span>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {[
-                    { id: 'knight', icon: '🛡️', label: language === 'vi' ? 'Binh' : 'Knt' },
-                    { id: 'mage', icon: '🔮', label: language === 'vi' ? 'Sư' : 'Mag' },
-                    { id: 'assassin', icon: '🗡️', label: language === 'vi' ? 'Thủ' : 'Asn' },
-                  ].map((cls) => {
-                    const active = (saveData.hero.heroClass || 'knight') === cls.id;
-                    return (
-                      <button
-                        key={cls.id}
-                        onClick={() => changeHeroClass(cls.id as any)}
-                        className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl border transition cursor-pointer ${
-                          active
-                            ? 'bg-blue-600/20 border-blue-500 text-blue-400 font-black scale-105 shadow-sm'
-                            : 'bg-slate-950/40 border-slate-850 text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        <span className="text-base">{cls.icon}</span>
-                        <span className="text-[8px] uppercase tracking-tight font-extrabold mt-0.5">{cls.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
 
             {/* Admin Documents (Only for admin@gmail.com) */}
             {user?.email?.toLowerCase() === 'admin@gmail.com' && (
