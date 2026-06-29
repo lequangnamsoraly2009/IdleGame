@@ -41,7 +41,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     battleMode,
     exitGuildRaid,
     activeInspectItemId,
-    challengeBoss
+    challengeBoss,
+    renameHero
   } = useGameStore();
 
   const { t } = useTranslation();
@@ -49,6 +50,14 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
   const [logFilter, setLogFilter] = useState<'all' | 'combat' | 'loot'>('all');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+
+  // Sync settings input name
+  React.useEffect(() => {
+    if (isSettingsOpen && saveData?.hero) {
+      setNameInput(saveData.hero.name || 'Hero');
+    }
+  }, [isSettingsOpen, saveData?.hero?.name]);
 
   // Redirect to 'hero' tab if the currently active tab is locked (e.g. after prestige)
   React.useEffect(() => {
@@ -641,6 +650,34 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                     }`}
                 >
                   <span>🇬🇧</span> English
+                </button>
+              </div>
+            </div>
+ 
+            {/* Rename Character Settings */}
+            <div className="space-y-2 pt-2.5 border-t border-slate-850">
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">
+                {language === 'vi' ? 'Tên Nhân Vật' : 'Character Name'}
+              </span>
+              <div className="flex gap-1.5">
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  maxLength={16}
+                  className="flex-1 bg-slate-950/60 border border-slate-850/80 rounded-xl px-2.5 py-1.5 text-[11px] text-slate-200 outline-none focus:border-blue-500/80 transition-all font-bold"
+                  placeholder={language === 'vi' ? 'Nhập tên mới...' : 'Enter new name...'}
+                />
+                <button
+                  onClick={() => {
+                    const cleaned = nameInput.trim();
+                    if (!cleaned) return;
+                    renameHero(cleaned);
+                  }}
+                  disabled={!nameInput.trim() || nameInput.trim() === hero.name}
+                  className="bg-blue-600/90 hover:bg-blue-500 disabled:opacity-30 disabled:pointer-events-none text-white text-[10px] font-black uppercase tracking-wider px-3 rounded-xl border border-blue-500/35 active:scale-95 transition cursor-pointer"
+                >
+                  {language === 'vi' ? 'Lưu' : 'Save'}
                 </button>
               </div>
             </div>

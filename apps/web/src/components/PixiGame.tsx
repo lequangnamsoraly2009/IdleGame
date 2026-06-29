@@ -121,48 +121,52 @@ export const PixiGame: React.FC = () => {
     });
 
     // Keep local tracks of previous values to avoid using deprecated/removed prevState in Zustand subscribe
-    const initialStoreState = useGameStore.getState();
-    let lastLevel = initialStoreState.saveData?.hero?.level;
-    let lastPrestige = initialStoreState.saveData?.hero?.prestigePoints;
-    let lastStage = initialStoreState.saveData?.activeStage;
-    let lastClass = initialStoreState.saveData?.hero?.heroClass;
-    let lastBattleMode = initialStoreState.battleMode;
-    let lastEquippedIds = (initialStoreState.saveData?.inventory || [])
-      .filter(i => i?.equipped)
-      .map(i => `${i.id}_${i.level}`)
-      .join(',');
+     const initialStoreState = useGameStore.getState();
+     let lastLevel = initialStoreState.saveData?.hero?.level;
+     let lastPrestige = initialStoreState.saveData?.hero?.prestigePoints;
+     let lastStage = initialStoreState.saveData?.activeStage;
+     let lastClass = initialStoreState.saveData?.hero?.heroClass;
+     let lastName = initialStoreState.saveData?.hero?.name;
+     let lastBattleMode = initialStoreState.battleMode;
+     const lastEquippedIdsVal = (initialStoreState.saveData?.inventory || [])
+       .filter(i => i?.equipped)
+       .map(i => `${i.id}_${i.level}`)
+       .join(',');
+     let lastEquippedIds = lastEquippedIdsVal;
 
-    // Subscribe to Zustand store modifications
-    const unsubscribe = useGameStore.subscribe((state) => {
-      try {
-        if (!state.saveData) return;
+     // Subscribe to Zustand store modifications
+     const unsubscribe = useGameStore.subscribe((state) => {
+       try {
+         if (!state.saveData) return;
 
-        const currentEquippedIds = (state.saveData.inventory || [])
-          .filter(i => i?.equipped)
-          .map(i => `${i.id}_${i.level}`)
-          .join(',');
+         const currentEquippedIds = (state.saveData.inventory || [])
+           .filter(i => i?.equipped)
+           .map(i => `${i.id}_${i.level}`)
+           .join(',');
 
-        const equippedChanged = currentEquippedIds !== lastEquippedIds;
-        const levelChanged = state.saveData.hero?.level !== lastLevel;
-        const prestigeChanged = state.saveData.hero?.prestigePoints !== lastPrestige;
-        const stageChanged = state.saveData.activeStage !== lastStage;
-        const classChanged = state.saveData.hero?.heroClass !== lastClass;
-        const battleModeChanged = state.battleMode !== lastBattleMode;
+         const equippedChanged = currentEquippedIds !== lastEquippedIds;
+         const levelChanged = state.saveData.hero?.level !== lastLevel;
+         const prestigeChanged = state.saveData.hero?.prestigePoints !== lastPrestige;
+         const stageChanged = state.saveData.activeStage !== lastStage;
+         const classChanged = state.saveData.hero?.heroClass !== lastClass;
+         const nameChanged = state.saveData.hero?.name !== lastName;
+         const battleModeChanged = state.battleMode !== lastBattleMode;
 
-        if (equippedChanged || levelChanged || prestigeChanged || stageChanged || classChanged || battleModeChanged) {
-          const hero = state.saveData.hero;
-          const activeStage = state.saveData.activeStage;
-          const equipped = state.saveData.inventory?.filter(i => i?.equipped) || [];
-          
-          // Update local cache IMMEDIATELY to prevent recursive re-entrancy via synchronous store updates
-          if (hero) {
-            lastLevel = hero.level;
-            lastPrestige = hero.prestigePoints;
-            lastClass = hero.heroClass;
-          }
-          lastStage = activeStage;
-          lastEquippedIds = currentEquippedIds;
-          lastBattleMode = state.battleMode;
+         if (equippedChanged || levelChanged || prestigeChanged || stageChanged || classChanged || nameChanged || battleModeChanged) {
+           const hero = state.saveData.hero;
+           const activeStage = state.saveData.activeStage;
+           const equipped = state.saveData.inventory?.filter(i => i?.equipped) || [];
+           
+           // Update local cache IMMEDIATELY to prevent recursive re-entrancy via synchronous store updates
+           if (hero) {
+             lastLevel = hero.level;
+             lastPrestige = hero.prestigePoints;
+             lastClass = hero.heroClass;
+             lastName = hero.name;
+           }
+           lastStage = activeStage;
+           lastEquippedIds = currentEquippedIds;
+           lastBattleMode = state.battleMode;
 
           if (battleModeChanged) {
             if (state.battleMode === 'guild_boss') {

@@ -12,6 +12,7 @@ import {
   generateMonsterForStage
 } from '@idle-rpg/shared';
 import { authService, dbService, UserSession, generateStarterSave } from '@idle-rpg/firebase';
+import { useLanguageStore } from './languageStore';
 
 interface CombatLogEntry {
   id: string;
@@ -77,6 +78,7 @@ interface GameState {
   summonEquipment: () => void;
   triggerPrestige: () => void;
   changeHeroClass: (newClass: 'knight' | 'mage' | 'assassin') => void;
+  renameHero: (newName: string) => void;
   identifyEquipment: (itemId: string) => void;
   insertGem: (itemId: string, gemType: string, socketIdx: number) => void;
   startGuildRaid: () => void;
@@ -923,6 +925,31 @@ export const useGameStore = create<GameState>((set, get) => {
       };
 
       autoSave(updatedSave);
+    },
+
+    renameHero: (newName) => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const cleanedName = newName.trim().substring(0, 16);
+      if (!cleanedName) return;
+
+      const hero = { ...saveData.hero, name: cleanedName };
+      const updatedSave = {
+        ...saveData,
+        hero,
+        lastSavedAt: Date.now()
+      };
+
+      set({ saveData: updatedSave });
+      autoSave(updatedSave);
+
+      get().addLogMessage(
+        useLanguageStore.getState().language === 'vi'
+          ? `✏️ Đổi tên nhân vật thành công: [${cleanedName}]`
+          : `✏️ Character renamed successfully: [${cleanedName}]`,
+        'system'
+      );
     },
 
     identifyEquipment: (itemId) => {
