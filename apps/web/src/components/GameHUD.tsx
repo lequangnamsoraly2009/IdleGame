@@ -128,14 +128,14 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                 ⚔️{calculateHeroCP(hero.level, hero.prestigePoints, saveData.inventory.filter(item => item.equipped), hero.heroClass).toLocaleString()}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 mt-1">
+            <div className="flex flex-col gap-0.5 mt-1">
               <div className="w-16 sm:w-24 h-1 sm:h-1.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-blue-500 transition-all duration-300"
                   style={{ width: `${Math.min(100, Math.floor((hero.exp / hero.maxExp) * 100))}%` }}
                 />
               </div>
-              <span className="text-[6.5px] sm:text-[8px] font-bold text-slate-400 font-mono leading-none">
+              <span className="text-[7.5px] sm:text-[9.5px] font-extrabold text-slate-400 font-mono leading-none mt-0.5">
                 EXP: {hero.exp}/{hero.maxExp}
               </span>
             </div>
