@@ -278,12 +278,22 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                   {autoAdvance === false && (currentWave || 1) < 20 && (
                     <>
                       <div className="w-[1px] h-3.5 bg-slate-850" />
-                      <button
-                        onClick={() => challengeBoss()}
-                        className="px-2.5 py-1 text-[10px] font-extrabold uppercase bg-red-950/60 border border-red-500/60 text-red-400 hover:bg-red-900 hover:border-red-400 rounded-lg animate-pulse transition active:scale-95 cursor-pointer"
-                      >
-                        {language === 'vi' ? '👿 Đấu Boss' : '👿 Fight Boss'}
-                      </button>
+                      {(currentWave || 1) === 19 ? (
+                        <button
+                          onClick={() => challengeBoss()}
+                          className="px-2.5 py-1 text-[10px] font-extrabold uppercase bg-red-950/60 border border-red-500/60 text-red-400 hover:bg-red-900 hover:border-red-400 rounded-lg animate-pulse transition active:scale-95 cursor-pointer"
+                        >
+                          {language === 'vi' ? '👿 Đấu Boss' : '👿 Fight Boss'}
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="px-2.5 py-1 text-[10px] font-extrabold uppercase bg-slate-900 border border-slate-800 text-slate-500 rounded-lg opacity-45 cursor-not-allowed"
+                          title={language === 'vi' ? 'Cần đạt Wave 19/20 để mở khóa khiêu chiến Boss!' : 'Need to reach Wave 19/20 to challenge Boss!'}
+                        >
+                          {language === 'vi' ? '🔒 Đấu Boss' : '🔒 Fight Boss'}
+                        </button>
+                      )}
                     </>
                   )}
                 </>

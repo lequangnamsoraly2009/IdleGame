@@ -507,6 +507,8 @@ export const useGameStore = create<GameState>((set, get) => {
       const { saveData, engineInstance } = get();
       if (!saveData || !engineInstance) return;
 
+      if ((saveData.currentWave || 1) < 19) return;
+
       // Force currentWave to 20 (Boss wave) and challenge Boss immediately
       const updatedSave: GameSaveData = {
         ...saveData,
