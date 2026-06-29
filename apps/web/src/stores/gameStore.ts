@@ -56,6 +56,7 @@ interface GameState {
   equipEquipment: (itemId: string) => void;
   unequipEquipment: (itemId: string) => void;
   sellEquipment: (itemId: string) => void;
+  sellMultipleEquipment: (itemIds: string[]) => void;
   claimQuestReward: (questId: string) => void;
   buyGoldPack: () => void;
   summonEquipment: () => void;
@@ -462,6 +463,36 @@ export const useGameStore = create<GameState>((set, get) => {
       hero.gold += sellPrice;
 
       get().addLogMessage(tStore('log_sold_item', { name: item.name, gold: sellPrice }), 'system');
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        inventory,
+        lastSavedAt: Date.now()
+      };
+
+      autoSave(updatedSave);
+    },
+
+    sellMultipleEquipment: (itemIds) => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      let totalGoldEarned = 0;
+      const itemsToSell = saveData.inventory.filter(i => itemIds.includes(i.id) && !i.equipped);
+      if (itemsToSell.length === 0) return;
+
+      itemsToSell.forEach(item => {
+        // Sell price is 30% of standard level-1 upgrade cost
+        const sellPrice = Math.floor(calculateUpgradeCost(item.slot, item.rarity, 1) * 0.3);
+        totalGoldEarned += sellPrice;
+      });
+
+      const inventory = saveData.inventory.filter(i => !itemsToSell.some(sold => sold.id === i.id));
+      const hero = { ...saveData.hero };
+      hero.gold += totalGoldEarned;
+
+      get().addLogMessage(tStore('log_sold_multiple', { count: itemsToSell.length, gold: totalGoldEarned }), 'system');
 
       const updatedSave: GameSaveData = {
         ...saveData,

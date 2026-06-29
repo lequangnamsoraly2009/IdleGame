@@ -11,11 +11,16 @@ export const BagTab: React.FC = () => {
     unequipEquipment, 
     upgradeEquipment, 
     sellEquipment, 
+    sellMultipleEquipment,
     identifyEquipment, 
     insertGem 
   } = useGameStore();
   const { t } = useTranslation();
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+
+  // Bulk sell states
+  const [isBulkSellMode, setIsBulkSellMode] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
   if (!saveData) return null;
 
@@ -138,6 +143,24 @@ export const BagTab: React.FC = () => {
     return Math.floor(baseCost * 0.3 * (1 + (item.level - 1) * 0.1));
   };
 
+  // Total price calculation for bulk sell
+  const totalEstimatedGold = selectedItemIds.reduce((sum, id) => {
+    const item = inventory.find(i => i.id === id);
+    return sum + (item ? calculateSellPrice(item) : 0);
+  }, 0);
+
+  const selectAllByRarity = (rarity: 'common' | 'uncommon' | 'rare' | 'epic') => {
+    const matches = inventory.filter(i => i.rarity === rarity && !i.equipped);
+    const matchIds = matches.map(i => i.id);
+    setSelectedItemIds(prev => Array.from(new Set([...prev, ...matchIds])));
+  };
+
+  const handleBulkSellConfirm = () => {
+    sellMultipleEquipment(selectedItemIds);
+    setSelectedItemIds([]);
+    setIsBulkSellMode(false);
+  };
+
   const totalSlots = 50;
   const blankSlotsCount = Math.max(0, totalSlots - inventory.length);
   const blankSlots = Array.from({ length: blankSlotsCount });
@@ -147,27 +170,65 @@ export const BagTab: React.FC = () => {
       {/* Grid List */}
       <div className="lg:col-span-2 flex flex-col justify-between h-[280px] lg:h-full bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 overflow-hidden shrink-0">
         <div>
-          <div className="flex justify-between items-center mb-4 border-b border-slate-850 pb-2">
+          <div className="flex justify-between items-center mb-4 border-b border-slate-850 pb-2 gap-2 flex-wrap">
             <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
               🎒 {t('tab_bag')}
             </h3>
-            <span className="text-xs font-semibold px-2 py-1 bg-slate-950/80 border border-slate-800 rounded-lg text-slate-400">
-              {inventory.length} / {totalSlots} {t('inventory_capacity')}
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setIsBulkSellMode(!isBulkSellMode);
+                  setSelectedItemIds([]);
+                  setSelectedItemId(null);
+                }}
+                className={`text-xs font-extrabold px-3 py-1.5 rounded-lg border transition active:scale-[0.98] cursor-pointer ${
+                  isBulkSellMode 
+                    ? 'bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30' 
+                    : 'bg-amber-600/25 border-amber-600/40 text-amber-300 hover:bg-amber-600/40'
+                }`}
+              >
+                {isBulkSellMode ? '❌ Hủy Thanh Lý' : '🧹 Thanh Lý Hàng Loạt'}
+              </button>
+              <span className="text-xs font-semibold px-2 py-1.5 bg-slate-950/80 border border-slate-800 rounded-lg text-slate-400">
+                {inventory.length} / {totalSlots} {t('inventory_capacity')}
+              </span>
+            </div>
           </div>
 
           {/* Grid View */}
           <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 gap-2 overflow-y-auto h-[180px] lg:h-[300px] pr-1">
             {inventory.map((item) => {
               const ui = getRarityUIStyles(item);
-              const isSelected = item.id === selectedItemId;
+              const isSelected = isBulkSellMode 
+                ? selectedItemIds.includes(item.id) 
+                : item.id === selectedItemId;
+
+              const handleItemClick = () => {
+                if (isBulkSellMode) {
+                  if (item.equipped) return;
+                  if (selectedItemIds.includes(item.id)) {
+                    setSelectedItemIds(selectedItemIds.filter(id => id !== item.id));
+                  } else {
+                    setSelectedItemIds([...selectedItemIds, item.id]);
+                  }
+                } else {
+                  setSelectedItemId(item.id);
+                }
+              };
 
               return (
                 <div key={item.id} className="aspect-square w-full">
                   <button
-                    onClick={() => setSelectedItemId(item.id)}
-                    className={`w-full h-full relative flex flex-col items-center justify-center border rounded-xl overflow-hidden transition-all cursor-pointer select-none ${ui.border} ${ui.bg} ${ui.glow} ${
-                      isSelected ? 'ring-2 ring-blue-500 scale-[0.96] border-transparent' : 'hover:scale-[1.03] hover:bg-slate-800/20'
+                    onClick={handleItemClick}
+                    disabled={isBulkSellMode && item.equipped}
+                    className={`w-full h-full relative flex flex-col items-center justify-center border rounded-xl overflow-hidden transition-all cursor-pointer select-none ${
+                      isSelected 
+                        ? (isBulkSellMode ? 'ring-2 ring-red-500 scale-[0.96] border-transparent' : 'ring-2 ring-blue-500 scale-[0.96] border-transparent')
+                        : ui.border
+                    } ${ui.bg} ${ui.glow} ${
+                      isSelected 
+                        ? '' 
+                        : (isBulkSellMode && item.equipped ? 'opacity-30 pointer-events-none' : 'hover:scale-[1.03] hover:bg-slate-800/20')
                     }`}
                   >
                     {ui.extraElements}
@@ -177,11 +238,24 @@ export const BagTab: React.FC = () => {
                         E
                       </span>
                     )}
-                    {item.isIdentified === false && (
+
+                    {isBulkSellMode && !item.equipped && (
+                      isSelected ? (
+                        <span className="absolute top-1 right-1 bg-red-600 text-[10px] text-white w-4 h-4 rounded-full flex items-center justify-center font-extrabold shadow z-10 animate-pulse">
+                          ✓
+                        </span>
+                      ) : (
+                        <span className="absolute top-1 right-1 bg-slate-950/80 border border-slate-700 text-[8px] text-slate-500 w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold z-10">
+                        </span>
+                      )
+                    )}
+
+                    {!isBulkSellMode && item.isIdentified === false && (
                       <span className="absolute top-1 right-1 bg-amber-600 text-[8px] text-white px-1 py-0.5 rounded font-extrabold uppercase leading-none shadow z-10 animate-pulse">
                         ?
                       </span>
                     )}
+
                     <ItemGraphic templateId={item.templateId} isCorrupted={item.isCorrupted} isCursed={item.isCursed} isIdentified={item.isIdentified} className="w-10 h-10 mb-1 relative z-10" />
                     <span className="absolute bottom-1 right-1 text-[9px] font-extrabold text-slate-400 bg-slate-950/60 px-1 py-0.2 rounded z-10">
                       +{item.level}
@@ -209,7 +283,100 @@ export const BagTab: React.FC = () => {
 
       {/* Item Inspector Panel */}
       <div className="lg:col-span-1 bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between h-auto lg:h-full min-h-[340px] lg:min-h-0 shrink-0">
-        {selectedItem ? (
+        {isBulkSellMode ? (
+          <div className="flex flex-col justify-between h-full">
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/10">
+                  Bulk Sell Mode
+                </span>
+                <span className="text-xs text-slate-400 font-medium">
+                  Chế độ thanh lý
+                </span>
+              </div>
+
+              <h4 className="text-base font-extrabold flex items-center gap-2 font-display text-slate-200">
+                🧹 THANH LÝ HÀNG LOẠT
+              </h4>
+              <p className="text-xs text-slate-400 mt-2 mb-4 leading-relaxed">
+                Nhấp chọn các trang bị muốn thanh lý trong danh sách bên trái hoặc sử dụng các nút chọn nhanh dưới đây. Trang bị đang sử dụng sẽ không được chọn.
+              </p>
+
+              {/* Quick Select Buttons */}
+              <div className="space-y-2 mb-4">
+                <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                  Chọn nhanh theo phẩm chất
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => selectAllByRarity('common')}
+                    className="bg-slate-800/60 hover:bg-slate-700 text-slate-300 text-[11px] font-bold py-2.5 px-1 rounded-lg border border-slate-700 transition cursor-pointer active:scale-95"
+                  >
+                    ⚪ Đồ Thường (Common)
+                  </button>
+                  <button
+                    onClick={() => selectAllByRarity('uncommon')}
+                    className="bg-emerald-950/30 hover:bg-emerald-900/40 text-emerald-400 text-[11px] font-bold py-2.5 px-1 rounded-lg border border-emerald-500/20 transition cursor-pointer active:scale-95"
+                  >
+                    🟢 Đồ Tốt (Uncommon)
+                  </button>
+                  <button
+                    onClick={() => selectAllByRarity('rare')}
+                    className="bg-blue-950/30 hover:bg-blue-900/40 text-blue-400 text-[11px] font-bold py-2.5 px-1 rounded-lg border border-blue-500/20 transition cursor-pointer active:scale-95"
+                  >
+                    🔵 Đồ Hiếm (Rare)
+                  </button>
+                  <button
+                    onClick={() => selectAllByRarity('epic')}
+                    className="bg-purple-950/30 hover:bg-purple-900/40 text-purple-400 text-[11px] font-bold py-2.5 px-1 rounded-lg border border-purple-500/20 transition cursor-pointer active:scale-95"
+                  >
+                    🟣 Đồ Sử Thi (Epic)
+                  </button>
+                </div>
+                <button
+                  onClick={() => setSelectedItemIds([])}
+                  className="w-full bg-slate-900 hover:bg-slate-850 text-slate-400 text-[11px] font-bold py-2 rounded-lg border border-slate-800 transition cursor-pointer active:scale-95"
+                >
+                  ❌ Bỏ chọn tất cả
+                </button>
+              </div>
+
+              {/* Stats Block */}
+              <div className="bg-slate-950/50 border border-slate-900 rounded-xl p-4 space-y-2 mb-4">
+                <div className="flex justify-between text-xs font-semibold">
+                  <span className="text-slate-400">Đã chọn thanh lý:</span>
+                  <span className="text-slate-200 font-extrabold">{selectedItemIds.length} món</span>
+                </div>
+                <div className="flex justify-between text-xs font-semibold border-t border-slate-900 pt-2">
+                  <span className="text-slate-400">Tổng Vàng nhận lại:</span>
+                  <span className="text-amber-400 font-extrabold">{totalEstimatedGold.toLocaleString()} Vàng 🪙</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2.5 pt-4 border-t border-slate-850">
+              <button
+                onClick={handleBulkSellConfirm}
+                disabled={selectedItemIds.length === 0}
+                className="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-extrabold py-3.5 px-4 rounded-xl shadow-lg active:scale-[0.98] transition disabled:opacity-40 disabled:pointer-events-none flex justify-between items-center cursor-pointer"
+              >
+                <span>🧹 XÁC NHẬN THANH LÝ</span>
+                <span className="bg-slate-950/40 text-rose-300 px-2 py-0.5 rounded border border-rose-500/10 font-bold">
+                  {selectedItemIds.length} món đồ
+                </span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsBulkSellMode(false);
+                  setSelectedItemIds([]);
+                }}
+                className="w-full bg-slate-850 hover:bg-slate-800 text-white text-xs font-bold py-3 rounded-xl transition cursor-pointer active:scale-[0.98]"
+              >
+                HỦY BỎ
+              </button>
+            </div>
+          </div>
+        ) : selectedItem ? (
           <div className="flex flex-col justify-between h-full">
             <div>
               {/* Header Rarity info */}
@@ -328,7 +495,7 @@ export const BagTab: React.FC = () => {
                             <button
                               onClick={() => insertGem(selectedItem.id, 'emerald', idx)}
                               disabled={hero.gold < 100}
-                              className="w-6 h-6 rounded bg-emerald-950/50 hover:bg-emerald-900/70 border border-emerald-500/20 text-[9px] flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+                              className="w-6 h-6 rounded bg-emerald-950/50 hover:bg-emerald-900/70 border border-emerald-550/20 text-[9px] flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
                               title="Khảm Emerald (+4% Chí Mạng) - Phí: 100 vàng"
                             >
                               🟢
