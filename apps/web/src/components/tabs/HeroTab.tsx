@@ -2,7 +2,8 @@ import React from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { useLanguageStore } from '../../stores/languageStore';
 import { calculatePrestigePoints } from '@idle-rpg/shared';
-import { useTranslation } from '../../utils/i18n';
+import { useTranslation, getTranslatedItemName } from '../../utils/i18n';
+import { ItemGraphic } from '../ItemGraphic';
 
 export const HeroTab: React.FC = () => {
   const { saveData, triggerPrestige } = useGameStore();
@@ -161,13 +162,19 @@ export const HeroTab: React.FC = () => {
           key={slot} 
           className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl border-2 flex flex-col items-center justify-center relative cursor-pointer group hover:scale-[1.03] transition duration-200 select-none ${borderClass}`}
         >
-          <span className="text-xl sm:text-2xl">{placeholderIcon}</span>
+          <ItemGraphic 
+            templateId={item.templateId} 
+            isCorrupted={item.isCorrupted} 
+            isCursed={item.isCursed} 
+            isIdentified={item.isIdentified} 
+            className="w-10 h-10 mb-1 relative z-10" 
+          />
           <span className="absolute bottom-0.5 right-1 text-[8px] bg-slate-950/90 border border-slate-800 text-amber-400 font-extrabold px-1 rounded">
             +{item.level}
           </span>
           {/* Tooltip Hover card */}
           <div className="hidden group-hover:block absolute bottom-full mb-2 w-32 sm:w-40 bg-slate-950 border border-slate-850 p-2 rounded-xl text-[9px] text-slate-300 z-30 shadow-2xl pointer-events-none font-sans">
-            <span className="font-extrabold text-white block truncate">{item.name}</span>
+            <span className="font-extrabold text-white block truncate">{getTranslatedItemName(t, item)}</span>
             <span className="text-slate-500 uppercase tracking-widest text-[7px] block mb-1 font-semibold">{item.rarity}</span>
             {Object.entries(item.stats).map(([k, v]) => (
               <div key={k} className="flex justify-between font-mono text-[8px] border-b border-slate-900 pb-0.5">
