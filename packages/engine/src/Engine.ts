@@ -1122,7 +1122,10 @@ export class GameEngine {
     // Destroy Pixi app safely
     if (this.app) {
       try {
-        // In PixiJS v8, destroy takes options object
+        // Prevent PixiJS v8 _cancelResize type errors during hot reloading / unmounting
+        if (typeof (this.app as any)._cancelResize !== 'function') {
+          (this.app as any)._cancelResize = () => {};
+        }
         this.app.destroy({ removeView: true });
       } catch (err) {
         console.warn("Failed to destroy PixiJS App safely:", err);

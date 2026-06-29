@@ -237,14 +237,16 @@ export const useGameStore = create<GameState>((set, get) => {
           highestDamage = Math.max(highestDamage || 0, estimatedHit);
         }
 
-        monsterResearch[monsterId] = {
+        const researchUpdate: any = {
           level: nextLevel,
           exp: nextExp,
-          kills: nextKills,
-          firstKillTime,
-          fastestKillMs,
-          highestDamage
+          kills: nextKills
         };
+        if (firstKillTime !== undefined) researchUpdate.firstKillTime = firstKillTime;
+        if (fastestKillMs !== undefined) researchUpdate.fastestKillMs = fastestKillMs;
+        if (highestDamage !== undefined) researchUpdate.highestDamage = highestDamage;
+
+        monsterResearch[monsterId] = researchUpdate;
       }
 
       // Track item kills & evolution milestones
