@@ -35,7 +35,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     battleMode,
     exitGuildRaid,
     activeInspectItemId,
-    toggleAutoAdvance,
     challengeBoss
   } = useGameStore();
 
@@ -260,40 +259,16 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
                   <div className="w-[1px] h-3.5 bg-slate-850" />
 
-                  {/* Auto Advance Toggle Button */}
-                  <button
-                    onClick={() => toggleAutoAdvance()}
-                    className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-lg border transition active:scale-95 cursor-pointer ${
-                      autoAdvance !== false
-                        ? 'bg-emerald-950/60 border-emerald-500/60 text-emerald-400 hover:bg-emerald-900/80 hover:border-emerald-400'
-                        : 'bg-slate-900/60 border-slate-750 text-slate-400 hover:bg-slate-800 hover:border-slate-600'
-                    }`}
-                  >
-                    {autoAdvance !== false 
-                      ? (language === 'vi' ? '🔄 Tự Vượt Ải' : '🔄 Auto') 
-                      : (language === 'vi' ? '⏹️ Tự Vượt Ải: Tắt' : '⏹️ Auto: Off')}
-                  </button>
-
-                  {/* Manual Challenge Boss Button (only when auto-advance is disabled and wave is not boss yet) */}
-                  {autoAdvance === false && (currentWave || 1) < 20 && (
+                  {/* Manual Challenge Boss Button (only when auto-advance is disabled/failed and wave is 19) */}
+                  {autoAdvance === false && (currentWave || 1) === 19 && (
                     <>
                       <div className="w-[1px] h-3.5 bg-slate-850" />
-                      {(currentWave || 1) === 19 ? (
-                        <button
-                          onClick={() => challengeBoss()}
-                          className="px-2.5 py-1 text-[10px] font-extrabold uppercase bg-red-950/60 border border-red-500/60 text-red-400 hover:bg-red-900 hover:border-red-400 rounded-lg animate-pulse transition active:scale-95 cursor-pointer"
-                        >
-                          {language === 'vi' ? '👿 Đấu Boss' : '👿 Fight Boss'}
-                        </button>
-                      ) : (
-                        <button
-                          disabled
-                          className="px-2.5 py-1 text-[10px] font-extrabold uppercase bg-slate-900 border border-slate-800 text-slate-500 rounded-lg opacity-45 cursor-not-allowed"
-                          title={language === 'vi' ? 'Cần đạt Wave 19/20 để mở khóa khiêu chiến Boss!' : 'Need to reach Wave 19/20 to challenge Boss!'}
-                        >
-                          {language === 'vi' ? '🔒 Đấu Boss' : '🔒 Fight Boss'}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => challengeBoss()}
+                        className="px-2.5 py-1 text-[10px] font-extrabold uppercase bg-red-950/60 border border-red-500/60 text-red-400 hover:bg-red-900 hover:border-red-400 rounded-lg animate-pulse transition active:scale-95 cursor-pointer"
+                      >
+                        {language === 'vi' ? '👿 Đấu Boss' : '👿 Fight Boss'}
+                      </button>
                     </>
                   )}
                 </>

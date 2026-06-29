@@ -461,6 +461,7 @@ export const useGameStore = create<GameState>((set, get) => {
         ...saveData,
         activeStage: nextStage,
         currentWave: nextWave,
+        autoAdvance: nextWave === 1 && nextStage !== saveData.activeStage ? true : saveData.autoAdvance,
         stagesCleared,
         hero,
         inventory: newInventory,
@@ -1090,12 +1091,14 @@ export const useGameStore = create<GameState>((set, get) => {
         updatedStage = Math.max(1, saveData.activeStage - 1);
       }
 
+      const wasBossDeath = saveData.currentWave === 20;
+
       const updatedSave: GameSaveData = {
         ...saveData,
         hero,
         activeStage: updatedStage,
         currentWave: 1,
-        autoAdvance: false,
+        autoAdvance: wasBossDeath ? false : (saveData.autoAdvance !== false),
         lastSavedAt: Date.now()
       };
 
