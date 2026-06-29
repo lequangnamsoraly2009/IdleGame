@@ -163,30 +163,31 @@ export const BagTab: React.FC = () => {
               const isSelected = item.id === selectedItemId;
 
               return (
-                <button
-                  key={item.id}
-                  onClick={() => setSelectedItemId(item.id)}
-                  className={`aspect-square relative flex flex-col items-center justify-center border rounded-xl overflow-hidden transition-all cursor-pointer select-none ${ui.border} ${ui.bg} ${ui.glow} ${
-                    isSelected ? 'ring-2 ring-blue-500 scale-[0.96] border-transparent' : 'hover:scale-[1.03] hover:bg-slate-800/20'
-                  }`}
-                >
-                  {ui.extraElements}
+                <div key={item.id} className="aspect-square w-full">
+                  <button
+                    onClick={() => setSelectedItemId(item.id)}
+                    className={`w-full h-full relative flex flex-col items-center justify-center border rounded-xl overflow-hidden transition-all cursor-pointer select-none ${ui.border} ${ui.bg} ${ui.glow} ${
+                      isSelected ? 'ring-2 ring-blue-500 scale-[0.96] border-transparent' : 'hover:scale-[1.03] hover:bg-slate-800/20'
+                    }`}
+                  >
+                    {ui.extraElements}
 
-                  {item.equipped && (
-                    <span className="absolute top-1 left-1 bg-blue-600 text-[8px] text-white px-1 py-0.5 rounded font-extrabold uppercase leading-none shadow z-10">
-                      E
+                    {item.equipped && (
+                      <span className="absolute top-1 left-1 bg-blue-600 text-[8px] text-white px-1 py-0.5 rounded font-extrabold uppercase leading-none shadow z-10">
+                        E
+                      </span>
+                    )}
+                    {item.isIdentified === false && (
+                      <span className="absolute top-1 right-1 bg-amber-600 text-[8px] text-white px-1 py-0.5 rounded font-extrabold uppercase leading-none shadow z-10 animate-pulse">
+                        ?
+                      </span>
+                    )}
+                    <ItemGraphic templateId={item.templateId} isCorrupted={item.isCorrupted} isCursed={item.isCursed} isIdentified={item.isIdentified} className="w-10 h-10 mb-1 relative z-10" />
+                    <span className="absolute bottom-1 right-1 text-[9px] font-extrabold text-slate-400 bg-slate-950/60 px-1 py-0.2 rounded z-10">
+                      +{item.level}
                     </span>
-                  )}
-                  {item.isIdentified === false && (
-                    <span className="absolute top-1 right-1 bg-amber-600 text-[8px] text-white px-1 py-0.5 rounded font-extrabold uppercase leading-none shadow z-10 animate-pulse">
-                      ?
-                    </span>
-                  )}
-                  <ItemGraphic templateId={item.templateId} isCorrupted={item.isCorrupted} isCursed={item.isCursed} isIdentified={item.isIdentified} className="w-10 h-10 mb-1 relative z-10" />
-                  <span className="absolute bottom-1 right-1 text-[9px] font-extrabold text-slate-400 bg-slate-950/60 px-1 py-0.2 rounded z-10">
-                    +{item.level}
-                  </span>
-                </button>
+                  </button>
+                </div>
               );
             })}
 
