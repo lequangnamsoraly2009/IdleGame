@@ -49,7 +49,7 @@ export const translations = {
 
     // Hero Tab
     core_attributes: "Thuộc Tính Cơ Bản",
-    max_health: "💖 Sinh Mệnh Tối Đa",
+    max_health: "💖 HP Tối Đa",
     attack_power: "⚔️ Sức Mạnh Tấn Công",
     defense_rating: "🛡️ Điểm Phòng Thủ",
     attack_speed: "⚡ Tốc Độ Đánh",

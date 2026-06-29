@@ -235,8 +235,8 @@ export const HeroTab: React.FC = () => {
             {statItems.map((stat, i) => (
               <div key={i} className="bg-slate-950/40 border border-slate-900/60 rounded-xl p-2.5 flex justify-between items-center">
                 <div>
-                  <span className="block text-[8px] text-slate-550 font-bold uppercase tracking-wider">
-                    {stat.icon} {stat.label}
+                  <span className="block text-[8px] text-slate-450 font-bold uppercase tracking-wider">
+                    {stat.label}
                   </span>
                   <span className="block text-[8px] text-slate-500 font-medium">
                     {stat.desc}
