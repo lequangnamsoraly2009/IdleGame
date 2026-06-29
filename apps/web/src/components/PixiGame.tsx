@@ -3,6 +3,7 @@ import { useGameStore } from '../stores/gameStore';
 import { GameEngine } from '@idle-rpg/engine';
 import { generateMonsterForStage } from '@idle-rpg/shared';
 import { useTranslation } from '../utils/i18n';
+import { useLanguageStore } from '../stores/languageStore';
 
 export const PixiGame: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -101,7 +102,7 @@ export const PixiGame: React.FC = () => {
         
         // Sync starting parameters
         if (hero) {
-          engine.updateState(hero.level, hero.prestigePoints, equipped, activeStage, hero.heroClass);
+          engine.updateState(hero.level, hero.prestigePoints, equipped, activeStage, hero.heroClass, hero.name || 'Hero', useLanguageStore.getState().language);
         }
         
         // Generate monster for stage and boot combat
@@ -190,7 +191,7 @@ export const PixiGame: React.FC = () => {
             }
           } else {
             if (hero) {
-              engine.updateState(hero.level, hero.prestigePoints, equipped, activeStage, hero.heroClass, hero.name || 'Hero');
+              engine.updateState(hero.level, hero.prestigePoints, equipped, activeStage, hero.heroClass, hero.name || 'Hero', useLanguageStore.getState().language);
             }
 
             if ((stageChanged || levelChanged) && state.battleMode === 'stage') {
@@ -205,8 +206,26 @@ export const PixiGame: React.FC = () => {
       }
     });
 
+    const unsubscribeLang = useLanguageStore.subscribe((langState) => {
+      const state = useGameStore.getState();
+      if (state.saveData && state.saveData.hero && engineRef.current) {
+        const hero = state.saveData.hero;
+        const equipped = state.saveData.inventory?.filter(i => i?.equipped) || [];
+        engineRef.current.updateState(
+          hero.level,
+          hero.prestigePoints,
+          equipped,
+          state.saveData.activeStage,
+          hero.heroClass,
+          hero.name || 'Hero',
+          langState.language
+        );
+      }
+    });
+
     return () => {
       unsubscribe();
+      unsubscribeLang();
       useGameStore.getState().registerEngine(null);
       if (engineRef.current) {
         engineRef.current.destroy();

@@ -72,6 +72,7 @@ export class GameEngine {
   private currentStage: number = 1;
   private monsterTemplate: MonsterTemplate | null = null;
   private heroRage: number = 0;
+  private language: 'vi' | 'en' = 'vi';
 
   // Timers (in seconds)
   private isBattleActive: boolean = false;
@@ -129,7 +130,7 @@ export class GameEngine {
     this.drawBackground();
 
     // Spawn Hero entity (left side)
-    this.heroEntity = new Entity('Hero', true, this.heroStats.maxHp);
+    this.heroEntity = new Entity('Hero', true, this.heroStats.maxHp, this.language);
     this.entityLayer.addChild(this.heroEntity);
 
     this.allyEntities = [{
@@ -214,14 +215,14 @@ export class GameEngine {
 
         ally.entity.setBasePosition(x, y);
         ally.entity.resetVisuals();
-        ally.entity.updateStats(ally.currentHp, ally.maxHp, undefined, ally.rage, ally.heroClass);
+        ally.entity.updateStats(ally.currentHp, ally.maxHp, undefined, ally.rage, ally.heroClass, this.language);
       });
     } else {
       // Normal Stage: Single Hero positioned at center-left
       if (this.heroEntity) {
         this.heroEntity.setBasePosition(width * 0.26, floorY);
         this.heroEntity.resetVisuals();
-        this.heroEntity.updateStats(this.heroCurrentHp, this.heroStats.maxHp, undefined, this.heroRage, this.heroClass);
+        this.heroEntity.updateStats(this.heroCurrentHp, this.heroStats.maxHp, undefined, this.heroRage, this.heroClass, this.language);
       }
     }
 
@@ -282,7 +283,7 @@ export class GameEngine {
         m.entity.scale.set(1.0); // minion
       }
       
-      m.entity.updateStats(m.currentHp, m.maxHp, undefined, m.rage);
+      m.entity.updateStats(m.currentHp, m.maxHp, undefined, m.rage, undefined, this.language);
     });
   }
 
@@ -292,7 +293,8 @@ export class GameEngine {
     equippedItems: EquipmentItem[],
     stage: number,
     heroClass?: 'knight' | 'mage' | 'assassin',
-    heroName?: string
+    heroName?: string,
+    language?: 'vi' | 'en'
   ) {
     this.heroLevel = level;
     this.prestigePoints = prestigePoints;
@@ -300,6 +302,9 @@ export class GameEngine {
     this.currentStage = stage;
     if (heroClass) {
       this.heroClass = heroClass;
+    }
+    if (language) {
+      this.language = language;
     }
     this.recalculateStats();
 
@@ -309,7 +314,7 @@ export class GameEngine {
       const displayName = heroName 
         ? `Lv.${this.heroLevel} ${heroName} (⚔️${formatCP(heroCP)})` 
         : `Lv.${this.heroLevel} Hero (⚔️${formatCP(heroCP)})`;
-      this.heroEntity.updateStats(this.heroCurrentHp, this.heroStats.maxHp, displayName, this.heroRage, this.heroClass);
+      this.heroEntity.updateStats(this.heroCurrentHp, this.heroStats.maxHp, displayName, this.heroRage, this.heroClass, this.language);
 
       if (this.allyEntities[0]) {
         this.allyEntities[0].heroClass = this.heroClass;
@@ -361,7 +366,7 @@ export class GameEngine {
       };
 
       const monsterCP = calculateMonsterCP(template);
-      const entity = new Entity(`${template.name} (Lv.${template.level}) (⚔️${formatCP(monsterCP)})`, false, template.baseStats.maxHp);
+      const entity = new Entity(`${template.name} (Lv.${template.level}) (⚔️${formatCP(monsterCP)})`, false, template.baseStats.maxHp, this.language);
       this.entityLayer.addChild(entity);
 
       this.activeMonsters.push({
@@ -397,7 +402,7 @@ export class GameEngine {
 
     // 1. Re-spawn user hero as first ally
     const heroCP = calculateHeroCP(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass);
-    this.heroEntity = new Entity(`Lv.${this.heroLevel} ${guildMembers[0].name} (⚔️${formatCP(heroCP)})`, true, this.heroStats.maxHp);
+    this.heroEntity = new Entity(`Lv.${this.heroLevel} ${guildMembers[0].name} (⚔️${formatCP(heroCP)})`, true, this.heroStats.maxHp, this.language);
     this.entityLayer.addChild(this.heroEntity);
 
     this.allyEntities = [];
@@ -420,7 +425,7 @@ export class GameEngine {
       else if (mem.heroClass === 'assassin') baseHp = 90 + (mem.level - 1) * 13;
 
       const memCP = calculateHeroCP(mem.level, 0, [], mem.heroClass);
-      const allyEntity = new Entity(`Lv.${mem.level} ${mem.name} (⚔️${formatCP(memCP)})`, true, baseHp);
+      const allyEntity = new Entity(`Lv.${mem.level} ${mem.name} (⚔️${formatCP(memCP)})`, true, baseHp, this.language);
       this.entityLayer.addChild(allyEntity);
 
       this.allyEntities.push({
@@ -439,7 +444,7 @@ export class GameEngine {
 
     // 4. Set up Giant Raid Boss
     const bossCP = calculateMonsterCP(bossTemplate);
-    const bossEntity = new Entity(`${bossTemplate.name} (⚔️${formatCP(bossCP)})`, false, bossTemplate.baseStats.maxHp);
+    const bossEntity = new Entity(`${bossTemplate.name} (⚔️${formatCP(bossCP)})`, false, bossTemplate.baseStats.maxHp, this.language);
     this.entityLayer.addChild(bossEntity);
 
     this.activeMonsters.push({
@@ -469,7 +474,7 @@ export class GameEngine {
     this.entityLayer.removeChildren();
 
     // Restore single player Hero
-    this.heroEntity = new Entity('Hero', true, this.heroStats.maxHp);
+    this.heroEntity = new Entity('Hero', true, this.heroStats.maxHp, this.language);
     this.entityLayer.addChild(this.heroEntity);
 
     // Fully restore normal stage health and rage
@@ -540,10 +545,10 @@ export class GameEngine {
 
     // Sync health and rage values visually every tick
     this.allyEntities.forEach(a => {
-      a.entity.updateStats(a.currentHp, a.maxHp, undefined, a.rage, a.heroClass);
+      a.entity.updateStats(a.currentHp, a.maxHp, undefined, a.rage, a.heroClass, this.language);
     });
     this.activeMonsters.forEach(m => {
-      m.entity.updateStats(m.currentHp, m.maxHp, undefined, m.rage);
+      m.entity.updateStats(m.currentHp, m.maxHp, undefined, m.rage, undefined, this.language);
     });
 
     // Sync user stats mapping from index 0
@@ -1137,13 +1142,13 @@ export class GameEngine {
     // Fully restore health
     this.heroCurrentHp = this.heroStats.maxHp;
     if (this.heroEntity) {
-      this.heroEntity.updateStats(this.heroCurrentHp, this.heroStats.maxHp);
+      this.heroEntity.updateStats(this.heroCurrentHp, this.heroStats.maxHp, undefined, undefined, undefined, this.language);
       this.heroEntity.resetVisuals();
     }
 
     if (this.allyEntities[0]) {
       this.allyEntities[0].currentHp = this.heroStats.maxHp;
-      this.allyEntities[0].entity.updateStats(this.heroStats.maxHp, this.heroStats.maxHp);
+      this.allyEntities[0].entity.updateStats(this.heroStats.maxHp, this.heroStats.maxHp, undefined, undefined, undefined, this.language);
       this.allyEntities[0].entity.resetVisuals();
     }
 

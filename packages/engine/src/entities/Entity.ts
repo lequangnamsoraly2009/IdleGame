@@ -22,7 +22,7 @@ export class Entity extends Container {
   private maxRage = 100;
   private heroClass: 'knight' | 'mage' | 'assassin' = 'knight';
 
-  constructor(name: string, isHero: boolean, maxHp: number) {
+  constructor(name: string, isHero: boolean, maxHp: number, language: 'vi' | 'en' = 'vi') {
     super();
     this.name = name;
     this.isHero = isHero;
@@ -56,25 +56,8 @@ export class Entity extends Container {
     this.drawRageBar(0);
     this.addChild(this.rageBarFill);
 
-    // Parse rank prefix for monster color coding
-    let displayName = name;
-    let rankColor = isHero ? 0x60a5fa : 0xfca5a5; // default ally / normal monster
-
-    if (!isHero) {
-      if (name.includes('[Boss]')) {
-        displayName = name.replace('[Boss] ', '');
-        rankColor = 0xef4444; // vibrant red for Boss
-      } else if (name.includes('[Champion]')) {
-        displayName = name.replace('[Champion] ', '');
-        rankColor = 0xd946ef; // fuchsia for Champion
-      } else if (name.includes('[Elite]')) {
-        displayName = name.replace('[Elite] ', '');
-        rankColor = 0xf59e0b; // amber for Elite
-      } else if (name.includes('[Normal]')) {
-        displayName = name.replace('[Normal] ', '');
-        rankColor = 0xcbd5e1; // slate for Normal
-      }
-    }
+    // Parse rank prefix and translate name
+    const { displayName, rankColor } = parseAndTranslateName(name, isHero, language);
 
     const labelStyle = new TextStyle({
       fontFamily: 'Outfit, Inter, Arial, sans-serif',
@@ -326,7 +309,8 @@ export class Entity extends Container {
     maxHp: number,
     name?: string,
     rage?: number,
-    heroClass?: 'knight' | 'mage' | 'assassin'
+    heroClass?: 'knight' | 'mage' | 'assassin',
+    language: 'vi' | 'en' = 'vi'
   ) {
     this.currentHp = currentHp;
     this.maxHp = maxHp;
@@ -339,24 +323,7 @@ export class Entity extends Container {
       const nameChanged = this.name !== name;
       this.name = name;
       
-      let displayName = name;
-      let rankColor = this.isHero ? 0x60a5fa : 0xfca5a5;
-
-      if (!this.isHero) {
-        if (name.includes('[Boss]')) {
-          displayName = name.replace('[Boss] ', '');
-          rankColor = 0xef4444;
-        } else if (name.includes('[Champion]')) {
-          displayName = name.replace('[Champion] ', '');
-          rankColor = 0xd946ef;
-        } else if (name.includes('[Elite]')) {
-          displayName = name.replace('[Elite] ', '');
-          rankColor = 0xf59e0b;
-        } else if (name.includes('[Normal]')) {
-          displayName = name.replace('[Normal] ', '');
-          rankColor = 0xcbd5e1;
-        }
-      }
+      const { displayName, rankColor } = parseAndTranslateName(name, this.isHero, language);
 
       // Positioning of entities is handled in Engine.positionEntities; no local positioning needed here.
 
@@ -472,4 +439,158 @@ export class Entity extends Container {
     this.body.tint = 0xffffff;
     this.drawHealthBar();
   }
+}
+
+function parseAndTranslateName(name: string, isHero: boolean, language: 'vi' | 'en'): { displayName: string; rankColor: number } {
+  let displayName = name;
+  let rankColor = isHero ? 0x60a5fa : 0xfca5a5; // default ally / normal monster
+
+  if (isHero) {
+    if (language === 'vi') {
+      if (displayName.includes(' Hero')) {
+        displayName = displayName.replace(' Hero', ' Anh Hùng');
+      } else if (displayName === 'Hero') {
+        displayName = 'Anh Hùng';
+      }
+    }
+    return { displayName, rankColor };
+  }
+
+  // Parse ranks
+  const ranks = [
+    { key: '[Boss]', color: 0xef4444 },
+    { key: '[Champion]', color: 0xd946ef },
+    { key: '[Elite]', color: 0xf59e0b },
+    { key: '[Normal]', color: 0xcbd5e1 },
+    { key: '[King]', color: 0xf97316 },
+    { key: '[Legend]', color: 0xeab308 },
+    { key: '[Mythic]', color: 0xec4899 },
+    { key: '[Ancient]', color: 0x06b6d4 },
+    { key: '[World Boss]', color: 0xff0055 },
+  ];
+
+  for (const r of ranks) {
+    if (name.includes(r.key)) {
+      displayName = name.replace(r.key + ' ', '');
+      rankColor = r.color;
+      break;
+    }
+  }
+
+  // Translate displayName if language is 'vi'
+  if (language === 'vi') {
+    // Look for format like: "Monster Name (Lv.X) (⚔️CP)" or "Monster Name (⚔️CP)"
+    const match = displayName.match(/^(.*?)\s*\(Lv\.\d+\)\s*\(⚔️.*?\)$/);
+    const matchNoStats = displayName.match(/^(.*?)\s*\(⚔️.*?\)$/);
+
+    if (match) {
+      const rawMonsterText = match[1];
+      const translatedMonsterText = translateMonsterText(rawMonsterText, 'vi');
+      displayName = displayName.replace(rawMonsterText, translatedMonsterText);
+    } else if (matchNoStats) {
+      const rawMonsterText = matchNoStats[1];
+      const translatedMonsterText = translateMonsterText(rawMonsterText, 'vi');
+      displayName = displayName.replace(rawMonsterText, translatedMonsterText);
+    } else {
+      displayName = translateMonsterText(displayName, 'vi');
+    }
+  }
+
+  return { displayName, rankColor };
+}
+
+function translateMonsterText(rawName: string, lang: 'vi' | 'en'): string {
+  if (lang !== 'vi') return rawName;
+
+  const prefixes: Record<string, string> = {
+    'Meadow': 'Thảo Nguyên',
+    'Granite': 'Granite',
+    'Magma': 'Magma',
+    'Frost': 'Băng',
+    'Void': 'Hư Không',
+    'Crystal': 'Pha Lê',
+    'Golden': 'Vàng',
+    'Forest': 'Rừng Rậm',
+    'Volcanic': 'Núi Lửa',
+    'Ancient': 'Cổ Đại',
+    'Primordial': 'Nguyên Thủy'
+  };
+
+  const bases: Record<string, string> = {
+    'Slime King': 'Vua Slime',
+    'Slime God': 'Thần Slime',
+    'Slime': 'Slime',
+    'Goblin Emperor': 'Hoàng Đế Goblin',
+    'Goblin': 'Goblin',
+    'Orc Warrior': 'Orc Chiến Binh',
+    'Orc Chieftain': 'Tộc Trưởng Orc',
+    'Skeleton Archer': 'Cung Thủ Xương',
+    'Skeleton Warlord': 'Đại Tướng Xương',
+    'Wraith Lord': 'Chúa Tể Bóng Ma',
+    'Stone Golem': 'Golem Đá',
+    'Golem Guardian': 'Hộ Vệ Golem',
+    'Demon Commander': 'Thống Lãnh Ác Quỷ',
+    'Volcanic Drake': 'Rồng Nhỏ Núi Lửa',
+    'Drake Sovereign': 'Drake Tối Cao',
+    'Ancient Dragon': 'Cổ Long',
+    'Titan Overlord': 'Chúa Tể Titan',
+    'Primordial Slime God': 'Thần Slime Nguyên Thủy'
+  };
+
+  const affixes: Record<string, string> = {
+    'swift': 'Tốc Độ',
+    'berserk': 'Cuồng Nộ',
+    'vampire': 'Hút Máu',
+    'explosive': 'Bộc Phá',
+    'Swift': 'Tốc Độ',
+    'Berserk': 'Cuồng Nộ',
+    'Vampire': 'Hút Máu',
+    'Explosive': 'Bộc Phá'
+  };
+
+  let translated = rawName;
+
+  // Extract parentheses part (affixes)
+  let cleanBase = translated;
+  let affixPart = '';
+  const parenMatch = translated.match(/\s*\((.*?)\)/);
+  if (parenMatch) {
+    cleanBase = translated.replace(parenMatch[0], '').trim();
+    affixPart = parenMatch[0];
+  }
+
+  // Check if starts with Mutated
+  let isMut = false;
+  if (cleanBase.startsWith('Mutated ')) {
+    cleanBase = cleanBase.replace('Mutated ', '').trim();
+    isMut = true;
+  }
+
+  // Translate cleanBase
+  if (bases[cleanBase]) {
+    cleanBase = bases[cleanBase];
+  } else {
+    const cleanParts = cleanBase.split(' ');
+    if (cleanParts.length === 2) {
+      const pWord = prefixes[cleanParts[0]] || cleanParts[0];
+      const bWord = bases[cleanParts[1]] || cleanParts[1];
+      cleanBase = `${bWord} ${pWord}`;
+    } else {
+      cleanBase = bases[cleanBase] || prefixes[cleanBase] || cleanBase;
+    }
+  }
+
+  if (isMut) {
+    cleanBase = `Đột Biến ${cleanBase}`;
+  }
+
+  // Translate affixes
+  if (affixPart && parenMatch) {
+    const rawAffixesStr = parenMatch[1];
+    const rawAffixes = rawAffixesStr.split(' ');
+    const translatedAffixes = rawAffixes.map(a => affixes[a] || a);
+    affixPart = ` (${translatedAffixes.join(' ')})`;
+  }
+
+  return cleanBase + affixPart;
 }
