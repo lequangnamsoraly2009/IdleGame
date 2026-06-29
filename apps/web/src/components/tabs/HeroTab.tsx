@@ -23,7 +23,40 @@ export const HeroTab: React.FC = () => {
   const prestigeHpBonus = hero.prestigePoints * 2;  // +2% per point
   const prestigeDefBonus = hero.prestigePoints * 1;  // +1% per point
 
+  const getHeroClassDetails = () => {
+    switch (hero.heroClass || 'knight') {
+      case 'mage':
+        return {
+          titleVi: 'Pháp Sư',
+          titleEn: 'Mage',
+          icon: '🔮',
+          bgClass: 'from-violet-900/40 to-indigo-950/20 border-violet-500/30 shadow-violet-500/5',
+          description: language === 'vi' ? 'Bậc thầy ma pháp, sát thương nguyên tố.' : 'Master of elements and elemental spells.'
+        };
+      case 'assassin':
+        return {
+          titleVi: 'Sát Thủ',
+          titleEn: 'Assassin',
+          icon: '🗡️',
+          bgClass: 'from-emerald-900/40 to-teal-950/20 border-emerald-500/30 shadow-emerald-500/5',
+          description: language === 'vi' ? 'Nhanh nhẹn, sát thương chí mạng cực mạnh.' : 'Swift and lethal critical hit specialist.'
+        };
+      default: // knight
+        return {
+          titleVi: 'Hiệp Sĩ',
+          titleEn: 'Knight',
+          icon: '🛡️',
+          bgClass: 'from-amber-900/40 to-orange-950/20 border-amber-500/30 shadow-amber-500/5',
+          description: language === 'vi' ? 'Hộ vệ kiên cường, sinh mệnh và thủ cao.' : 'Indomitable shield with high health and defense.'
+        };
+    }
+  };
+
+  const classDetails = getHeroClassDetails();
+
   const statItems = [
+    { label: language === 'vi' ? 'Lớp Nhân Vật' : 'Class', value: language === 'vi' ? classDetails.titleVi : classDetails.titleEn, desc: classDetails.description, icon: classDetails.icon },
+    { label: language === 'vi' ? 'Cấp Độ' : 'Level', value: `Lv.${hero.level}`, desc: `${language === 'vi' ? 'Cấp độ hiện tại' : 'Current level'}`, icon: '🌟' },
     { label: t('max_health'), value: hero.currentStats.maxHp, desc: `${t('stat_base')}: ${hero.baseStats.maxHp}`, icon: '💖' },
     { label: t('attack_power'), value: hero.currentStats.attack, desc: `${t('stat_base')}: ${hero.baseStats.attack}`, icon: '⚔️' },
     { label: t('defense_rating'), value: hero.currentStats.defense, desc: `${t('stat_base')}: ${hero.baseStats.defense}`, icon: '🛡️' },
@@ -125,36 +158,7 @@ export const HeroTab: React.FC = () => {
     { slot: 'boots', label: language === 'vi' ? 'Giày' : 'Boots', icon: '🥾' }
   ];
 
-  const getHeroClassDetails = () => {
-    switch (hero.heroClass || 'knight') {
-      case 'mage':
-        return {
-          titleVi: 'Pháp Sư',
-          titleEn: 'Mage',
-          icon: '🔮',
-          bgClass: 'from-violet-900/40 to-indigo-950/20 border-violet-500/30 shadow-violet-500/5',
-          description: language === 'vi' ? 'Bậc thầy ma pháp, sát thương nguyên tố.' : 'Master of elements and elemental spells.'
-        };
-      case 'assassin':
-        return {
-          titleVi: 'Sát Thủ',
-          titleEn: 'Assassin',
-          icon: '🗡️',
-          bgClass: 'from-emerald-900/40 to-teal-950/20 border-emerald-500/30 shadow-emerald-500/5',
-          description: language === 'vi' ? 'Nhanh nhẹn, sát thương chí mạng cực mạnh.' : 'Swift and lethal critical hit specialist.'
-        };
-      default: // knight
-        return {
-          titleVi: 'Hiệp Sĩ',
-          titleEn: 'Knight',
-          icon: '🛡️',
-          bgClass: 'from-amber-900/40 to-orange-950/20 border-amber-500/30 shadow-amber-500/5',
-          description: language === 'vi' ? 'Hộ vệ kiên cường, sinh mệnh và thủ cao.' : 'Indomitable shield with high health and defense.'
-        };
-    }
-  };
 
-  const classDetails = getHeroClassDetails();
 
   const renderEquippedSlot = (slot: string, placeholderIcon: string, label: string) => {
     const item = getItemInSlot(slot);
@@ -248,10 +252,7 @@ export const HeroTab: React.FC = () => {
                   </div>
 
                   <span className="text-xs sm:text-sm font-black text-white mt-3 relative z-10 tracking-wide uppercase">
-                    {language === 'vi' ? classDetails.titleVi : classDetails.titleEn}
-                  </span>
-                  <span className="text-[9px] bg-slate-950/80 border border-slate-800/80 text-yellow-450 font-extrabold px-2 py-0.5 rounded-full mt-1 relative z-10 uppercase tracking-widest font-mono shadow">
-                    Lv.{hero.level}
+                    {hero.name || 'Hero'}
                   </span>
                   <span className="text-[9px] bg-slate-950/90 border border-slate-850 text-amber-450 font-black px-2 py-0.5 rounded-full mt-1.5 relative z-10 font-mono shadow flex items-center gap-0.5">
                     ⚔️ {calculateHeroCP(hero.level, hero.prestigePoints, inventory.filter(item => item.equipped), hero.heroClass).toLocaleString()}
