@@ -62,6 +62,12 @@ export interface HeroState {
   heroClass?: 'knight' | 'mage' | 'assassin';
 }
 
+export type DamageType = 'physical' | 'fire' | 'ice' | 'poison' | 'holy' | 'dark';
+
+export type MonsterRank = 'normal' | 'elite' | 'champion' | 'king' | 'legend' | 'mythic' | 'ancient' | 'world_boss';
+
+export type MonsterAffix = 'swift' | 'berserk' | 'vampire' | 'explosive';
+
 export interface MonsterTemplate {
   id: string;
   name: string;
@@ -71,6 +77,10 @@ export interface MonsterTemplate {
   goldRewardRange: [number, number];
   dropChance: number; // e.g. 0.25 (25%)
   dropPool: string[]; // List of item templates
+  rank?: MonsterRank;
+  affixes?: MonsterAffix[];
+  isMutated?: boolean;
+  weaknesses?: DamageType[];
 }
 
 export interface MonsterState {
@@ -120,4 +130,12 @@ export interface GameSaveData {
   };
   stagesCleared: number;
   activeStage: number;
+  monsterResearch?: Record<string, {
+    level: number;
+    exp: number;
+    kills: number;
+    firstKillTime?: number;
+    fastestKillMs?: number;
+    highestDamage?: number;
+  }>;
 }

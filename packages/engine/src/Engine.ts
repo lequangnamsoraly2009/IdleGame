@@ -6,7 +6,7 @@ import { DamageText } from './effects/DamageText';
 
 export type EngineEvent =
   | { type: 'DAMAGE_DEALT'; amount: number; isCrit: boolean; isHeroTarget: boolean; currentHp: number }
-  | { type: 'MONSTER_DEFEATED'; exp: number; gold: number; diamonds: number; itemsDropped: any[] }
+  | { type: 'MONSTER_DEFEATED'; exp: number; gold: number; diamonds: number; itemsDropped: any[]; monsterId?: string; isMutated?: boolean; durationMs?: number }
   | { type: 'HERO_DEFEATED' }
   | { type: 'BATTLE_TICK'; heroHp: number; monsterHp: number; maxHeroHp: number; maxMonsterHp: number; heroRage: number; monsterRage: number }
   | { type: 'STAGE_ADVANCED'; nextStage: number }
@@ -72,6 +72,7 @@ export class GameEngine {
   // Callback to communicate with React
   private onEvent: (event: EngineEvent) => void;
   private corruptedAccumulator: number = 0;
+  private battleStartTime: number = 0;
 
   constructor(onEvent: (event: EngineEvent) => void) {
     this.onEvent = onEvent;
@@ -284,6 +285,7 @@ export class GameEngine {
   public startBattle(monster: MonsterTemplate) {
     this.monsterTemplate = monster;
     this.battleMode = 'stage';
+    this.battleStartTime = Date.now();
     
     // Clear previous monster entities
     this.activeMonsters.forEach(m => {
@@ -538,7 +540,11 @@ export class GameEngine {
       this.activeMonsters.forEach(m => {
         if (m.currentHp > 0) {
           m.attackCooldown += dt;
-          const monsterAttackInterval = 2.5 / (m.template.baseStats.speed / 100);
+          let speedVal = m.template.baseStats.speed;
+          if (m.template.affixes?.includes('swift')) {
+            speedVal = speedVal * 1.5; // +50% speed
+          }
+          const monsterAttackInterval = 2.5 / (speedVal / 100);
           if (m.attackCooldown >= monsterAttackInterval) {
             m.attackCooldown = 0;
             this.executeMonsterAttack(m);
@@ -635,6 +641,13 @@ export class GameEngine {
           let dmg = Math.round(atkVal * mult);
           dmg = Math.max(1, dmg - m.template.baseStats.defense);
           
+          // Weakness check
+          const heroElements = attacker.heroClass === 'knight' ? ['holy'] : ['fire', 'ice'];
+          const exploitsWeakness = m.template.weaknesses?.some(w => heroElements.includes(w));
+          if (exploitsWeakness) {
+            dmg = Math.round(dmg * 1.5);
+          }
+          
           m.currentHp = Math.max(0, m.currentHp - dmg);
           m.entity.takeDamage(dmg);
           totalDamageDealt += dmg;
@@ -663,6 +676,13 @@ export class GameEngine {
         let atkVal = attacker === this.allyEntities[0] ? this.heroStats.attack : 11;
         let dmg = Math.round(atkVal * 5.0);
         dmg = Math.max(1, dmg - target.template.baseStats.defense);
+
+        // Weakness check
+        const heroElements = ['dark', 'poison'];
+        const exploitsWeakness = target.template.weaknesses?.some(w => heroElements.includes(w));
+        if (exploitsWeakness) {
+          dmg = Math.round(dmg * 1.5);
+        }
 
         target.currentHp = Math.max(0, target.currentHp - dmg);
         target.entity.takeDamage(dmg);
@@ -704,6 +724,13 @@ export class GameEngine {
         dmg = Math.round(dmg * critDamage);
       }
 
+      // Weakness check
+      const heroElements = attacker.heroClass === 'knight' ? ['holy'] : attacker.heroClass === 'mage' ? ['fire', 'ice'] : ['dark', 'poison'];
+      const exploitsWeakness = target.template.weaknesses?.some(w => heroElements.includes(w));
+      if (exploitsWeakness) {
+        dmg = Math.round(dmg * 1.5);
+      }
+
       target.currentHp = Math.max(0, target.currentHp - dmg);
       target.entity.takeDamage(dmg);
 
@@ -725,7 +752,9 @@ export class GameEngine {
 
       this.onEvent({
         type: 'LOG_MESSAGE',
-        text: `${attacker.name} strikes ${target.template.name} for ${dmg} dmg${isCrit ? ' (CRITICAL!)' : ''}`,
+        text: exploitsWeakness 
+          ? `⚡ WEAKNESS EXPLOITED! ${attacker.name} strikes ${target.template.name} for ${dmg} dmg (CRITICAL MULTIPLIER!)`
+          : `${attacker.name} strikes ${target.template.name} for ${dmg} dmg${isCrit ? ' (CRITICAL!)' : ''}`,
         category: 'combat'
       });
     }
@@ -735,12 +764,37 @@ export class GameEngine {
     if (anyMonsterDied) {
       this.activeMonsters.forEach(m => {
         if (m.currentHp <= 0 && m.entity.visible) {
+          // Explosive affix check
+          if (m.template.affixes?.includes('explosive') && this.allyEntities[0] && this.allyEntities[0].currentHp > 0) {
+            const explosionDmg = Math.round(m.maxHp * 0.15);
+            this.allyEntities[0].currentHp = Math.max(0, this.allyEntities[0].currentHp - explosionDmg);
+            this.allyEntities[0].entity.takeDamage(explosionDmg);
+
+            const dmgText = new DamageText(`💥 ${explosionDmg}`, this.allyEntities[0].entity.x, this.allyEntities[0].entity.y - 15, true);
+            this.effectLayer.addChild(dmgText);
+            this.damageTexts.push(dmgText);
+
+            this.onEvent({
+              type: 'LOG_MESSAGE',
+              text: `💥 [Explosive] ${m.template.name} explodes on death, dealing ${explosionDmg} fire damage to Hero!`,
+              category: 'combat'
+            });
+          }
+
           // Play death and hide
           m.entity.playDeathAnimation(() => {
             m.entity.visible = false;
           });
         }
       });
+
+      // Check if hero died from explosion before continuing
+      const heroAlive = this.allyEntities.some(a => a.currentHp > 0);
+      if (!heroAlive) {
+        this.isBattleActive = false;
+        this.handleHeroDefeated();
+        return;
+      }
 
       // Check if wave cleared
       const allDead = this.activeMonsters.every(m => m.currentHp <= 0);
@@ -875,16 +929,31 @@ export class GameEngine {
       } else {
         attacker.rage = Math.min(100, attacker.rage + 20);
       }
-
       target.rage = Math.min(100, target.rage + 10);
 
-      // Apply damage to hero
-      target.currentHp = Math.max(0, target.currentHp - damage);
-      target.entity.takeDamage(damage);
+      // Apply damage to hero (checking for Berserk)
+      let finalDamage = damage;
+      if (attacker.template.affixes?.includes('berserk')) {
+        finalDamage = finalDamage * 2;
+      }
+
+      target.currentHp = Math.max(0, target.currentHp - finalDamage);
+      target.entity.takeDamage(finalDamage);
+
+      // Vampire affix check
+      if (finalDamage > 0 && attacker.template.affixes?.includes('vampire')) {
+        const healAmt = Math.round(finalDamage * 0.2);
+        attacker.currentHp = Math.min(attacker.maxHp, attacker.currentHp + healAmt);
+        this.onEvent({
+          type: 'LOG_MESSAGE',
+          text: `🩸 [Vampire] ${attacker.template.name} drains hero for ${healAmt} HP!`,
+          category: 'combat'
+        });
+      }
 
       // Spawn damage text particle
       const dmgText = new DamageText(
-        isUlt ? `💀 ${damage}` : damage.toString(), 
+        isUlt ? `💀 ${finalDamage}` : finalDamage.toString(), 
         target.entity.x, 
         target.entity.y - 10, 
         isUlt
@@ -894,7 +963,7 @@ export class GameEngine {
 
       this.onEvent({
         type: 'DAMAGE_DEALT',
-        amount: damage,
+        amount: finalDamage,
         isCrit: isUlt,
         isHeroTarget: true,
         currentHp: target.currentHp
@@ -903,8 +972,8 @@ export class GameEngine {
       this.onEvent({
         type: 'LOG_MESSAGE',
         text: isUlt
-          ? `${attacker.template.name} casts ultimate [${skillName}] on Hero for ${damage} damage!`
-          : `${attacker.template.name} hits Hero for ${damage} dmg.`,
+          ? `${attacker.template.name} casts ultimate [${skillName}] on Hero for ${finalDamage} damage!`
+          : `${attacker.template.name} hits Hero for ${finalDamage} dmg.`,
         category: 'combat'
       });
     }
@@ -949,12 +1018,16 @@ export class GameEngine {
       totalDiamonds = totalDiamonds + 10;
     }
 
+    const firstMonster = this.activeMonsters[0];
     this.onEvent({
       type: 'MONSTER_DEFEATED',
       exp: totalExp,
       gold: totalGold,
       diamonds: totalDiamonds,
-      itemsDropped
+      itemsDropped,
+      monsterId: firstMonster?.template.id,
+      isMutated: firstMonster?.template.isMutated,
+      durationMs: Date.now() - (this.battleStartTime || Date.now())
     });
 
     const names = this.activeMonsters.map(m => m.template.name).join(', ');

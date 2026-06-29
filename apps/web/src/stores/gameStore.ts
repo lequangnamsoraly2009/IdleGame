@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GameSaveData, EquipmentItem, QuestState } from '@idle-rpg/shared';
+import { GameSaveData, EquipmentItem, QuestState, MONSTER_SPECIES_DATABASE } from '@idle-rpg/shared';
 import { tStore, translateEngineLog } from '../utils/i18n';
 import { 
   recalculateHeroStats, 
@@ -47,7 +47,7 @@ interface GameState {
   
   // Combat Loops
   syncBattleStats: (heroHp: number, monsterHp: number, maxHeroHp: number, maxMonsterHp: number, heroRage: number, monsterRage: number) => void;
-  onMonsterDefeated: (expGained: number, goldGained: number, diamondsGained: number, itemsDropped: EquipmentItem[]) => void;
+  onMonsterDefeated: (expGained: number, goldGained: number, diamondsGained: number, itemsDropped: EquipmentItem[], monsterId?: string, isMutated?: boolean, durationMs?: number) => void;
   onStageChange: (newStage: number) => void;
   
   // Gameplay Actions
@@ -192,14 +192,61 @@ export const useGameStore = create<GameState>((set, get) => {
       set({ heroHp, monsterHp, heroMaxHp: maxHeroHp, monsterMaxHp: maxMonsterHp, heroRage, monsterRage });
     },
 
-    onMonsterDefeated: (expGained, goldGained, diamondsGained, itemsDropped) => {
+    onMonsterDefeated: (expGained, goldGained, diamondsGained, itemsDropped, monsterId, _isMutated, durationMs) => {
       const { saveData } = get();
       if (!saveData) return;
 
       const hero = { ...saveData.hero };
       let newInventory = [...saveData.inventory];
       let quests = [...saveData.quests];
-      
+      const monsterResearch = { ...(saveData.monsterResearch || {}) };
+
+      // Update monster research if monsterId is provided
+      if (monsterId) {
+        const currentRes = monsterResearch[monsterId] || { level: 1, exp: 0, kills: 0 };
+        const nextKills = currentRes.kills + 1;
+        let nextExp = currentRes.exp + 10; // 10 exp per kill
+        let nextLevel = currentRes.level;
+
+        // Level up exp curve for research (level * 100)
+        const expNeeded = nextLevel * 100;
+        if (nextExp >= expNeeded && nextLevel < 50) {
+          nextExp -= expNeeded;
+          nextLevel += 1;
+          get().addLogMessage(`📚 NGHIÊN CỨU: Nghiên cứu của bạn về [${monsterId.replace('s_', '').replace('g_', '').replace('u_', '').replace('e_', '').replace('d_', '').replace('_', ' ').toUpperCase()}] đã đạt Cấp ${nextLevel}!`, 'system');
+        }
+
+        // Check boss record memories
+        const species = MONSTER_SPECIES_DATABASE.find(s => s.id === monsterId);
+        let firstKillTime = currentRes.firstKillTime;
+        let fastestKillMs = currentRes.fastestKillMs;
+        let highestDamage = currentRes.highestDamage;
+
+        if (species && (species.category === 'boss' || species.category === 'king' || species.category === 'extinct')) {
+          if (!firstKillTime) {
+            firstKillTime = Date.now();
+            get().addLogMessage(`🏆 CHIẾN TÍCH: Tiêu diệt Boss [${species.nameVi}] lần đầu tiên!`, 'loot');
+          }
+          if (durationMs !== undefined) {
+            if (fastestKillMs === undefined || durationMs < fastestKillMs) {
+              fastestKillMs = durationMs;
+              get().addLogMessage(`⏱️ KỶ LỤC TỐC ĐỘ: Hạ gục [${species.nameVi}] trong ${Math.round(durationMs / 10) / 100} giây!`, 'system');
+            }
+          }
+          const estimatedHit = Math.round(hero.currentStats.attack * (hero.currentStats.critRate > 0 ? hero.currentStats.critDamage : 1.0));
+          highestDamage = Math.max(highestDamage || 0, estimatedHit);
+        }
+
+        monsterResearch[monsterId] = {
+          level: nextLevel,
+          exp: nextExp,
+          kills: nextKills,
+          firstKillTime,
+          fastestKillMs,
+          highestDamage
+        };
+      }
+
       // Track item kills & evolution milestones
       newInventory = newInventory.map(item => {
         if (item.equipped) {
@@ -285,6 +332,7 @@ export const useGameStore = create<GameState>((set, get) => {
         hero,
         inventory: newInventory,
         quests,
+        monsterResearch,
         lastSavedAt: Date.now()
       };
 

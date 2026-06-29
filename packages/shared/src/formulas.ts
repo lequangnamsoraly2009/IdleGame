@@ -1,4 +1,15 @@
-import { ItemRarity, EquipmentSlot, BaseStats, EquipmentItem, ItemTemplate, MonsterTemplate, ItemAffix } from './types/game';
+import { 
+  ItemRarity, 
+  EquipmentSlot, 
+  BaseStats, 
+  EquipmentItem, 
+  ItemTemplate, 
+  MonsterTemplate, 
+  ItemAffix,
+  MonsterRank,
+  MonsterAffix
+} from './types/game';
+import { MONSTER_SPECIES_DATABASE } from './bestiary';
 
 // Experience curve: 100, 115, 132, 152, 174, etc.
 export function calculateLevelUpExp(level: number): number {
@@ -500,64 +511,173 @@ export const DEFAULT_ITEM_TEMPLATES: ItemTemplate[] = [
   { id: 't_rng_asura', name: 'Ring of Asura', slot: 'ring', rarity: 'legendary', allowedClass: 'assassin', stats: {} }
 ];
 
-export function generateMonsterForStage(stage: number, heroLevel: number = 1): MonsterTemplate {
-  const prefixes = ['Stone', 'Iron', 'Shadow', 'Flame', 'Frost', 'Void', 'Chaos', 'Abyssal', 'Undead', 'Spectral'];
-  const baseNames = ['Slime', 'Goblin', 'Skeleton', 'Orc', 'Golem', 'Wraith', 'Demon', 'Drake', 'Dragon', 'Titan'];
-  
-  const nameIndex = Math.min(baseNames.length - 1, Math.floor((stage - 1) / 5));
-  const prefixIndex = Math.min(prefixes.length - 1, Math.floor(stage / 10));
-  
-  const isBoss = stage > 0 && stage % 10 === 0;
-  let monsterName = '';
-  
-  if (isBoss) {
-    const bossNames: Record<number, string> = {
-      10: 'Slime King',
-      20: 'Goblin Emperor',
-      30: 'Skeleton Warlord',
-      40: 'Orc Chieftain',
-      50: 'Golem Guardian',
-      60: 'Wraith Lord',
-      70: 'Demon Commander',
-      80: 'Drake Sovereign',
-      90: 'Ancient Dragon',
-      100: 'Titan Overlord'
-    };
-    monsterName = `👑 BOSS: ${bossNames[stage] || (prefixes[prefixIndex] || 'Void') + ' ' + (baseNames[nameIndex] || 'Overlord')}`;
-  } else {
-    const prefix = stage >= 10 ? prefixes[prefixIndex] + ' ' : '';
-    monsterName = prefix + baseNames[nameIndex];
+export function generateMonsterForStage(
+  stage: number, 
+  _heroLevel: number = 1, 
+  monsterResearch?: Record<string, { level: number; exp: number; kills: number }>
+): MonsterTemplate {
+  // 1. Time / Weather cycle
+  const currentHour = new Date().getHours();
+  const isNight = currentHour < 6 || currentHour > 18;
+  const isRaining = (Date.now() % 60000) < 15000; // 15 seconds rain every minute
+
+  // 2. Extinction / Ecology weights
+  // Get all active candidates for this stage
+  let candidates = MONSTER_SPECIES_DATABASE.filter(s => 
+    stage >= s.spawnMinStage && stage <= s.spawnMaxStage && s.id !== 's_ancient_slime_god'
+  );
+
+  // If no candidates matched, use first slime as fallback
+  if (candidates.length === 0) {
+    candidates = [MONSTER_SPECIES_DATABASE[0]];
   }
 
-  // Blended Level: dynamic difficulty scaling based on stage and current hero progression
-  const level = Math.max(stage, Math.floor(heroLevel * 0.85));
-  
-  // Base scaling stats using combined monster level
-  let hp = Math.round(45 * Math.pow(1.15, level - 1));
-  let attack = Math.round(8 * Math.pow(1.12, level - 1));
-  let defense = Math.round(2 * Math.pow(1.09, level - 1));
-  let speed = 80 + Math.min(50, level * 0.5); // attacks get slightly faster
+  // Check secret boss trigger: Primordial Slime God (extinct species s_ancient_slime_god)
+  // Condition: Meadow slime kills >= 999
+  const meadowSlimeKills = monsterResearch?.['s_meadow_slime']?.kills || 0;
+  if (meadowSlimeKills >= 999 && stage % 10 === 0 && Math.random() < 0.20) {
+    const god = MONSTER_SPECIES_DATABASE.find(s => s.id === 's_ancient_slime_god');
+    if (god) {
+      candidates = [god];
+    }
+  }
 
-  // Reward scaling based on stage progression
-  let expReward = Math.round(8 * Math.pow(1.11, stage - 1));
-  let goldMin = Math.round(6 * Math.pow(1.12, stage - 1));
-  
-  // Apply boss scaling modifiers
-  if (isBoss) {
-    hp = Math.round(hp * 3.5);
-    attack = Math.round(attack * 1.5);
-    defense = Math.round(defense * 1.5);
-    speed = Math.round(speed * 1.1);
-    expReward = Math.round(expReward * 3.0);
-    goldMin = Math.round(goldMin * 3.0);
+  // Check ecology weights adjustments:
+  // If we have research logs, we calculate relative weights based on how many have been killed.
+  // Ecology rule: if a species has high kills, its spawn chance drops, allowing other candidates to spawn!
+  const weightedCandidates = candidates.map(c => {
+    const kills = monsterResearch?.[c.id]?.kills || 0;
+    // Reduce weight if kills are high (min weight factor 0.1)
+    const ecologyWeight = 1 / (1 + kills / 300);
+    
+    // Time/Weather bonuses
+    let weatherBonus = 1.0;
+    if (c.category === 'mystery') {
+      if (isNight) weatherBonus += 2.0; // Mystery monsters spawn more at night
+      if (isRaining) weatherBonus += 2.0; // Mystery monsters spawn more in rain
+    }
+
+    return {
+      species: c,
+      weight: ecologyWeight * weatherBonus
+    };
+  });
+
+  // Weighted random selection
+  const totalWeight = weightedCandidates.reduce((sum, item) => sum + item.weight, 0);
+  let randomValue = Math.random() * totalWeight;
+  let selectedSpecies = candidates[0];
+
+  for (const item of weightedCandidates) {
+    randomValue -= item.weight;
+    if (randomValue <= 0) {
+      selectedSpecies = item.species;
+      break;
+    }
+  }
+
+  // Rare Spawn upgrade: Golden Slime (1/500 chance)
+  // If a normal slime spawned, it has a 1/500 chance to become a Golden Slime instead!
+  if (selectedSpecies.family === 'slime' && selectedSpecies.category === 'normal' && Math.random() < 0.002) {
+    const goldSlime = MONSTER_SPECIES_DATABASE.find(s => s.id === 's_golden_slime');
+    if (goldSlime) {
+      selectedSpecies = goldSlime;
+    }
+  }
+
+  // 3. Rank & Mutation Calculations
+  let rank: MonsterRank = 'normal';
+  const roll = Math.random();
+  const isBossStage = stage % 5 === 0;
+
+  if (isBossStage) {
+    if (stage % 50 === 0) rank = 'world_boss';
+    else if (stage % 30 === 0) rank = 'ancient';
+    else if (stage % 20 === 0) rank = 'mythic';
+    else if (stage % 10 === 0) rank = 'legend';
+    else rank = 'king';
+  } else {
+    if (roll < 0.0005) rank = 'ancient';
+    else if (roll < 0.002) rank = 'mythic';
+    else if (roll < 0.01) rank = 'legend';
+    else if (roll < 0.04) rank = 'king';
+    else if (roll < 0.12) rank = 'champion';
+    else if (roll < 0.30) rank = 'elite';
+  }
+
+  // Rank modifier level offset
+  let eliteModifier = 0;
+  switch (rank) {
+    case 'elite': eliteModifier = 3; break;
+    case 'champion': eliteModifier = 6; break;
+    case 'king': eliteModifier = 10; break;
+    case 'legend': eliteModifier = 15; break;
+    case 'mythic': eliteModifier = 20; break;
+    case 'ancient': eliteModifier = 30; break;
+    case 'world_boss': eliteModifier = 50; break;
+  }
+
+  // Dynamic Level Calculation
+  const baseLevel = selectedSpecies.baseLevel;
+  const stageModifier = stage === 1 ? 0 : Math.floor((stage - 1) * 1.0) + Math.floor(Math.max(0, stage - 10) * 0.1);
+  const worldModifier = Math.floor((stage - 1) / 100) * 20;
+  const level = baseLevel + stageModifier + worldModifier + eliteModifier;
+
+  // 4. Combat Affixes selection
+  const affixes: MonsterAffix[] = [];
+  const affixPool: MonsterAffix[] = ['swift', 'berserk', 'vampire', 'explosive'];
+  let numAffixes = 0;
+  if (['mythic', 'ancient', 'world_boss'].includes(rank)) numAffixes = 3;
+  else if (['king', 'legend'].includes(rank)) numAffixes = 2;
+  else if (['elite', 'champion'].includes(rank)) numAffixes = 1;
+
+  const shuffledPool = [...affixPool].sort(() => Math.random() - 0.5);
+  for (let i = 0; i < Math.min(numAffixes, shuffledPool.length); i++) {
+    affixes.push(shuffledPool[i]);
+  }
+
+  // 5. Mutation check (0.5% chance)
+  const isMutated = Math.random() < 0.005;
+
+  // Base Stats Scaling (from selected species multipliers)
+  let hp = Math.round(45 * Math.pow(1.15, level - 1) * selectedSpecies.baseHpMult);
+  let attack = Math.round(8 * Math.pow(1.12, level - 1) * selectedSpecies.baseAtkMult);
+  let defense = Math.round(2 * Math.pow(1.09, level - 1) * selectedSpecies.baseDefMult);
+  let speed = 80 + Math.min(50, level * 0.5);
+
+  // Exp & Gold reward scaling
+  let expReward = Math.round(8 * Math.pow(1.11, stage - 1) * selectedSpecies.baseHpMult);
+  let goldMin = Math.round(6 * Math.pow(1.12, stage - 1) * selectedSpecies.baseAtkMult);
+
+  // Elite Rank multiplier bumps
+  let rankStatMultiplier = 1.0;
+  switch (rank) {
+    case 'elite': rankStatMultiplier = 1.25; break;
+    case 'champion': rankStatMultiplier = 1.6; break;
+    case 'king': rankStatMultiplier = 2.2; break;
+    case 'legend': rankStatMultiplier = 3.0; break;
+    case 'mythic': rankStatMultiplier = 4.2; break;
+    case 'ancient': rankStatMultiplier = 6.0; break;
+    case 'world_boss': rankStatMultiplier = 10.0; break;
+  }
+
+  hp = Math.round(hp * rankStatMultiplier);
+  attack = Math.round(attack * (1 + (rankStatMultiplier - 1) * 0.5));
+  defense = Math.round(defense * (1 + (rankStatMultiplier - 1) * 0.4));
+  expReward = Math.round(expReward * rankStatMultiplier);
+  goldMin = Math.round(goldMin * rankStatMultiplier);
+
+  // Mutation Stat multipliers (+200% HP, +100% Damage, +300% Gold)
+  if (isMutated) {
+    hp = hp * 3;
+    attack = attack * 2;
+    goldMin = goldMin * 4;
   }
 
   const goldMax = Math.round(goldMin * 1.3);
+  const dropChance = isBossStage ? 1.0 : Math.min(0.35, 0.10 + (stage * 0.005) + (isMutated ? 0.20 : 0));
 
-  // Drop chances: 10% base drop chance, caps at 25%. Bosses are 100% guaranteed!
-  const dropChance = isBoss ? 1.0 : Math.min(0.25, 0.10 + (stage * 0.005));
-
-  // Determine drop pool based on stage dynamically from default templates
+  // Drop pool resolution
   const dropPool: string[] = [];
   DEFAULT_ITEM_TEMPLATES.forEach(t => {
     if (t.rarity === 'common') {
@@ -571,21 +691,39 @@ export function generateMonsterForStage(stage: number, heroLevel: number = 1): M
     }
   });
 
+  // Assemble full template name
+  let finalName = selectedSpecies.nameEn;
+  if (isMutated) {
+    finalName = `Mutated ${finalName}`;
+  }
+  if (rank !== 'normal') {
+    const rankTitle = rank.charAt(0).toUpperCase() + rank.slice(1);
+    finalName = `[${rankTitle}] ${finalName}`;
+  }
+  if (affixes.length > 0) {
+    const affixString = affixes.map(a => a.charAt(0).toUpperCase() + a.slice(1)).join(' ');
+    finalName = `${finalName} (${affixString})`;
+  }
+
   return {
-    id: `m_${stage}_${Date.now()}`,
-    name: monsterName,
+    id: selectedSpecies.id, // Keep the species identifier so it maps to Bestiary!
+    name: finalName,
     level,
     baseStats: {
       maxHp: hp,
       attack,
       defense,
       speed,
-      critRate: isBoss ? 0.05 : 0.02, // bosses crit slightly more
+      critRate: isBossStage ? 0.08 : 0.03,
       critDamage: 1.5
     },
     expReward,
     goldRewardRange: [goldMin, goldMax],
     dropChance,
-    dropPool
+    dropPool,
+    rank,
+    affixes,
+    isMutated,
+    weaknesses: selectedSpecies.weaknesses
   };
 }

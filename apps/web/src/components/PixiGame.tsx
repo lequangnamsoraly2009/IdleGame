@@ -22,7 +22,7 @@ export const PixiGame: React.FC = () => {
             store.syncBattleStats(event.heroHp, event.monsterHp, event.maxHeroHp, event.maxMonsterHp, event.heroRage, event.monsterRage);
             break;
           case 'MONSTER_DEFEATED':
-            store.onMonsterDefeated(event.exp, event.gold, event.diamonds, event.itemsDropped);
+            store.onMonsterDefeated(event.exp, event.gold, event.diamonds, event.itemsDropped, event.monsterId, event.isMutated, event.durationMs);
             break;
           case 'STAGE_ADVANCED':
             store.onStageChange(event.nextStage);
@@ -56,7 +56,7 @@ export const PixiGame: React.FC = () => {
         }
         
         // Generate monster for stage and boot combat
-        const monster = generateMonsterForStage(activeStage, hero?.level || 1);
+        const monster = generateMonsterForStage(activeStage, hero?.level || 1, state.saveData.monsterResearch);
         engine.startBattle(monster);
       }
     }).catch((err) => {
@@ -145,7 +145,7 @@ export const PixiGame: React.FC = () => {
             }
 
             if ((stageChanged || levelChanged) && state.battleMode === 'stage') {
-              const monster = generateMonsterForStage(activeStage, hero?.level || 1);
+              const monster = generateMonsterForStage(activeStage, hero?.level || 1, state.saveData.monsterResearch);
               engine.startBattle(monster);
             }
           }
