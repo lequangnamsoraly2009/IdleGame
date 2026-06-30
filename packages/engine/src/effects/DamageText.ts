@@ -6,12 +6,12 @@ export class DamageText extends Text {
   private life: number = 1.0; // 100% life to 0%
   private decayRate: number;
 
-  constructor(text: string, x: number, y: number, isCrit: boolean = false) {
+  constructor(text: string, x: number, y: number, isCrit: boolean = false, color?: number) {
     const style = new TextStyle({
       fontFamily: 'Outfit, Inter, Arial, sans-serif',
       fontSize: isCrit ? 26 : 18,
       fontWeight: 'bold',
-      fill: isCrit ? 0xf59e0b : 0xffffff, // gold vs white
+      fill: color !== undefined ? color : (isCrit ? 0xf59e0b : 0xffffff), // custom color vs gold vs white
       stroke: { color: 0x000000, width: isCrit ? 4 : 3 },
       dropShadow: {
         color: 0x000000,

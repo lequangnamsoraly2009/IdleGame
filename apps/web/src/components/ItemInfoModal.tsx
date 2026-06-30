@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../stores/gameStore';
-import { getFinalItemStats, EquipmentItem, calculateItemCP } from '@idle-rpg/shared';
+import { getFinalItemStats, EquipmentItem, calculateItemCP, calculateDismantleRewards } from '@idle-rpg/shared';
 import { useTranslation, getTranslatedItemName } from '../utils/i18n';
 import { useLanguageStore } from '../stores/languageStore';
 import { ItemGraphic } from './ItemGraphic';
@@ -13,7 +13,7 @@ export const ItemInfoModal: React.FC = () => {
     equipEquipment, 
     unequipEquipment, 
     upgradeEquipment, 
-    sellEquipment, 
+    dismantleEquipment,
     identifyEquipment, 
     insertGem 
   } = useGameStore();
@@ -131,16 +131,7 @@ export const ItemInfoModal: React.FC = () => {
     }
   };
 
-  const calculateSellPrice = (item: EquipmentItem) => {
-    const baseCost = {
-      common: 50,
-      uncommon: 75,
-      rare: 110,
-      epic: 175,
-      legendary: 300
-    }[item.rarity];
-    return Math.floor(baseCost * 0.3 * (1 + (item.level - 1) * 0.1));
-  };
+
 
   const ui = getRarityUIStyles(item);
 
@@ -243,6 +234,12 @@ export const ItemInfoModal: React.FC = () => {
                     <span className="text-blue-400">+{stats.attack}</span>
                   </div>
                 )}
+                {stats && stats.magicAttack !== undefined && stats.magicAttack > 0 && (
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-slate-450">{t('magic_attack')}</span>
+                    <span className="text-violet-400">+{stats.magicAttack}</span>
+                  </div>
+                )}
                 {stats && stats.maxHp > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('max_health')}</span>
@@ -257,6 +254,14 @@ export const ItemInfoModal: React.FC = () => {
                     </span>
                   </div>
                 )}
+                {stats && stats.magicResist !== undefined && stats.magicResist !== 0 && (
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-slate-455">{t('magic_resist')}</span>
+                    <span className={stats.magicResist > 0 ? "text-fuchsia-400" : "text-purple-400"}>
+                      {stats.magicResist > 0 ? `+${stats.magicResist}` : stats.magicResist}
+                    </span>
+                  </div>
+                )}
                 {stats && stats.speed > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('attack_speed')}</span>
@@ -267,6 +272,30 @@ export const ItemInfoModal: React.FC = () => {
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('critical_rate')}</span>
                     <span className="text-amber-400">+{Math.round(stats.critRate * 100)}%</span>
+                  </div>
+                )}
+                {stats && stats.lifesteal !== undefined && stats.lifesteal > 0 && (
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-slate-455">{t('lifesteal')}</span>
+                    <span className="text-red-400">+{Math.round(stats.lifesteal * 100)}%</span>
+                  </div>
+                )}
+                {stats && stats.spellVamp !== undefined && stats.spellVamp > 0 && (
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-slate-455">{t('spell_vamp')}</span>
+                    <span className="text-violet-400">+{Math.round(stats.spellVamp * 100)}%</span>
+                  </div>
+                )}
+                {stats && stats.evasion !== undefined && stats.evasion > 0 && (
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-slate-455">{t('evasion')}</span>
+                    <span className="text-sky-400">+{Math.round(stats.evasion * 100)}%</span>
+                  </div>
+                )}
+                {stats && stats.block !== undefined && stats.block > 0 && (
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-slate-455">{t('block')}</span>
+                    <span className="text-amber-500">+{Math.round(stats.block * 100)}%</span>
                   </div>
                 )}
               </div>
@@ -357,6 +386,12 @@ export const ItemInfoModal: React.FC = () => {
 
         {/* Footer Action buttons */}
         <div className="pt-3 border-t border-slate-850 shrink-0 space-y-2">
+          <div className="flex justify-between items-center px-1 text-[10px] text-slate-400 font-extrabold uppercase mb-1">
+            <span>{language === 'vi' ? 'Vàng hiện có:' : 'Current Gold:'}</span>
+            <span className="text-yellow-450 font-black font-mono">
+              {hero.gold.toLocaleString()} 💰
+            </span>
+          </div>
           {item.isIdentified === false ? (
             <button
               onClick={() => identifyEquipment(item.id)}
@@ -401,18 +436,21 @@ export const ItemInfoModal: React.FC = () => {
                   })()
                 )}
 
-                <button
-                  onClick={() => {
-                    sellEquipment(item.id);
-                    // sellEquipment will delete it from inventory, making 'item' undefined in this modal and auto-closing it!
-                  }}
-                  disabled={item.equipped}
-                  className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold py-2.5 px-4 rounded-xl transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-                  title={item.equipped ? t('sell_warn') : ''}
-                >
-                  {t('sell_btn')} ({calculateSellPrice(item)}💰)
-                </button>
-              </div>
+                </div>
+
+                {!item.equipped && (
+                  <button
+                    onClick={() => {
+                      dismantleEquipment(item.id);
+                    }}
+                    className="w-full bg-purple-650/15 hover:bg-purple-650/25 border border-purple-500/30 text-purple-300 text-xs font-extrabold py-2.5 rounded-xl transition cursor-pointer active:scale-95 flex justify-between items-center px-4"
+                  >
+                    <span>♻️ {language === 'vi' ? 'PHÂN RÃ TRANG BỊ' : 'SALVAGE EQUIPMENT'}</span>
+                    <span className="bg-slate-950/40 text-purple-300 px-2 py-0.5 rounded border border-purple-500/10 font-bold font-mono">
+                      +{calculateDismantleRewards(item)} 🌀
+                    </span>
+                  </button>
+                )}
 
               <button
                 onClick={() => upgradeEquipment(item.id)}

@@ -722,13 +722,20 @@ export class GameEngine {
         this.activeMonsters.forEach(m => {
           if (m.currentHp <= 0) return;
 
-          let atkVal = attacker === this.allyEntities[0] ? this.heroStats.attack : 10;
-          if (attacker !== this.allyEntities[0]) {
-            atkVal = attacker.heroClass === 'mage' ? 14 : 8;
+          const isMage = attacker.heroClass === 'mage';
+          let atkVal = 10;
+          if (attacker === this.allyEntities[0]) {
+            atkVal = isMage ? (this.heroStats.magicAttack || 10) : this.heroStats.attack;
+          } else {
+            atkVal = isMage ? 14 : 8;
           }
 
           let dmg = Math.round(atkVal * mult);
-          dmg = Math.max(1, dmg - m.template.baseStats.defense);
+          const defenseVal = isMage
+            ? (m.template.baseStats.magicResist !== undefined ? m.template.baseStats.magicResist : m.template.baseStats.defense)
+            : m.template.baseStats.defense;
+
+          dmg = Math.max(1, dmg - defenseVal);
           
           // Weakness check
           const heroElements = attacker.heroClass === 'knight' ? ['holy'] : ['fire', 'ice'];
@@ -760,6 +767,26 @@ export class GameEngine {
           text: `${attacker.name} unleashes ultimate [${skillName}] on enemies for ${totalDamageDealt} damage!`,
           category: 'combat'
         });
+
+        // Apply Spell Vamp if attacker is the primary Hero
+        if (attacker === this.allyEntities[0] && this.heroStats.spellVamp && this.heroStats.spellVamp > 0) {
+          const healAmt = Math.round(totalDamageDealt * this.heroStats.spellVamp);
+          if (healAmt > 0) {
+            attacker.currentHp = Math.min(attacker.maxHp, attacker.currentHp + healAmt);
+            this.heroCurrentHp = attacker.currentHp;
+            
+            // Spawn green heal number
+            const healText = new DamageText(`+${healAmt}`, attacker.entity.x, attacker.entity.y - 15, false, 0x10b981);
+            this.effectLayer.addChild(healText);
+            this.damageTexts.push(healText);
+
+            this.onEvent({
+              type: 'LOG_MESSAGE',
+              text: `🩸 [Spell Vamp] Hero heals for ${healAmt} HP from spell ultimate!`,
+              category: 'combat'
+            });
+          }
+        }
       } else {
         // Trigger visual effect
         const effect = new ShadowSlashEffect(target.entity.x, target.entity.y);
@@ -798,22 +825,53 @@ export class GameEngine {
           text: `${attacker.name} unleashes ultimate [SHADOW STRIKE] on ${target.template.name} for ${dmg} damage!`,
           category: 'combat'
         });
+
+        // Apply Spell Vamp if attacker is the primary Hero
+        if (attacker === this.allyEntities[0] && this.heroStats.spellVamp && this.heroStats.spellVamp > 0) {
+          const healAmt = Math.round(dmg * this.heroStats.spellVamp);
+          if (healAmt > 0) {
+            attacker.currentHp = Math.min(attacker.maxHp, attacker.currentHp + healAmt);
+            this.heroCurrentHp = attacker.currentHp;
+            
+            // Spawn green heal number
+            const healText = new DamageText(`+${healAmt}`, attacker.entity.x, attacker.entity.y - 15, false, 0x10b981);
+            this.effectLayer.addChild(healText);
+            this.damageTexts.push(healText);
+
+            this.onEvent({
+              type: 'LOG_MESSAGE',
+              text: `🩸 [Spell Vamp] Hero heals for ${healAmt} HP from spell ultimate!`,
+              category: 'combat'
+            });
+          }
+        }
       }
     } else {
       // --- Regular single target attack ---
+      const isMage = attacker.heroClass === 'mage';
       let critRate = attacker === this.allyEntities[0] ? this.heroStats.critRate : 0.05;
       let critDamage = attacker === this.allyEntities[0] ? this.heroStats.critDamage : 1.5;
-      let atkVal = attacker === this.allyEntities[0] ? this.heroStats.attack : 10;
+      
+      let atkVal = 10;
+      if (attacker === this.allyEntities[0]) {
+        atkVal = isMage ? (this.heroStats.magicAttack || 10) : this.heroStats.attack;
+      } else {
+        atkVal = isMage ? 14 : attacker.heroClass === 'assassin' ? 11 : 8;
+      }
 
       if (attacker !== this.allyEntities[0]) {
-        critRate = attacker.heroClass === 'assassin' ? 0.15 : attacker.heroClass === 'mage' ? 0.08 : 0.05;
-        critDamage = attacker.heroClass === 'assassin' ? 1.8 : attacker.heroClass === 'mage' ? 1.7 : 1.5;
-        atkVal = attacker.heroClass === 'mage' ? 14 : attacker.heroClass === 'assassin' ? 11 : 8;
+        critRate = attacker.heroClass === 'assassin' ? 0.15 : isMage ? 0.08 : 0.05;
+        critDamage = attacker.heroClass === 'assassin' ? 1.8 : isMage ? 1.7 : 1.5;
       }
 
       const isCrit = Math.random() < critRate;
       let dmg = atkVal;
-      dmg = Math.max(1, dmg - target.template.baseStats.defense);
+      
+      const defenseVal = isMage
+        ? (target.template.baseStats.magicResist !== undefined ? target.template.baseStats.magicResist : target.template.baseStats.defense)
+        : target.template.baseStats.defense;
+
+      dmg = Math.max(1, dmg - defenseVal);
       if (isCrit) {
         dmg = Math.round(dmg * critDamage);
       }
@@ -827,6 +885,26 @@ export class GameEngine {
 
       target.currentHp = Math.max(0, target.currentHp - dmg);
       target.entity.takeDamage(dmg);
+
+      // Apply Lifesteal if attacker is the primary Hero
+      if (attacker === this.allyEntities[0] && this.heroStats.lifesteal && this.heroStats.lifesteal > 0) {
+        const healAmt = Math.round(dmg * this.heroStats.lifesteal);
+        if (healAmt > 0) {
+          attacker.currentHp = Math.min(attacker.maxHp, attacker.currentHp + healAmt);
+          this.heroCurrentHp = attacker.currentHp;
+          
+          // Spawn green heal number
+          const healText = new DamageText(`+${healAmt}`, attacker.entity.x, attacker.entity.y - 15, false, 0x10b981);
+          this.effectLayer.addChild(healText);
+          this.damageTexts.push(healText);
+
+          this.onEvent({
+            type: 'LOG_MESSAGE',
+            text: `🩸 [Lifesteal] Hero heals for ${healAmt} HP from physical strike!`,
+            category: 'combat'
+          });
+        }
+      }
 
       // Spawn text particle
       const dmgText = new DamageText(dmg.toString(), target.entity.x, target.entity.y - 10, isCrit);
@@ -948,12 +1026,37 @@ export class GameEngine {
           let allyDmg = Math.round(attackVal * 2.2);
           allyDmg = Math.max(1, allyDmg - allyDef);
 
+          let isDodged = false;
+          let isBlocked = false;
+          const evasionRate = ally === this.allyEntities[0] ? (this.heroStats.evasion || 0) : 0;
+          const blockRate = ally === this.allyEntities[0] ? (this.heroStats.block || 0) : 0;
+
+          if (Math.random() < evasionRate) {
+            isDodged = true;
+            allyDmg = 0;
+          } else if (Math.random() < blockRate) {
+            isBlocked = true;
+            allyDmg = Math.round(allyDmg * 0.5);
+          }
+
           ally.currentHp = Math.max(0, ally.currentHp - allyDmg);
-          ally.entity.takeDamage(allyDmg);
+          if (allyDmg > 0) {
+            ally.entity.takeDamage(allyDmg);
+          }
           totalDmg += allyDmg;
 
+          let particleText = `💀 ${allyDmg}`;
+          let particleColor = undefined;
+          if (isDodged) {
+            particleText = this.language === 'vi' ? 'NÉ!' : 'DODGE';
+            particleColor = 0x3b82f6;
+          } else if (isBlocked) {
+            particleText = this.language === 'vi' ? `🛡️ ${allyDmg}` : `BLOCK ${allyDmg}`;
+            particleColor = 0xf59e0b;
+          }
+
           // Particle
-          const dmgText = new DamageText(`💀 ${allyDmg}`, ally.entity.x, ally.entity.y - 10, true);
+          const dmgText = new DamageText(particleText, ally.entity.x, ally.entity.y - 10, !isDodged, particleColor);
           this.effectLayer.addChild(dmgText);
           this.damageTexts.push(dmgText);
 
@@ -970,21 +1073,61 @@ export class GameEngine {
       } else {
         // Regular Boss Attack: tail sweep hitting the target ally
         damage = Math.round(damage * 1.1);
-        target.currentHp = Math.max(0, target.currentHp - damage);
-        target.entity.takeDamage(damage);
 
-        const dmgText = new DamageText(damage.toString(), target.entity.x, target.entity.y - 10, false);
+        let isDodged = false;
+        let isBlocked = false;
+        const evasionRate = target === this.allyEntities[0] ? (this.heroStats.evasion || 0) : 0;
+        const blockRate = target === this.allyEntities[0] ? (this.heroStats.block || 0) : 0;
+
+        if (Math.random() < evasionRate) {
+          isDodged = true;
+          damage = 0;
+        } else if (Math.random() < blockRate) {
+          isBlocked = true;
+          damage = Math.round(damage * 0.5);
+        }
+
+        target.currentHp = Math.max(0, target.currentHp - damage);
+        if (damage > 0) {
+          target.entity.takeDamage(damage);
+        }
+
+        let particleText = damage.toString();
+        let particleColor = undefined;
+        if (isDodged) {
+          particleText = this.language === 'vi' ? 'NÉ!' : 'DODGE';
+          particleColor = 0x3b82f6;
+        } else if (isBlocked) {
+          particleText = this.language === 'vi' ? `🛡️ ${damage}` : `BLOCK ${damage}`;
+          particleColor = 0xf59e0b;
+        }
+
+        const dmgText = new DamageText(particleText, target.entity.x, target.entity.y - 10, false, particleColor);
         this.effectLayer.addChild(dmgText);
         this.damageTexts.push(dmgText);
 
         target.rage = Math.min(100, target.rage + 15);
         attacker.rage = Math.min(100, attacker.rage + 20);
 
-        this.onEvent({
-          type: 'LOG_MESSAGE',
-          text: `${attacker.template.name} sweeps tail hitting ${target.name} for ${damage} dmg.`,
-          category: 'combat'
-        });
+        if (isDodged) {
+          this.onEvent({
+            type: 'LOG_MESSAGE',
+            text: `💨 [Né Tránh] Anh Hùng né tránh cú quét đuôi từ ${attacker.template.name}!`,
+            category: 'combat'
+          });
+        } else if (isBlocked) {
+          this.onEvent({
+            type: 'LOG_MESSAGE',
+            text: `🛡️ [Đỡ Đòn] Anh Hùng đỡ đòn thành công cú quét đuôi từ ${attacker.template.name}, giảm sát thương còn ${damage}!`,
+            category: 'combat'
+          });
+        } else {
+          this.onEvent({
+            type: 'LOG_MESSAGE',
+            text: `${attacker.template.name} sweeps tail hitting ${target.name} for ${damage} dmg.`,
+            category: 'combat'
+          });
+        }
       }
     } else {
       // --- NORMAL STAGE COMBAT LOOP ---
@@ -1000,13 +1143,21 @@ export class GameEngine {
           this.activeEffects.push(effect);
         } else if (lowerName.includes('lửa') || lowerName.includes('fire') || lowerName.includes('quỷ')) {
           skillName = 'FIRE BLAST';
-          damage = Math.round(damage * 2.0);
+          let magResVal = target === this.allyEntities[0] ? (this.heroStats.magicResist || 5) : 5;
+          if (target !== this.allyEntities[0]) {
+            magResVal = target.heroClass === 'mage' ? 8 : target.heroClass === 'knight' ? 6 : 4;
+          }
+          damage = Math.round(Math.max(1, attackVal * 2.0 - magResVal));
           const effect = new FireballEffect(attacker.entity.x, attacker.entity.y, target.entity.x, target.entity.y);
           this.effectLayer.addChild(effect);
           this.activeEffects.push(effect);
         } else if (lowerName.includes('băng') || lowerName.includes('ice') || lowerName.includes('nước')) {
           skillName = 'FROSTBITE';
-          damage = Math.round(damage * 1.2);
+          let magResVal = target === this.allyEntities[0] ? (this.heroStats.magicResist || 5) : 5;
+          if (target !== this.allyEntities[0]) {
+            magResVal = target.heroClass === 'mage' ? 8 : target.heroClass === 'knight' ? 6 : 4;
+          }
+          damage = Math.round(Math.max(1, attackVal * 1.2 - magResVal));
           // Cooldown slow penalty
           const heroAttackInterval = 2.0 / (this.heroStats.speed / 100);
           target.attackCooldown = -heroAttackInterval * 0.5;
@@ -1035,7 +1186,11 @@ export class GameEngine {
           shake();
         } else {
           skillName = 'JELLY BUBBLE';
-          damage = Math.round(damage * 1.5);
+          let magResVal = target === this.allyEntities[0] ? (this.heroStats.magicResist || 5) : 5;
+          if (target !== this.allyEntities[0]) {
+            magResVal = target.heroClass === 'mage' ? 8 : target.heroClass === 'knight' ? 6 : 4;
+          }
+          damage = Math.round(Math.max(1, attackVal * 1.5 - magResVal));
           const effect = new BubbleEffect(attacker.entity.x, attacker.entity.y, target.entity.x, target.entity.y);
           this.effectLayer.addChild(effect);
           this.activeEffects.push(effect);
@@ -1053,8 +1208,23 @@ export class GameEngine {
         finalDamage = finalDamage * 2;
       }
 
+      let isDodged = false;
+      let isBlocked = false;
+      const evasionRate = target === this.allyEntities[0] ? (this.heroStats.evasion || 0) : 0;
+      const blockRate = target === this.allyEntities[0] ? (this.heroStats.block || 0) : 0;
+
+      if (Math.random() < evasionRate) {
+        isDodged = true;
+        finalDamage = 0;
+      } else if (Math.random() < blockRate) {
+        isBlocked = true;
+        finalDamage = Math.round(finalDamage * 0.5);
+      }
+
       target.currentHp = Math.max(0, target.currentHp - finalDamage);
-      target.entity.takeDamage(finalDamage);
+      if (finalDamage > 0) {
+        target.entity.takeDamage(finalDamage);
+      }
 
       // Vampire affix check
       if (finalDamage > 0 && attacker.template.affixes?.includes('vampire')) {
@@ -1068,11 +1238,22 @@ export class GameEngine {
       }
 
       // Spawn damage text particle
+      let particleText = isUlt ? `💀 ${finalDamage}` : finalDamage.toString();
+      let particleColor = undefined;
+      if (isDodged) {
+        particleText = this.language === 'vi' ? 'NÉ!' : 'DODGE';
+        particleColor = 0x3b82f6;
+      } else if (isBlocked) {
+        particleText = this.language === 'vi' ? `🛡️ ${finalDamage}` : `BLOCK ${finalDamage}`;
+        particleColor = 0xf59e0b;
+      }
+
       const dmgText = new DamageText(
-        isUlt ? `💀 ${finalDamage}` : finalDamage.toString(), 
+        particleText, 
         target.entity.x, 
         target.entity.y - 10, 
-        isUlt
+        isUlt && !isDodged,
+        particleColor
       );
       this.effectLayer.addChild(dmgText);
       this.damageTexts.push(dmgText);
@@ -1080,18 +1261,32 @@ export class GameEngine {
       this.onEvent({
         type: 'DAMAGE_DEALT',
         amount: finalDamage,
-        isCrit: isUlt,
+        isCrit: isUlt && !isDodged,
         isHeroTarget: true,
         currentHp: target.currentHp
       });
 
-      this.onEvent({
-        type: 'LOG_MESSAGE',
-        text: isUlt
-          ? `${attacker.template.name} casts ultimate [${skillName}] on Hero for ${finalDamage} damage!`
-          : `${attacker.template.name} hits Hero for ${finalDamage} dmg.`,
-        category: 'combat'
-      });
+      if (isDodged) {
+        this.onEvent({
+          type: 'LOG_MESSAGE',
+          text: `💨 [Né Tránh] Anh Hùng né tránh đòn đánh từ ${attacker.template.name}!`,
+          category: 'combat'
+        });
+      } else if (isBlocked) {
+        this.onEvent({
+          type: 'LOG_MESSAGE',
+          text: `🛡️ [Đỡ Đòn] Anh Hùng đỡ đòn thành công từ ${attacker.template.name}, giảm sát thương còn ${finalDamage}!`,
+          category: 'combat'
+        });
+      } else {
+        this.onEvent({
+          type: 'LOG_MESSAGE',
+          text: isUlt
+            ? `${attacker.template.name} casts ultimate [${skillName}] on Hero for ${finalDamage} damage!`
+            : `${attacker.template.name} hits Hero for ${finalDamage} dmg.`,
+          category: 'combat'
+        });
+      }
     }
 
     // Check hero death

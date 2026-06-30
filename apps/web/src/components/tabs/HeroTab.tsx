@@ -59,10 +59,16 @@ export const HeroTab: React.FC = () => {
     { label: language === 'vi' ? '🌟 Cấp Độ' : '🌟 Level', value: `Lv.${hero.level}`, desc: `${language === 'vi' ? 'Cấp độ hiện tại' : 'Current level'}` },
     { label: t('max_health'), value: hero.currentStats.maxHp, desc: `${t('stat_base')}: ${hero.baseStats.maxHp}` },
     { label: t('attack_power'), value: hero.currentStats.attack, desc: `${t('stat_base')}: ${hero.baseStats.attack}` },
+    { label: t('magic_attack'), value: hero.currentStats.magicAttack || 0, desc: `${t('stat_base')}: ${hero.baseStats.magicAttack || 0}` },
     { label: t('defense_rating'), value: hero.currentStats.defense, desc: `${t('stat_base')}: ${hero.baseStats.defense}` },
+    { label: t('magic_resist'), value: hero.currentStats.magicResist || 0, desc: `${t('stat_base')}: ${hero.baseStats.magicResist || 0}` },
     { label: t('attack_speed'), value: `${hero.currentStats.speed}%`, desc: `${t('stat_base')}: 100%` },
     { label: t('critical_rate'), value: `${Math.round(hero.currentStats.critRate * 100)}%`, desc: `${t('stat_cap')}: 85%` },
     { label: t('critical_damage'), value: `${Math.round(hero.currentStats.critDamage * 100)}%`, desc: `${t('stat_base')}: 150%` },
+    { label: t('lifesteal'), value: `${Math.round((hero.currentStats.lifesteal || 0) * 100)}%`, desc: language === 'vi' ? 'Hồi máu đòn đánh' : 'Heal on basic hit' },
+    { label: t('spell_vamp'), value: `${Math.round((hero.currentStats.spellVamp || 0) * 100)}%`, desc: language === 'vi' ? 'Hồi máu kỹ năng' : 'Heal on spells' },
+    { label: t('evasion'), value: `${Math.round((hero.currentStats.evasion || 0) * 100)}%`, desc: `${t('stat_cap')}: 75%` },
+    { label: t('block'), value: `${Math.round((hero.currentStats.block || 0) * 100)}%`, desc: `${t('stat_cap')}: 75%` },
   ];
 
   const renderCharacterSVG = (heroClass: string) => {

@@ -42,7 +42,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     exitGuildRaid,
     activeInspectItemId,
     challengeBoss,
-    renameHero
+    renameHero,
+    toggleAutoAdvance
   } = useGameStore();
 
   const { t } = useTranslation();
@@ -89,8 +90,9 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
       default: return 'text-slate-300';
     }
   };
-  const getTabIconOnly = (tab: 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide') => {
+  const getTabIconOnly = (tab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide') => {
     switch (tab) {
+      case 'home': return '🏠';
       case 'hero': return '👤';
       case 'bag': return '🎒';
       case 'quest': return '📜';
@@ -289,6 +291,22 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
                   <div className="w-[1px] h-3.5 bg-slate-850" />
 
+                  {/* Auto Advance Toggle Button */}
+                  <button
+                    onClick={() => toggleAutoAdvance()}
+                    className={`px-2 py-0.8 text-[9px] font-extrabold uppercase rounded-lg border transition active:scale-95 cursor-pointer ${
+                      autoAdvance !== false
+                        ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400 hover:bg-emerald-950/60'
+                        : 'bg-slate-900/60 border-slate-800 text-slate-450 hover:bg-slate-900'
+                    }`}
+                    title={language === 'vi' ? 'Tự động vượt ải' : 'Auto Advance'}
+                  >
+                    {autoAdvance !== false 
+                      ? (language === 'vi' ? '🔄 Tự Động: BẬT' : '🔄 Auto: ON') 
+                      : (language === 'vi' ? '⏹️ Tự Động: TẮT' : '⏹️ Auto: OFF')
+                    }
+                  </button>
+
                   {/* Manual Challenge Boss Button (only when auto-advance is disabled/failed and wave is 19) */}
                   {autoAdvance === false && (currentWave || 1) === 19 && (
                     <>
@@ -469,10 +487,24 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
       </main>
 
       {/* CORE BOTTOM NAVIGATION & PANEL CONTAINER (Desktop inline layout) */}
-      <footer className="hidden lg:flex lg:flex-col lg:justify-between glass-panel rounded-2xl p-4 overflow-hidden relative z-10 border-slate-800 shadow-xl h-[350px] shrink-0">
+      <footer className={`hidden lg:flex lg:flex-col lg:justify-between glass-panel rounded-2xl p-4 overflow-hidden relative z-10 border-slate-800 shadow-xl shrink-0 transition-all duration-300 ${
+        activeTab === 'home' ? 'h-[72px]' : 'h-[350px]'
+      }`}>
         {/* Navigation Tabs Bar */}
-        <nav className="flex justify-between items-center border-b border-slate-850 pb-2 mb-4 gap-2 overflow-hidden shrink-0">
+        <nav className={`flex justify-between items-center gap-2 overflow-hidden shrink-0 ${
+          activeTab === 'home' ? '' : 'border-b border-slate-850 pb-2 mb-4'
+        }`}>
           <div className="flex gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none shrink-0 snap-x snap-mandatory">
+            <button
+              onClick={() => setActiveTab('home')}
+              className={`shrink-0 snap-start px-4 py-2 text-xs font-extrabold uppercase rounded-xl border tracking-wider transition-all duration-150 cursor-pointer ${
+                activeTab === 'home'
+                  ? 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white shadow shadow-blue-500/20'
+                  : 'bg-slate-950/60 hover:bg-slate-900 border-slate-850 text-slate-400 hover:text-white'
+              }`}
+            >
+              🏠 {language === 'vi' ? 'Trang chủ' : 'Home'}
+            </button>
             {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => {
               const locked = hero.level < LEVEL_LOCKS[tab];
               return (
@@ -511,13 +543,28 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
         </nav>
 
         {/* Selected Tab Sheet Content */}
-        <div className="flex-1 overflow-hidden relative">
-          {renderTabContent()}
-        </div>
+        {activeTab !== 'home' && (
+          <div className="flex-1 overflow-hidden relative">
+            {renderTabContent()}
+          </div>
+        )}
       </footer>
 
       {/* MOBILE BOTTOM STICKY NAVIGATION BAR (Hidden on desktop) */}
       <nav className="lg:hidden glass-panel rounded-2xl p-1.5 flex justify-around items-center shrink-0 z-20 border-slate-800 shadow-xl select-none mb-1">
+        <button
+          onClick={() => {
+            setActiveTab('home');
+            setIsMobilePanelOpen(false);
+          }}
+          className={`flex-1 flex justify-center py-2 text-2xl transition cursor-pointer active:scale-90 ${
+            activeTab === 'home' && !isMobilePanelOpen
+              ? 'text-blue-400 scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+              : 'text-slate-500 opacity-60 grayscale'
+          }`}
+        >
+          🏠
+        </button>
         {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => {
           const locked = hero.level < LEVEL_LOCKS[tab];
           return (
@@ -579,6 +626,19 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
           {/* Switcher inside Modal */}
           <nav className="flex justify-around items-center border-t border-slate-850 pt-3 shrink-0 select-none">
+            <button
+              onClick={() => {
+                setActiveTab('home');
+                setIsMobilePanelOpen(false);
+              }}
+              className={`flex-1 flex justify-center py-2 text-2xl transition cursor-pointer active:scale-90 ${
+                activeTab === 'home'
+                  ? 'text-blue-400 scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+                  : 'text-slate-500 opacity-60 grayscale'
+              }`}
+            >
+              🏠
+            </button>
             {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => {
               const locked = hero.level < LEVEL_LOCKS[tab];
               return (

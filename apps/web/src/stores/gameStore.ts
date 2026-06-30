@@ -9,7 +9,8 @@ import {
   createItemInstance, 
   DEFAULT_ITEM_TEMPLATES, 
   calculatePrestigePoints,
-  generateMonsterForStage
+  generateMonsterForStage,
+  calculateDismantleRewards
 } from '@idle-rpg/shared';
 import { authService, dbService, UserSession, generateStarterSave } from '@idle-rpg/firebase';
 import { useLanguageStore } from './languageStore';
@@ -24,7 +25,7 @@ interface CombatLogEntry {
 interface GameState {
   user: UserSession | null;
   saveData: GameSaveData | null;
-  activeTab: 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide';
+  activeTab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide';
   isLoading: boolean;
   activeInspectItemId: string | null;
   
@@ -66,13 +67,16 @@ interface GameState {
   startNextBattle: () => void;
   
   // Gameplay Actions
-  setActiveTab: (tab: 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide') => void;
+  setActiveTab: (tab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide') => void;
   setActiveInspectItemId: (itemId: string | null) => void;
   upgradeEquipment: (itemId: string) => void;
   equipEquipment: (itemId: string) => void;
   unequipEquipment: (itemId: string) => void;
-  sellEquipment: (itemId: string) => void;
-  sellMultipleEquipment: (itemIds: string[]) => void;
+  dismantleEquipment: (itemId: string) => void;
+  dismantleMultipleEquipment: (itemIds: string[]) => void;
+  buyShardUpgrade: (stat: 'attack' | 'magicAttack' | 'maxHp') => void;
+  buyAetherChest: () => void;
+  buyAetherDiamonds: () => void;
   claimQuestReward: (questId: string) => void;
   buyGoldPack: () => void;
   summonEquipment: () => void;
@@ -234,6 +238,10 @@ export const useGameStore = create<GameState>((set, get) => {
             if (data) {
               if (data.currentWave === undefined) data.currentWave = 1;
               if (data.autoAdvance === undefined) data.autoAdvance = true;
+              if (data.hero.aetherShards === undefined) data.hero.aetherShards = 0;
+              if (!data.hero.shardUpgrades) {
+                data.hero.shardUpgrades = { attack: 0, magicAttack: 0, maxHp: 0 };
+              }
 
               // Synchronize quests from templates
               try {
@@ -535,7 +543,7 @@ export const useGameStore = create<GameState>((set, get) => {
         get().addLogMessage(tStore('log_level_up', { level: hero.level }), 'system');
         // Recalculate stats
         const equippedNow = newInventory.filter(i => i.equipped);
-        hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equippedNow, hero.heroClass);
+        hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equippedNow, hero.heroClass, hero.shardUpgrades);
         hero.currentHp = hero.currentStats.maxHp;
         
         // Audit Level Up quests
@@ -698,7 +706,7 @@ export const useGameStore = create<GameState>((set, get) => {
       // Recalculate Hero stats in case item is equipped
       const equipped = inventory.filter(i => i.equipped);
       const hero = { ...saveData.hero };
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades);
       hero.currentHp = get().battleMode === 'guild_boss' ? hero.currentHp : Math.min(hero.currentStats.maxHp, get().heroHp);
 
       // Audit upgrade equipment quests
@@ -750,7 +758,7 @@ export const useGameStore = create<GameState>((set, get) => {
       // Recalculate stats
       const equipped = inventory.filter(i => i.equipped);
       const hero = { ...saveData.hero };
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades);
       hero.currentHp = hero.currentStats.maxHp; // Refill HP on equip change
 
       get().addLogMessage(tStore('log_equipped_item', { name: itemToEquip.name }), 'system');
@@ -795,7 +803,7 @@ export const useGameStore = create<GameState>((set, get) => {
       autoSave(updatedSave);
     },
 
-    sellEquipment: (itemId) => {
+    dismantleEquipment: (itemId) => {
       const { saveData } = get();
       if (!saveData) return;
 
@@ -807,14 +815,12 @@ export const useGameStore = create<GameState>((set, get) => {
         return;
       }
 
-      // Sell price is 30% of standard level-1 upgrade cost
-      const sellPrice = Math.floor(calculateUpgradeCost(item.slot, item.rarity, 1) * 0.3);
-      
+      const rewardShards = calculateDismantleRewards(item);
       const inventory = saveData.inventory.filter(i => i.id !== itemId);
       const hero = { ...saveData.hero };
-      hero.gold += sellPrice;
+      hero.aetherShards = (hero.aetherShards || 0) + rewardShards;
 
-      get().addLogMessage(tStore('log_sold_item', { name: item.name, gold: sellPrice }), 'system');
+      get().addLogMessage(`♻️ PHÂN RÃ: Phân rã [${item.name}] nhận được +${rewardShards} Mảnh Aether!`, 'loot');
 
       const updatedSave: GameSaveData = {
         ...saveData,
@@ -826,30 +832,135 @@ export const useGameStore = create<GameState>((set, get) => {
       autoSave(updatedSave);
     },
 
-    sellMultipleEquipment: (itemIds) => {
+    dismantleMultipleEquipment: (itemIds) => {
       const { saveData } = get();
       if (!saveData) return;
 
-      let totalGoldEarned = 0;
-      const itemsToSell = saveData.inventory.filter(i => itemIds.includes(i.id) && !i.equipped);
-      if (itemsToSell.length === 0) return;
+      let totalShardsEarned = 0;
+      const itemsToDismantle = saveData.inventory.filter(i => itemIds.includes(i.id) && !i.equipped);
+      if (itemsToDismantle.length === 0) return;
 
-      itemsToSell.forEach(item => {
-        // Sell price is 30% of standard level-1 upgrade cost
-        const sellPrice = Math.floor(calculateUpgradeCost(item.slot, item.rarity, 1) * 0.3);
-        totalGoldEarned += sellPrice;
+      itemsToDismantle.forEach(item => {
+        totalShardsEarned += calculateDismantleRewards(item);
       });
 
-      const inventory = saveData.inventory.filter(i => !itemsToSell.some(sold => sold.id === i.id));
+      const inventory = saveData.inventory.filter(i => !itemsToDismantle.some(d => d.id === i.id));
       const hero = { ...saveData.hero };
-      hero.gold += totalGoldEarned;
+      hero.aetherShards = (hero.aetherShards || 0) + totalShardsEarned;
 
-      get().addLogMessage(tStore('log_sold_multiple', { count: itemsToSell.length, gold: totalGoldEarned }), 'system');
+      get().addLogMessage(`♻️ PHÂN RÃ: Phân rã hàng loạt ${itemsToDismantle.length} vật phẩm, nhận được +${totalShardsEarned} Mảnh Aether!`, 'loot');
 
       const updatedSave: GameSaveData = {
         ...saveData,
         hero,
         inventory,
+        lastSavedAt: Date.now()
+      };
+
+      autoSave(updatedSave);
+    },
+
+    buyShardUpgrade: (stat) => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      if (!hero.shardUpgrades) {
+        hero.shardUpgrades = { attack: 0, magicAttack: 0, maxHp: 0 };
+      }
+
+      const currentLvl = hero.shardUpgrades[stat] || 0;
+      const cost = 50 * (currentLvl + 1);
+
+      if ((hero.aetherShards || 0) < cost) {
+        get().addLogMessage(`❌ KHÔNG ĐỦ MẢNH AETHER: Cần ${cost} Mảnh Aether để nâng cấp!`, 'system');
+        return;
+      }
+
+      hero.aetherShards = (hero.aetherShards || 0) - cost;
+      hero.shardUpgrades[stat] = currentLvl + 1;
+
+      // Recalculate stats
+      const equipped = saveData.inventory.filter(i => i.equipped);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades);
+      hero.currentHp = hero.currentStats.maxHp; // Heal to full
+
+      const statName = stat === 'attack' ? 'Công Vật Lý' : stat === 'magicAttack' ? 'Công Phép Thuật' : 'HP Tối Đa';
+      get().addLogMessage(`🌟 NÂNG CẤP AETHER: Nâng cấp thành công ${statName} lên Cấp ${currentLvl + 1}!`, 'system');
+
+      // Update Pixi engine if running
+      if (get().engineInstance) {
+        get().engineInstance.updateState(hero.level, hero.prestigePoints, equipped, saveData.activeStage, hero.heroClass, hero.name || 'Hero', useLanguageStore.getState().language, hero.shardUpgrades);
+      }
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        lastSavedAt: Date.now()
+      };
+
+      autoSave(updatedSave);
+    },
+
+    buyAetherChest: () => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      const cost = 300;
+
+      if ((hero.aetherShards || 0) < cost) {
+        get().addLogMessage(`❌ KHÔNG ĐỦ MẢNH AETHER: Cần ${cost} Mảnh Aether để đổi rương!`, 'system');
+        return;
+      }
+
+      if (saveData.inventory.length >= 50) {
+        get().addLogMessage(`❌ HÀNH LÝ ĐẦY: Hãy phân rã hoặc bán bớt đồ trước khi đổi rương!`, 'system');
+        return;
+      }
+
+      hero.aetherShards = (hero.aetherShards || 0) - cost;
+
+      // Generate a random Rare, Epic or Legendary equipment
+      const pool = DEFAULT_ITEM_TEMPLATES.filter(t => ['rare', 'epic', 'legendary'].includes(t.rarity));
+      const randTemplate = pool[Math.floor(Math.random() * pool.length)];
+      const item = createItemInstance(randTemplate);
+      item.isIdentified = false; // needs identification!
+
+      const inventory = [...saveData.inventory, item];
+
+      get().addLogMessage(`🎁 AETHER CHEST: Đổi rương thành công, nhận được [${item.name}] chưa giám định!`, 'loot');
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        inventory,
+        lastSavedAt: Date.now()
+      };
+
+      autoSave(updatedSave);
+    },
+
+    buyAetherDiamonds: () => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      const cost = 100;
+
+      if ((hero.aetherShards || 0) < cost) {
+        get().addLogMessage(`❌ KHÔNG ĐỦ MẢNH AETHER: Cần ${cost} Mảnh Aether để đổi Kim Cương!`, 'system');
+        return;
+      }
+
+      hero.aetherShards = (hero.aetherShards || 0) - cost;
+      hero.diamonds += 200;
+
+      get().addLogMessage(`💎 KIM CƯƠNG AETHER: Đổi thành công +200 Kim Cương!`, 'loot');
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
         lastSavedAt: Date.now()
       };
 
@@ -991,7 +1102,7 @@ export const useGameStore = create<GameState>((set, get) => {
       }));
 
       // Recalculate stats with prestige points, no items equipped
-      hero.currentStats = recalculateHeroStats(1, hero.prestigePoints, [], hero.heroClass);
+      hero.currentStats = recalculateHeroStats(1, hero.prestigePoints, [], hero.heroClass, hero.shardUpgrades);
       hero.currentHp = hero.currentStats.maxHp;
 
       // Reset Quests to starter set
@@ -1030,7 +1141,7 @@ export const useGameStore = create<GameState>((set, get) => {
       });
 
       const equipped = inventory.filter(i => i.equipped);
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, newClass);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, newClass, hero.shardUpgrades);
       hero.currentHp = Math.min(hero.currentStats.maxHp, hero.currentHp);
 
       get().addLogMessage(
@@ -1138,7 +1249,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Recalculate hero stats if the item is equipped!
       const equipped = inventory.filter(i => i.equipped);
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades);
       hero.currentHp = Math.min(hero.currentHp, hero.currentStats.maxHp);
 
       const gemName = gemType === 'ruby' ? 'Ruby' : gemType === 'emerald' ? 'Emerald' : 'Topaz';

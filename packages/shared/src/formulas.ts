@@ -90,10 +90,18 @@ export function calculateItemStats(slot: EquipmentSlot, rarity: ItemRarity, leve
 
 export function getFinalItemStats(item: EquipmentItem): BaseStats {
   if (item.isIdentified === false) {
-    return { maxHp: 0, attack: 0, defense: 0, speed: 0, critRate: 0, critDamage: 0 };
+    return { maxHp: 0, attack: 0, defense: 0, speed: 0, critRate: 0, critDamage: 0, lifesteal: 0, spellVamp: 0, evasion: 0, block: 0 };
   }
 
-  const base = { ...item.stats };
+  const base = {
+    ...item.stats,
+    lifesteal: item.stats.lifesteal || 0,
+    spellVamp: item.stats.spellVamp || 0,
+    evasion: item.stats.evasion || 0,
+    block: item.stats.block || 0,
+    magicAttack: item.stats.magicAttack || 0,
+    magicResist: item.stats.magicResist || 0
+  };
 
   // Item Memory evolution
   let evolutionMult = 1.0;
@@ -130,6 +138,10 @@ export function getFinalItemStats(item: EquipmentItem): BaseStats {
         if (affix.stats.speed) base.speed += affix.stats.speed;
         if (affix.stats.critRate) base.critRate += affix.stats.critRate;
         if (affix.stats.critDamage) base.critDamage += affix.stats.critDamage;
+        if (affix.stats.lifesteal) base.lifesteal = (base.lifesteal || 0) + affix.stats.lifesteal;
+        if (affix.stats.spellVamp) base.spellVamp = (base.spellVamp || 0) + affix.stats.spellVamp;
+        if (affix.stats.evasion) base.evasion = (base.evasion || 0) + affix.stats.evasion;
+        if (affix.stats.block) base.block = (base.block || 0) + affix.stats.block;
       }
     });
   }
@@ -153,6 +165,12 @@ export function getFinalItemStats(item: EquipmentItem): BaseStats {
   base.attack = Math.max(0, base.attack);
   base.defense = Math.max(0, base.defense);
   base.speed = Math.max(0, base.speed);
+  base.lifesteal = Math.max(0, base.lifesteal || 0);
+  base.spellVamp = Math.max(0, base.spellVamp || 0);
+  base.evasion = Math.max(0, base.evasion || 0);
+  base.block = Math.max(0, base.block || 0);
+  base.magicAttack = Math.max(0, base.magicAttack || 0);
+  base.magicResist = Math.max(0, base.magicResist || 0);
   base.critRate = Math.max(0, base.critRate);
   base.critDamage = Math.max(0, base.critDamage);
 
@@ -170,8 +188,14 @@ export function recalculateHeroStats(
   level: number,
   prestigePoints: number,
   equippedItems: EquipmentItem[],
-  heroClass?: 'knight' | 'mage' | 'assassin'
+  heroClass?: 'knight' | 'mage' | 'assassin',
+  shardUpgrades?: { attack?: number; magicAttack?: number; maxHp?: number }
 ): BaseStats {
+  // Shard Upgrades (each upgrade level gives +3% bonus)
+  const shardHpPct = 1 + (shardUpgrades?.maxHp || 0) * 0.03;
+  const shardAtkPct = 1 + (shardUpgrades?.attack || 0) * 0.03;
+  const shardMagAtkPct = 1 + (shardUpgrades?.magicAttack || 0) * 0.03;
+
   let baseHp = 100;
   let hpGrowth = 15;
   let baseAtk = 15;
@@ -181,6 +205,10 @@ export function recalculateHeroStats(
   let baseSpd = 100;
   let baseCrit = 0.05;
   let baseCritDmg = 1.5;
+  let baseMagAtk = 5;
+  let magAtkGrowth = 0.5;
+  let baseMagRes = 5;
+  let magResGrowth = 1.0;
 
   if (heroClass === 'knight') {
     baseHp = 140;
@@ -189,16 +217,24 @@ export function recalculateHeroStats(
     atkGrowth = 1.8;
     baseDef = 10;
     defGrowth = 1.5;
+    baseMagAtk = 6;
+    magAtkGrowth = 0.8;
+    baseMagRes = 8;
+    magResGrowth = 1.2;
     baseSpd = 90;
     baseCrit = 0.03;
     baseCritDmg = 1.5;
   } else if (heroClass === 'mage') {
     baseHp = 80;
     hpGrowth = 12;
-    baseAtk = 25;
-    atkGrowth = 3.2;
+    baseAtk = 5;
+    atkGrowth = 0.5;
     baseDef = 3;
     defGrowth = 0.5;
+    baseMagAtk = 25;
+    magAtkGrowth = 3.2;
+    baseMagRes = 12;
+    magResGrowth = 1.6;
     baseSpd = 110;
     baseCrit = 0.08;
     baseCritDmg = 1.6;
@@ -209,18 +245,28 @@ export function recalculateHeroStats(
     atkGrowth = 2.2;
     baseDef = 4;
     defGrowth = 0.8;
+    baseMagAtk = 6;
+    magAtkGrowth = 0.6;
+    baseMagRes = 5;
+    magResGrowth = 0.6;
     baseSpd = 125;
     baseCrit = 0.15;
     baseCritDmg = 1.8;
   }
 
   const baseStats: BaseStats = {
-    maxHp: Math.round(baseHp + (level - 1) * hpGrowth),
-    attack: Math.round(baseAtk + (level - 1) * atkGrowth),
+    maxHp: Math.round(Math.round(baseHp + (level - 1) * hpGrowth) * shardHpPct),
+    attack: Math.round(Math.round(baseAtk + (level - 1) * atkGrowth) * shardAtkPct),
+    magicAttack: Math.round(Math.round(baseMagAtk + (level - 1) * magAtkGrowth) * shardMagAtkPct),
     defense: Math.round(baseDef + (level - 1) * defGrowth),
+    magicResist: Math.round(baseMagRes + (level - 1) * magResGrowth),
     speed: baseSpd,
     critRate: baseCrit,
-    critDamage: baseCritDmg
+    critDamage: baseCritDmg,
+    lifesteal: 0,
+    spellVamp: 0,
+    evasion: 0,
+    block: 0
   };
 
   // Prestige multipliers (1% damage, 1% hp per point)
@@ -234,6 +280,12 @@ export function recalculateHeroStats(
   let totalSpeed = baseStats.speed;
   let totalCritRate = baseStats.critRate;
   let totalCritDamage = baseStats.critDamage;
+  let totalLifesteal = baseStats.lifesteal || 0;
+  let totalSpellVamp = baseStats.spellVamp || 0;
+  let totalEvasion = baseStats.evasion || 0;
+  let totalBlock = baseStats.block || 0;
+  let totalMagicAttack = baseStats.magicAttack || 0;
+  let totalMagicResist = baseStats.magicResist || 0;
 
   // Add equipment bonuses safely using getFinalItemStats helper
   const items = equippedItems || [];
@@ -246,6 +298,12 @@ export function recalculateHeroStats(
     totalSpeed += stats.speed || 0;
     totalCritRate += stats.critRate || 0;
     totalCritDamage += (stats.critDamage - 1.5) > 0 ? (stats.critDamage - 1.5) : 0;
+    totalLifesteal += stats.lifesteal || 0;
+    totalSpellVamp += stats.spellVamp || 0;
+    totalEvasion += stats.evasion || 0;
+    totalBlock += stats.block || 0;
+    totalMagicAttack += stats.magicAttack || 0;
+    totalMagicResist += stats.magicResist || 0;
   }
 
   return {
@@ -254,7 +312,13 @@ export function recalculateHeroStats(
     defense: Math.round(totalDefense * prestigeDefMult),
     speed: totalSpeed,
     critRate: Math.min(0.85, totalCritRate), // cap crit rate at 85%
-    critDamage: Math.round(totalCritDamage * 100) / 100
+    critDamage: Math.round(totalCritDamage * 100) / 100,
+    lifesteal: Math.round(totalLifesteal * 100) / 100,
+    spellVamp: Math.round(totalSpellVamp * 100) / 100,
+    evasion: Math.round(Math.min(0.75, totalEvasion) * 100) / 100, // cap evasion at 75%
+    block: Math.round(Math.min(0.75, totalBlock) * 100) / 100,      // cap block at 75%
+    magicAttack: Math.round(totalMagicAttack * prestigeDmgMult),
+    magicResist: Math.round(totalMagicResist * prestigeDefMult)
   };
 }
 
@@ -267,7 +331,10 @@ const PREFIXES = [
   { name: 'Sharp', stats: { critRate: 0.04 } },
   { name: 'Heavy', stats: { maxHp: 40 } },
   { name: 'Brutal', stats: { critDamage: 0.15 } },
-  { name: 'Vampiric', stats: { maxHp: 30, attack: 10 } }
+  { name: 'Vampiric', stats: { maxHp: 30, attack: 10, lifesteal: 0.05 } },
+  { name: 'Siphoning', stats: { attack: 15, spellVamp: 0.05 } },
+  { name: 'Elusive', stats: { evasion: 0.05 } },
+  { name: 'Guarded', stats: { block: 0.05 } }
 ];
 
 // Suffixes pool
@@ -276,7 +343,11 @@ const SUFFIXES = [
   { name: 'of Swiftness', stats: { speed: 15 } },
   { name: 'of Phoenix', stats: { maxHp: 30, critRate: 0.01 } },
   { name: 'of Sage', stats: { attack: 5, defense: 5 } },
-  { name: 'of the Thief', stats: { goldBonus: 0.10 } }
+  { name: 'of the Thief', stats: { goldBonus: 0.10 } },
+  { name: 'of Blood', stats: { lifesteal: 0.04 } },
+  { name: 'of Leeching', stats: { spellVamp: 0.04 } },
+  { name: 'of Wind', stats: { evasion: 0.04 } },
+  { name: 'of Shield', stats: { block: 0.04 } }
 ];
 
 // Generate a random item instance from template
@@ -418,9 +489,9 @@ export const DEFAULT_ITEM_TEMPLATES: ItemTemplate[] = [
   { id: 't_wpn_archmage_wand', name: 'Archmage Wand', slot: 'weapon', rarity: 'epic', allowedClass: 'mage', stats: {} },
   { id: 't_wpn_death_claws', name: 'Death Mark Claws', slot: 'weapon', rarity: 'epic', allowedClass: 'assassin', stats: {} },
   // Legendary
-  { id: 't_wpn_excalibur', name: 'Excalibur', slot: 'weapon', rarity: 'legendary', allowedClass: 'knight', stats: {} },
-  { id: 't_wpn_cosmos_staff', name: 'Staff of Infinite Cosmos', slot: 'weapon', rarity: 'legendary', allowedClass: 'mage', stats: {} },
-  { id: 't_wpn_asura_blades', name: 'Asura Double Blades', slot: 'weapon', rarity: 'legendary', allowedClass: 'assassin', stats: {} },
+  { id: 't_wpn_excalibur', name: 'Excalibur', slot: 'weapon', rarity: 'legendary', allowedClass: 'knight', stats: { lifesteal: 0.08 } },
+  { id: 't_wpn_cosmos_staff', name: 'Staff of Infinite Cosmos', slot: 'weapon', rarity: 'legendary', allowedClass: 'mage', stats: { spellVamp: 0.10 } },
+  { id: 't_wpn_asura_blades', name: 'Asura Double Blades', slot: 'weapon', rarity: 'legendary', allowedClass: 'assassin', stats: { lifesteal: 0.10 } },
 
   // === ARMOR ===
   // Common
@@ -440,9 +511,9 @@ export const DEFAULT_ITEM_TEMPLATES: ItemTemplate[] = [
   { id: 't_arm_phoenix_robe', name: 'Phoenix Flame Robe', slot: 'armor', rarity: 'epic', allowedClass: 'mage', stats: {} },
   { id: 't_arm_nether_cloak', name: 'Nether Shadow Shroud', slot: 'armor', rarity: 'epic', allowedClass: 'assassin', stats: {} },
   // Legendary
-  { id: 't_arm_god_plate', name: 'God Warlord Plate', slot: 'armor', rarity: 'legendary', allowedClass: 'knight', stats: {} },
-  { id: 't_arm_celestial_robe', name: 'Celestial Archmage Robes', slot: 'armor', rarity: 'legendary', allowedClass: 'mage', stats: {} },
-  { id: 't_arm_phantom_garb', name: 'Phantom Assassin Garb', slot: 'armor', rarity: 'legendary', allowedClass: 'assassin', stats: {} },
+  { id: 't_arm_god_plate', name: 'God Warlord Plate', slot: 'armor', rarity: 'legendary', allowedClass: 'knight', stats: { block: 0.12 } },
+  { id: 't_arm_celestial_robe', name: 'Celestial Archmage Robes', slot: 'armor', rarity: 'legendary', allowedClass: 'mage', stats: { evasion: 0.06, block: 0.04 } },
+  { id: 't_arm_phantom_garb', name: 'Phantom Assassin Garb', slot: 'armor', rarity: 'legendary', allowedClass: 'assassin', stats: { evasion: 0.12 } },
 
   // === HELMETS ===
   // Common
@@ -622,11 +693,15 @@ export function generateMonsterForStage(
     case 'world_boss': eliteModifier = 50; break;
   }
 
+  // Scale elite modifier down at low stages to smooth the entry curve
+  const stageScale = Math.min(1.0, (stage - 1) / 9); // 0 at stage 1, 1.0 at stage 10
+  const scaledEliteModifier = Math.round(eliteModifier * stageScale);
+
   // Dynamic Level Calculation
   const baseLevel = selectedSpecies.baseLevel;
   const stageModifier = stage === 1 ? 0 : Math.floor((stage - 1) * 1.0) + Math.floor(Math.max(0, stage - 10) * 0.1);
   const worldModifier = Math.floor((stage - 1) / 100) * 20;
-  const level = baseLevel + stageModifier + worldModifier + eliteModifier;
+  const level = baseLevel + stageModifier + worldModifier + scaledEliteModifier;
 
   // 4. Combat Affixes selection
   const affixes: MonsterAffix[] = [];
@@ -654,16 +729,17 @@ export function generateMonsterForStage(
   let expReward = Math.round(8 * Math.pow(1.11, stage - 1) * selectedSpecies.baseHpMult);
   let goldMin = Math.round(6 * Math.pow(1.12, stage - 1) * selectedSpecies.baseAtkMult);
 
-  // Elite Rank multiplier bumps
+  // Elite Rank multiplier bumps scaled down at low stages (100% full scaling at stage 10+)
+  const statMultScale = Math.min(1.0, stage / 10);
   let rankStatMultiplier = 1.0;
   switch (rank) {
-    case 'elite': rankStatMultiplier = 1.25; break;
-    case 'champion': rankStatMultiplier = 1.6; break;
-    case 'king': rankStatMultiplier = 2.2; break;
-    case 'legend': rankStatMultiplier = 3.0; break;
-    case 'mythic': rankStatMultiplier = 4.2; break;
-    case 'ancient': rankStatMultiplier = 6.0; break;
-    case 'world_boss': rankStatMultiplier = 10.0; break;
+    case 'elite': rankStatMultiplier = 1 + (1.25 - 1) * statMultScale; break;
+    case 'champion': rankStatMultiplier = 1 + (1.6 - 1) * statMultScale; break;
+    case 'king': rankStatMultiplier = 1 + (2.2 - 1) * statMultScale; break;
+    case 'legend': rankStatMultiplier = 1 + (3.0 - 1) * statMultScale; break;
+    case 'mythic': rankStatMultiplier = 1 + (4.2 - 1) * statMultScale; break;
+    case 'ancient': rankStatMultiplier = 1 + (6.0 - 1) * statMultScale; break;
+    case 'world_boss': rankStatMultiplier = 1 + (10.0 - 1) * statMultScale; break;
   }
 
   hp = Math.round(hp * rankStatMultiplier);
@@ -720,7 +796,8 @@ export function generateMonsterForStage(
       defense,
       speed,
       critRate: isBossStage ? 0.08 : 0.03,
-      critDamage: 1.5
+      critDamage: 1.5,
+      magicResist: defense
     },
     expReward,
     goldRewardRange: [goldMin, goldMax],
@@ -739,11 +816,17 @@ export function calculateItemCP(item: EquipmentItem): number {
 
   // base stats CP
   let cp = (stats.attack || 0) * 6.0 +
+    (stats.magicAttack || 0) * 6.0 +
     (stats.maxHp || 0) * 0.5 +
     (stats.defense || 0) * 4.0 +
+    (stats.magicResist || 0) * 4.0 +
     (stats.speed || 0) * 5.0 +
     (stats.critRate || 0) * 100 * 15.0 +
-    ((stats.critDamage || 1.5) - 1.5) * 100 * 8.0;
+    ((stats.critDamage || 1.5) - 1.5) * 100 * 8.0 +
+    (stats.lifesteal || 0) * 100 * 10.0 +
+    (stats.spellVamp || 0) * 100 * 10.0 +
+    (stats.evasion || 0) * 100 * 12.0 +
+    (stats.block || 0) * 100 * 12.0;
 
   // rarity bonus
   const rarityBonuses: Record<string, number> = {
@@ -768,17 +851,24 @@ export function calculateHeroCP(
   level: number,
   prestigePoints: number,
   equippedItems: EquipmentItem[],
-  heroClass?: 'knight' | 'mage' | 'assassin'
+  heroClass?: 'knight' | 'mage' | 'assassin',
+  shardUpgrades?: { attack?: number; magicAttack?: number; maxHp?: number }
 ): number {
-  const stats = recalculateHeroStats(level, prestigePoints, equippedItems, heroClass);
+  const stats = recalculateHeroStats(level, prestigePoints, equippedItems, heroClass, shardUpgrades);
 
   // Calculate basic CP based on final stats
   let cp = stats.attack * 6.0 +
+    (stats.magicAttack || 0) * 6.0 +
     stats.maxHp * 0.5 +
     stats.defense * 4.0 +
+    (stats.magicResist || 0) * 4.0 +
     stats.speed * 5.0 +
     stats.critRate * 100 * 15.0 +
-    (stats.critDamage - 1.5) * 100 * 8.0;
+    (stats.critDamage - 1.5) * 100 * 8.0 +
+    (stats.lifesteal || 0) * 100 * 10.0 +
+    (stats.spellVamp || 0) * 100 * 10.0 +
+    (stats.evasion || 0) * 100 * 12.0 +
+    (stats.block || 0) * 100 * 12.0;
 
   // Add equipped items CP
   const items = equippedItems || [];
@@ -801,4 +891,25 @@ export function calculateMonsterCP(monster: { baseStats: BaseStats; level: numbe
     (stats.critRate || 0) * 100 * 15.0 +
     ((stats.critDamage || 1.5) - 1.5) * 100 * 8.0;
   return Math.round(cp);
+}
+
+// Calculate how many Aether Shards dismantling an item gives
+export function calculateDismantleRewards(item: EquipmentItem): number {
+  let base = 1;
+  switch (item.rarity) {
+    case 'uncommon': base = 3; break;
+    case 'rare': base = 10; break;
+    case 'epic': base = 30; break;
+    case 'legendary': base = 100; break;
+  }
+  
+  let mult = 1.0;
+  if (item.level && item.level > 1) {
+    mult += (item.level - 1) * 0.1;
+  }
+  if (item.kills) {
+    if (item.kills >= 100000) mult += 0.5; // ancient bonus
+    else if (item.kills >= 10000) mult += 0.2; // veteran bonus
+  }
+  return Math.round(base * mult);
 }

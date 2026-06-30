@@ -9,6 +9,12 @@ export interface BaseStats {
   speed: number; // attack speed/cooldown factor
   critRate: number; // 0 to 1
   critDamage: number; // e.g. 1.5 for 150%
+  lifesteal?: number; // physical lifesteal fraction (0 to 1)
+  spellVamp?: number;  // spell vamp fraction (0 to 1)
+  evasion?: number;    // evasion rate fraction (0 to 1)
+  block?: number;      // block rate fraction (0 to 1)
+  magicAttack?: number; // magic attack power
+  magicResist?: number; // magic resistance
 }
 
 export interface ItemAffix {
@@ -58,6 +64,12 @@ export interface HeroState {
   currentHp: number;
   gold: number;
   diamonds: number;
+  aetherShards?: number;
+  shardUpgrades?: {
+    attack?: number;
+    magicAttack?: number;
+    maxHp?: number;
+  };
   prestigePoints: number;
   prestigeCount: number;
   heroClass?: 'knight' | 'mage' | 'assassin';

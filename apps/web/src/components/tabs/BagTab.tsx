@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../../stores/gameStore';
-import { EquipmentItem } from '@idle-rpg/shared';
+import { EquipmentItem, calculateDismantleRewards } from '@idle-rpg/shared';
 import { useTranslation } from '../../utils/i18n';
 import { ItemGraphic } from '../ItemGraphic';
 
 export const BagTab: React.FC = () => {
-  const { saveData, sellMultipleEquipment, setActiveInspectItemId } = useGameStore();
+  const { saveData, dismantleMultipleEquipment, setActiveInspectItemId } = useGameStore();
   const { t } = useTranslation();
 
-  // Bulk sell states
-  const [isBulkSellMode, setIsBulkSellMode] = useState(false);
+  // Bulk dismantle states
+  const [isBulkDismantleMode, setIsBulkDismantleMode] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
   if (!saveData) return null;
@@ -120,33 +120,39 @@ export const BagTab: React.FC = () => {
     }
   };
 
-  const calculateSellPrice = (item: EquipmentItem) => {
-    const baseCost = {
-      common: 50,
-      uncommon: 75,
-      rare: 110,
-      epic: 175,
-      legendary: 300
-    }[item.rarity];
-    return Math.floor(baseCost * 0.3 * (1 + (item.level - 1) * 0.1));
-  };
-
-  // Total price calculation for bulk sell
-  const totalEstimatedGold = selectedItemIds.reduce((sum, id) => {
+  // Total shards calculation for bulk dismantle
+  const totalEstimatedShards = selectedItemIds.reduce((sum, id) => {
     const item = inventory.find(i => i.id === id);
-    return sum + (item ? calculateSellPrice(item) : 0);
+    return sum + (item ? calculateDismantleRewards(item) : 0);
   }, 0);
 
-  const selectAllByRarity = (rarity: 'common' | 'uncommon' | 'rare' | 'epic') => {
-    const matches = inventory.filter(i => i.rarity === rarity && !i.equipped);
-    const matchIds = matches.map(i => i.id);
-    setSelectedItemIds(prev => Array.from(new Set([...prev, ...matchIds])));
+  const getRaritySelectionState = (rarity: 'common' | 'uncommon' | 'rare' | 'epic') => {
+    const targetItems = inventory.filter(i => i.rarity === rarity && !i.equipped);
+    if (targetItems.length === 0) return 'empty';
+    
+    const targetIds = targetItems.map(i => i.id);
+    const allSelected = targetIds.every(id => selectedItemIds.includes(id));
+    return allSelected ? 'all' : 'none';
   };
 
-  const handleBulkSellConfirm = () => {
-    sellMultipleEquipment(selectedItemIds);
+  const selectAllByRarity = (rarity: 'common' | 'uncommon' | 'rare' | 'epic') => {
+    const targetItems = inventory.filter(i => i.rarity === rarity && !i.equipped);
+    if (targetItems.length === 0) return;
+    
+    const targetIds = targetItems.map(i => i.id);
+    const allSelected = targetIds.every(id => selectedItemIds.includes(id));
+    
+    if (allSelected) {
+      setSelectedItemIds(prev => prev.filter(id => !targetIds.includes(id)));
+    } else {
+      setSelectedItemIds(prev => Array.from(new Set([...prev, ...targetIds])));
+    }
+  };
+
+  const handleBulkDismantleConfirm = () => {
+    dismantleMultipleEquipment(selectedItemIds);
     setSelectedItemIds([]);
-    setIsBulkSellMode(false);
+    setIsBulkDismantleMode(false);
   };
 
   const totalSlots = 50;
@@ -156,8 +162,8 @@ export const BagTab: React.FC = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 h-full overflow-hidden pr-1">
       {/* Grid List */}
-      <div className={`${isBulkSellMode ? 'lg:col-span-2 h-1/2 lg:h-full' : 'lg:col-span-3 h-full'} flex flex-col justify-between bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 overflow-hidden shrink-0`}>
-        <div>
+      <div className={`${isBulkDismantleMode ? 'lg:col-span-2' : 'lg:col-span-3'} h-full flex flex-col justify-between bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 overflow-hidden shrink-0`}>
+        <div className="flex flex-col h-full overflow-hidden">
           <div className="flex justify-between items-center mb-4 border-b border-slate-850 pb-2 gap-2 flex-wrap">
             <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
               {t('tab_bag')}
@@ -165,15 +171,15 @@ export const BagTab: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  setIsBulkSellMode(!isBulkSellMode);
+                  setIsBulkDismantleMode(!isBulkDismantleMode);
                   setSelectedItemIds([]);
                 }}
-                className={`text-xs font-extrabold px-3 py-1.5 rounded-lg border transition active:scale-[0.98] cursor-pointer ${isBulkSellMode
+                className={`text-xs font-extrabold px-3 py-1.5 rounded-lg border transition active:scale-[0.98] cursor-pointer ${isBulkDismantleMode
                     ? 'bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30'
-                    : 'bg-amber-600/25 border-amber-600/40 text-amber-300 hover:bg-amber-600/40'
+                    : 'bg-purple-650/25 border-purple-600/40 text-purple-300 hover:bg-purple-600/40'
                   }`}
               >
-                {isBulkSellMode ? '❌ Hủy Thanh Lý' : '🧹 Thanh Lý Hàng Loạt'}
+                {isBulkDismantleMode ? '❌ Hủy Phân Rã' : '♻️ Phân Rã Hàng Loạt'}
               </button>
               <span className="text-xs font-semibold px-2 py-1.5 bg-slate-950/80 border border-slate-800 rounded-lg text-slate-400">
                 {inventory.length} / {totalSlots} {t('inventory_capacity')}
@@ -181,14 +187,87 @@ export const BagTab: React.FC = () => {
             </div>
           </div>
 
+          {/* Quick Select Buttons - Top Inline Altar (useful for mobile and quick selections) */}
+          {isBulkDismantleMode && (
+            <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1 select-none shrink-0 scrollbar-none">
+              {(() => {
+                const state = getRaritySelectionState('common');
+                const activeClass = state === 'all' 
+                  ? 'bg-slate-700 border-slate-400 text-white ring-1 ring-slate-400/50' 
+                  : 'bg-slate-850 hover:bg-slate-800 text-slate-350 border-slate-750';
+                return (
+                  <button
+                    onClick={() => selectAllByRarity('common')}
+                    disabled={state === 'empty'}
+                    className={`text-[10px] font-bold py-1 px-2.5 rounded-lg border transition cursor-pointer disabled:opacity-30 disabled:pointer-events-none ${activeClass}`}
+                  >
+                    ⚪ Thường
+                  </button>
+                );
+              })()}
+              {(() => {
+                const state = getRaritySelectionState('uncommon');
+                const activeClass = state === 'all' 
+                  ? 'bg-emerald-600/40 border-emerald-450 text-emerald-250 ring-1 ring-emerald-450/40' 
+                  : 'bg-emerald-950/30 hover:bg-emerald-900/40 text-emerald-400 border-emerald-500/20';
+                return (
+                  <button
+                    onClick={() => selectAllByRarity('uncommon')}
+                    disabled={state === 'empty'}
+                    className={`text-[10px] font-bold py-1 px-2.5 rounded-lg border transition cursor-pointer disabled:opacity-30 disabled:pointer-events-none ${activeClass}`}
+                  >
+                    🟢 Tốt
+                  </button>
+                );
+              })()}
+              {(() => {
+                const state = getRaritySelectionState('rare');
+                const activeClass = state === 'all' 
+                  ? 'bg-blue-600/40 border-blue-450 text-blue-200 ring-1 ring-blue-450/40' 
+                  : 'bg-blue-950/30 hover:bg-blue-900/40 text-blue-450 border-blue-500/20';
+                return (
+                  <button
+                    onClick={() => selectAllByRarity('rare')}
+                    disabled={state === 'empty'}
+                    className={`text-[10px] font-bold py-1 px-2.5 rounded-lg border transition cursor-pointer disabled:opacity-30 disabled:pointer-events-none ${activeClass}`}
+                  >
+                    🔵 Hiếm
+                  </button>
+                );
+              })()}
+              {(() => {
+                const state = getRaritySelectionState('epic');
+                const activeClass = state === 'all' 
+                  ? 'bg-purple-600/40 border-purple-450 text-purple-200 ring-1 ring-purple-450/40' 
+                  : 'bg-purple-950/30 hover:bg-purple-900/40 text-purple-400 border-purple-500/20';
+                return (
+                  <button
+                    onClick={() => selectAllByRarity('epic')}
+                    disabled={state === 'empty'}
+                    className={`text-[10px] font-bold py-1 px-2.5 rounded-lg border transition cursor-pointer disabled:opacity-30 disabled:pointer-events-none ${activeClass}`}
+                  >
+                    🟣 Sử Thi
+                  </button>
+                );
+              })()}
+              <button
+                onClick={() => setSelectedItemIds([])}
+                disabled={selectedItemIds.length === 0}
+                className="bg-slate-900 hover:bg-slate-850 text-slate-400 text-[10px] font-bold py-1 px-2.5 rounded-lg border border-slate-800 transition cursor-pointer disabled:opacity-30"
+              >
+                ❌ Bỏ chọn
+              </button>
+            </div>
+          )}
+
           {/* Grid View */}
-          <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 gap-2 overflow-y-auto flex-1 min-h-0 lg:h-[300px] pr-1">
+          <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 gap-2 overflow-y-auto flex-1 min-h-[180px] pr-1">
             {inventory.map((item) => {
               const ui = getRarityUIStyles(item);
-              const isSelected = isBulkSellMode && selectedItemIds.includes(item.id);
+              const isSelected = isBulkDismantleMode && selectedItemIds.includes(item.id);
 
               const handleItemClick = () => {
-                if (isBulkSellMode) {
+                if (isBulkDismantleMode) {
                   if (item.equipped) return;
                   if (selectedItemIds.includes(item.id)) {
                     setSelectedItemIds(selectedItemIds.filter(id => id !== item.id));
@@ -204,13 +283,13 @@ export const BagTab: React.FC = () => {
                 <div key={item.id} className="aspect-square w-full">
                   <button
                     onClick={handleItemClick}
-                    disabled={isBulkSellMode && item.equipped}
+                    disabled={isBulkDismantleMode && item.equipped}
                     className={`w-full h-full relative flex flex-col items-center justify-center border rounded-xl overflow-hidden transition-all cursor-pointer select-none ${isSelected
-                        ? (isBulkSellMode ? 'ring-2 ring-red-500 scale-[0.96] border-transparent' : 'ring-2 ring-blue-500 scale-[0.96] border-transparent')
+                        ? 'ring-2 ring-purple-500 scale-[0.96] border-transparent shadow-[0_0_10px_rgba(168,85,247,0.5)]'
                         : ui.border
                       } ${ui.bg} ${ui.glow} ${isSelected
                         ? ''
-                        : (isBulkSellMode && item.equipped ? 'opacity-30 pointer-events-none' : 'hover:scale-[1.03] hover:bg-slate-800/20')
+                        : (isBulkDismantleMode && item.equipped ? 'opacity-30 pointer-events-none' : 'hover:scale-[1.03] hover:bg-slate-800/20')
                       }`}
                   >
                     {ui.extraElements}
@@ -221,9 +300,9 @@ export const BagTab: React.FC = () => {
                       </span>
                     )}
 
-                    {isBulkSellMode && !item.equipped && (
+                    {isBulkDismantleMode && !item.equipped && (
                       isSelected ? (
-                        <span className="absolute top-1 right-1 bg-red-600 text-[10px] text-white w-4 h-4 rounded-full flex items-center justify-center font-extrabold shadow z-10 animate-pulse">
+                        <span className="absolute top-1 right-1 bg-purple-600 text-[10px] text-white w-4 h-4 rounded-full flex items-center justify-center font-extrabold shadow z-10 animate-pulse">
                           ✓
                         </span>
                       ) : (
@@ -232,7 +311,7 @@ export const BagTab: React.FC = () => {
                       )
                     )}
 
-                    {!isBulkSellMode && item.isIdentified === false && (
+                    {!isBulkDismantleMode && item.isIdentified === false && (
                       <span className="absolute top-1 right-1 bg-amber-600 text-[8px] text-white px-1 py-0.5 rounded font-extrabold uppercase leading-none shadow z-10 animate-pulse">
                         ?
                       </span>
@@ -256,100 +335,85 @@ export const BagTab: React.FC = () => {
               </div>
             ))}
           </div>
+
+          {/* Floating Mobile Footer Overlay - only visible on mobile (below lg) and when items are selected */}
+          {isBulkDismantleMode && selectedItemIds.length > 0 && (
+            <div className="lg:hidden mt-3 p-3 bg-slate-950/90 border border-purple-500/30 rounded-xl flex items-center justify-between gap-3 shadow-lg shadow-purple-950/20 shrink-0">
+              <div className="text-left">
+                <span className="text-[10px] text-slate-450 block font-semibold">Đã chọn: <strong className="text-slate-200">{selectedItemIds.length} món</strong></span>
+                <span className="text-xs text-purple-400 font-extrabold block">Mảnh nhận: +{totalEstimatedShards} 🌀</span>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => setSelectedItemIds([])}
+                  className="bg-slate-850 hover:bg-slate-800 text-slate-450 text-[10px] font-bold py-1.5 px-3 rounded-lg border border-slate-700 transition"
+                >
+                  HỦY
+                </button>
+                <button
+                  onClick={handleBulkDismantleConfirm}
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-[10px] font-extrabold py-1.5 px-4 rounded-lg shadow-md transition"
+                >
+                  PHÂN RÃ ♻️
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="text-[10px] text-slate-500 mt-2">
-          {t('bag_tip')}
+        <div className="text-[10px] text-slate-500 mt-2 shrink-0">
+          💡 Mảnh Aether dùng để kích hoạt các thuộc tính Thần nâng cấp sức mạnh vĩnh viễn hoặc đổi lấy Rương Trang Bị cao cấp!
         </div>
       </div>
 
-      {/* Item Inspector Panel (Bulk Sell Mode only) */}
-      {isBulkSellMode && (
-        <div className="lg:col-span-1 h-1/2 lg:h-full bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between shrink-0">
+      {/* Item Inspector Panel (Bulk Dismantle Mode only - Desktop only) */}
+      {isBulkDismantleMode && (
+        <div className="hidden lg:flex lg:col-span-1 h-full bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex-col justify-between shrink-0">
           <div className="flex flex-col justify-between h-full">
             <div>
               <div className="flex justify-between items-center mb-3">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/10">
-                  Bulk Sell Mode
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/10">
+                  Bulk Dismantle
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
-                  Chế độ thanh lý
+                  Phân rã hàng loạt
                 </span>
               </div>
 
               <h4 className="text-base font-extrabold flex items-center gap-2 font-display text-slate-200">
-                🧹 THANH LÝ HÀNG LOẠT
+                ♻️ PHÂN RÃ HÀNG LOẠT
               </h4>
               <p className="text-xs text-slate-400 mt-2 mb-4 leading-relaxed">
-                Nhấp chọn các trang bị muốn thanh lý trong danh sách bên trái hoặc sử dụng các nút chọn nhanh dưới đây. Trang bị đang sử dụng sẽ không được chọn.
+                Nhấp chọn các trang bị muốn phân rã trong danh sách bên trái hoặc sử dụng các nút chọn nhanh ở trên. Trang bị đang sử dụng sẽ không được chọn.
               </p>
-
-              {/* Quick Select Buttons */}
-              <div className="space-y-2 mb-4">
-                <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                  Chọn nhanh theo phẩm chất
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => selectAllByRarity('common')}
-                    className="bg-slate-800/60 hover:bg-slate-700 text-slate-300 text-[11px] font-bold py-2.5 px-1 rounded-lg border border-slate-700 transition cursor-pointer active:scale-95"
-                  >
-                    ⚪ Đồ Thường (Common)
-                  </button>
-                  <button
-                    onClick={() => selectAllByRarity('uncommon')}
-                    className="bg-emerald-950/30 hover:bg-emerald-900/40 text-emerald-400 text-[11px] font-bold py-2.5 px-1 rounded-lg border border-emerald-500/20 transition cursor-pointer active:scale-95"
-                  >
-                    🟢 Đồ Tốt (Uncommon)
-                  </button>
-                  <button
-                    onClick={() => selectAllByRarity('rare')}
-                    className="bg-blue-950/30 hover:bg-blue-900/40 text-blue-400 text-[11px] font-bold py-2.5 px-1 rounded-lg border border-blue-500/20 transition cursor-pointer active:scale-95"
-                  >
-                    🔵 Đồ Hiếm (Rare)
-                  </button>
-                  <button
-                    onClick={() => selectAllByRarity('epic')}
-                    className="bg-purple-950/30 hover:bg-purple-900/40 text-purple-400 text-[11px] font-bold py-2.5 px-1 rounded-lg border border-purple-500/20 transition cursor-pointer active:scale-95"
-                  >
-                    🟣 Đồ Sử Thi (Epic)
-                  </button>
-                </div>
-                <button
-                  onClick={() => setSelectedItemIds([])}
-                  className="w-full bg-slate-900 hover:bg-slate-850 text-slate-400 text-[11px] font-bold py-2 rounded-lg border border-slate-800 transition cursor-pointer active:scale-95"
-                >
-                  ❌ Bỏ chọn tất cả
-                </button>
-              </div>
 
               {/* Stats Block */}
               <div className="bg-slate-950/50 border border-slate-900 rounded-xl p-4 space-y-2 mb-4">
                 <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-slate-400">Đã chọn thanh lý:</span>
+                  <span className="text-slate-400">Đã chọn:</span>
                   <span className="text-slate-200 font-extrabold">{selectedItemIds.length} món</span>
                 </div>
                 <div className="flex justify-between text-xs font-semibold border-t border-slate-900 pt-2">
-                  <span className="text-slate-450 font-bold">Tổng Vàng nhận lại:</span>
-                  <span className="text-amber-400 font-extrabold">{totalEstimatedGold.toLocaleString()} Vàng 💰</span>
+                  <span className="text-slate-450 font-bold">Mảnh Aether nhận lại:</span>
+                  <span className="text-purple-400 font-extrabold">+{totalEstimatedShards.toLocaleString()} 🌀</span>
                 </div>
               </div>
             </div>
 
             <div className="space-y-2.5 pt-4 border-t border-slate-850">
               <button
-                onClick={handleBulkSellConfirm}
+                onClick={handleBulkDismantleConfirm}
                 disabled={selectedItemIds.length === 0}
-                className="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-extrabold py-3.5 px-4 rounded-xl shadow-lg active:scale-[0.98] transition disabled:opacity-40 disabled:pointer-events-none flex justify-between items-center cursor-pointer"
+                className="w-full bg-gradient-to-r from-purple-650 to-indigo-650 hover:from-purple-600 hover:to-indigo-600 text-white text-xs font-extrabold py-3.5 px-4 rounded-xl shadow-lg active:scale-[0.98] transition disabled:opacity-40 disabled:pointer-events-none flex justify-between items-center cursor-pointer"
               >
-                <span>🧹 XÁC NHẬN THANH LÝ</span>
-                <span className="bg-slate-950/40 text-rose-300 px-2 py-0.5 rounded border border-rose-500/10 font-bold">
+                <span>♻️ XÁC NHẬN PHÂN RÃ</span>
+                <span className="bg-slate-950/40 text-purple-300 px-2 py-0.5 rounded border border-purple-500/10 font-bold">
                   {selectedItemIds.length} món đồ
                 </span>
               </button>
               <button
                 onClick={() => {
-                  setIsBulkSellMode(false);
+                  setIsBulkDismantleMode(false);
                   setSelectedItemIds([]);
                 }}
                 className="w-full bg-slate-850 hover:bg-slate-800 text-white text-xs font-bold py-3 rounded-xl transition cursor-pointer active:scale-[0.98]"
