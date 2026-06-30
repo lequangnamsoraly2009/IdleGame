@@ -50,7 +50,9 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     usePotion,
     toggleAutoUsePotion,
     toggleAutoDismantleCommon,
-    toggleAutoDismantleUncommon
+    toggleAutoDismantleUncommon,
+    toggleAutoDismantleRare,
+    toggleAutoBuyPotions
   } = useGameStore();
 
   const { t } = useTranslation();
@@ -840,6 +842,32 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                     type="checkbox"
                     checked={hero.autoDismantleUncommon ?? false}
                     onChange={() => toggleAutoDismantleUncommon()}
+                    className="w-3.5 h-3.5 rounded border border-slate-750 bg-slate-950 text-purple-600 focus:ring-purple-500 accent-purple-600 cursor-pointer"
+                  />
+                </label>
+
+                {/* Auto Dismantle Rare */}
+                <label className="flex items-center justify-between cursor-pointer select-none text-slate-350 hover:text-slate-200 py-0.5">
+                  <span className="font-medium text-[11px]">
+                    {language === 'vi' ? 'Tự phân rã đồ Hiếm (Rare)' : 'Auto-dismantle Rare items'}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={hero.autoDismantleRare ?? false}
+                    onChange={() => toggleAutoDismantleRare()}
+                    className="w-3.5 h-3.5 rounded border border-slate-750 bg-slate-950 text-purple-600 focus:ring-purple-500 accent-purple-600 cursor-pointer"
+                  />
+                </label>
+
+                {/* Auto Buy Potions */}
+                <label className="flex items-center justify-between cursor-pointer select-none text-slate-350 hover:text-slate-200 py-0.5 border-t border-slate-850/40 mt-1 pt-1.5">
+                  <span className="font-semibold text-[11px] text-amber-400">
+                    {language === 'vi' ? '🛒 Tự mua bình HP (200 Vàng) khi hết' : '🛒 Auto-buy Potions (200 Gold)'}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={hero.autoBuyPotions ?? false}
+                    onChange={() => toggleAutoBuyPotions()}
                     className="w-3.5 h-3.5 rounded border border-slate-750 bg-slate-950 text-purple-600 focus:ring-purple-500 accent-purple-600 cursor-pointer"
                   />
                 </label>

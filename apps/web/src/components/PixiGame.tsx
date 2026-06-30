@@ -89,7 +89,7 @@ export const PixiGame: React.FC = () => {
             store.triggerHeroDefeated();
             break;
           case 'POTION_USED':
-            store.onPotionUsedByEngine(event.amount);
+            store.onPotionUsedByEngine(event.amount, event.didAutoBuy);
             break;
         }
       });
@@ -121,7 +121,9 @@ export const PixiGame: React.FC = () => {
             useLanguageStore.getState().language,
             hero.shardUpgrades,
             hero.potions,
-            hero.autoUsePotion
+            hero.autoUsePotion,
+            hero.autoBuyPotions,
+            hero.gold
           );
         }
         
@@ -225,7 +227,9 @@ export const PixiGame: React.FC = () => {
                 useLanguageStore.getState().language,
                 hero.shardUpgrades,
                 hero.potions,
-                hero.autoUsePotion
+                hero.autoUsePotion,
+                hero.autoBuyPotions,
+                hero.gold
               );
             }
 

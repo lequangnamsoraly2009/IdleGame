@@ -77,6 +77,8 @@ export interface HeroState {
   autoUsePotion?: boolean;
   autoDismantleCommon?: boolean;
   autoDismantleUncommon?: boolean;
+  autoDismantleRare?: boolean;
+  autoBuyPotions?: boolean;
 }
 
 export type DamageType = 'physical' | 'fire' | 'ice' | 'poison' | 'holy' | 'dark';

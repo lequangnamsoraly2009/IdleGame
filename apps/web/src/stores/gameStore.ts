@@ -93,12 +93,14 @@ interface GameState {
   addLogMessage: (text: string, category: 'combat' | 'loot' | 'system') => void;
   potionCooldownRemaining: number;
   setPotionCooldownRemaining: (sec: number) => void;
-  onPotionUsedByEngine: (amount: number) => void;
+  onPotionUsedByEngine: (amount: number, didAutoBuy?: boolean) => void;
   usePotion: () => void;
   buyPotion: (quantity: number, currency: 'gold' | 'diamonds') => void;
   toggleAutoUsePotion: () => void;
   toggleAutoDismantleCommon: () => void;
   toggleAutoDismantleUncommon: () => void;
+  toggleAutoDismantleRare: () => void;
+  toggleAutoBuyPotions: () => void;
   clearLogs: () => void;
 }
 
@@ -258,6 +260,8 @@ export const useGameStore = create<GameState>((set, get) => {
               if (data.hero.autoUsePotion === undefined) data.hero.autoUsePotion = false;
               if (data.hero.autoDismantleCommon === undefined) data.hero.autoDismantleCommon = false;
               if (data.hero.autoDismantleUncommon === undefined) data.hero.autoDismantleUncommon = false;
+              if (data.hero.autoDismantleRare === undefined) data.hero.autoDismantleRare = false;
+              if (data.hero.autoBuyPotions === undefined) data.hero.autoBuyPotions = false;
 
               // Synchronize quests from templates
               try {
@@ -574,13 +578,14 @@ export const useGameStore = create<GameState>((set, get) => {
       for (const item of itemsDropped) {
         const isCommonAuto = item.rarity === 'common' && (hero.autoDismantleCommon ?? false);
         const isUncommonAuto = item.rarity === 'uncommon' && (hero.autoDismantleUncommon ?? false);
+        const isRareAuto = item.rarity === 'rare' && (hero.autoDismantleRare ?? false);
 
-        if (isCommonAuto || isUncommonAuto) {
+        if (isCommonAuto || isUncommonAuto || isRareAuto) {
           const rewardShards = calculateDismantleRewards(item);
           hero.aetherShards = (hero.aetherShards || 0) + rewardShards;
           get().addLogMessage(
             useLanguageStore.getState().language === 'vi'
-              ? `♻️ TỰ PHÂN RÃ: Nhặt [${item.name}] phẩm chất ${item.rarity === 'common' ? 'Thường' : 'Tốt'} -> Tự động phân rã nhận +${rewardShards} Mảnh Aether!`
+              ? `♻️ TỰ PHÂN RÃ: Nhặt [${item.name}] phẩm chất ${item.rarity === 'common' ? 'Thường' : item.rarity === 'uncommon' ? 'Tốt' : 'Hiếm'} -> Tự động phân rã nhận +${rewardShards} Mảnh Aether!`
               : `♻️ AUTO-DISMANTLE: Looted [${item.name}] (${item.rarity.toUpperCase()}) -> Auto-dismantled for +${rewardShards} Aether Shards!`,
             'loot'
           );
@@ -1005,17 +1010,36 @@ export const useGameStore = create<GameState>((set, get) => {
     potionCooldownRemaining: 0,
     setPotionCooldownRemaining: (sec) => set({ potionCooldownRemaining: sec }),
     
-    onPotionUsedByEngine: (_amount) => {
+    onPotionUsedByEngine: (_amount, didAutoBuy) => {
       set(state => {
         if (state.saveData) {
           const hero = state.saveData.hero;
-          const currentPotions = hero.potions ?? 5;
-          const nextPotions = Math.max(0, currentPotions - 1);
+          let nextPotions = hero.potions ?? 5;
+          let nextGold = hero.gold;
+
+          if (didAutoBuy) {
+            // Deduct 200 gold and keep potions count net unchanged
+            nextGold = Math.max(0, nextGold - 200);
+            
+            // Log auto-buy message safely
+            setTimeout(() => {
+              get().addLogMessage(
+                useLanguageStore.getState().language === 'vi'
+                  ? `💸 TỰ MUA MÁU: Hết bình HP, tự động mua 1 bình bằng 200 Vàng và sử dụng!`
+                  : `💸 AUTO-BUY HP: Out of potions, auto-purchased 1 for 200 Gold and consumed!`,
+                'system'
+              );
+            }, 10);
+          } else {
+            nextPotions = Math.max(0, nextPotions - 1);
+          }
+
           const nextSave = {
             ...state.saveData,
             hero: {
               ...hero,
-              potions: nextPotions
+              potions: nextPotions,
+              gold: nextGold
             }
           };
           dbService.saveGame(nextSave).catch(err => console.error("Save error:", err));
@@ -1193,6 +1217,58 @@ export const useGameStore = create<GameState>((set, get) => {
         useLanguageStore.getState().language === 'vi'
           ? `♻️ Đã ${nextVal ? 'BẬT' : 'TẮT'} tự động phân rã Trang bị Tốt.`
           : `♻️ ${nextVal ? 'ENABLED' : 'DISABLED'} auto-dismantle Uncommon equipment.`,
+        'system'
+      );
+    },
+
+    toggleAutoDismantleRare: () => {
+      const state = get();
+      if (!state.saveData) return;
+
+      const hero = state.saveData.hero;
+      const nextVal = !(hero.autoDismantleRare ?? false);
+
+      const nextSave = {
+        ...state.saveData,
+        hero: {
+          ...hero,
+          autoDismantleRare: nextVal
+        }
+      };
+
+      set({ saveData: nextSave });
+      dbService.saveGame(nextSave).catch(err => console.error("Save error:", err));
+      
+      state.addLogMessage(
+        useLanguageStore.getState().language === 'vi'
+          ? `♻️ Đã ${nextVal ? 'BẬT' : 'TẮT'} tự động phân rã Trang bị Hiếm.`
+          : `♻️ ${nextVal ? 'ENABLED' : 'DISABLED'} auto-dismantle Rare equipment.`,
+        'system'
+      );
+    },
+
+    toggleAutoBuyPotions: () => {
+      const state = get();
+      if (!state.saveData) return;
+
+      const hero = state.saveData.hero;
+      const nextVal = !(hero.autoBuyPotions ?? false);
+
+      const nextSave = {
+        ...state.saveData,
+        hero: {
+          ...hero,
+          autoBuyPotions: nextVal
+        }
+      };
+
+      set({ saveData: nextSave });
+      dbService.saveGame(nextSave).catch(err => console.error("Save error:", err));
+      
+      state.addLogMessage(
+        useLanguageStore.getState().language === 'vi'
+          ? `💸 Đã ${nextVal ? 'BẬT' : 'TẮT'} tự động mua bình HP khi hết.`
+          : `💸 ${nextVal ? 'ENABLED' : 'DISABLED'} auto-purchase HP potions when out.`,
         'system'
       );
     },

@@ -33,7 +33,7 @@ export type EngineEvent =
   | { type: 'STAGE_ADVANCED'; nextStage: number }
   | { type: 'GUILD_RAID_ENDED' }
   | { type: 'LOG_MESSAGE'; text: string; category: 'combat' | 'loot' | 'system' }
-  | { type: 'POTION_USED'; amount: number };
+  | { type: 'POTION_USED'; amount: number; didAutoBuy?: boolean };
 
 export interface ActiveMonster {
   template: MonsterTemplate;
@@ -92,6 +92,8 @@ export class GameEngine {
   private autoUsePotion: boolean = false;
   private potionsCount: number = 0;
   private potionCooldownRemaining: number = 0;
+  private autoBuyPotions: boolean = false;
+  private gold: number = 0;
 
   // Timers (in seconds)
   private isBattleActive: boolean = false;
@@ -316,7 +318,9 @@ export class GameEngine {
     language?: 'vi' | 'en',
     shardUpgrades?: { attack?: number; magicAttack?: number; maxHp?: number },
     potionsCount?: number,
-    autoUsePotion?: boolean
+    autoUsePotion?: boolean,
+    autoBuyPotions?: boolean,
+    gold?: number
   ) {
     this.heroLevel = level;
     this.prestigePoints = prestigePoints;
@@ -336,6 +340,12 @@ export class GameEngine {
     }
     if (autoUsePotion !== undefined) {
       this.autoUsePotion = autoUsePotion;
+    }
+    if (autoBuyPotions !== undefined) {
+      this.autoBuyPotions = autoBuyPotions;
+    }
+    if (gold !== undefined) {
+      this.gold = gold;
     }
     this.recalculateStats();
 
@@ -641,34 +651,44 @@ export class GameEngine {
     }
 
     // Auto-use potion check
-    if (this.isBattleActive && this.autoUsePotion && this.potionsCount > 0 && this.potionCooldownRemaining === 0) {
+    if (this.isBattleActive && this.autoUsePotion && this.potionCooldownRemaining === 0) {
       const hero = this.allyEntities[0];
       if (hero && hero.currentHp > 0 && (hero.currentHp / hero.maxHp) < 0.35) {
-        const healAmount = Math.round(hero.maxHp * 0.3);
-        hero.currentHp = Math.min(hero.maxHp, hero.currentHp + healAmount);
-        this.heroCurrentHp = hero.currentHp;
-        
-        // Spawn green healing text
-        const healText = new DamageText(`+${healAmount}`, hero.entity.x, hero.entity.y - 15, false, 0x10b981);
-        this.effectLayer.addChild(healText);
-        this.damageTexts.push(healText);
-        
-        this.potionCooldownRemaining = 15; // Set 15s cooldown
-        this.potionsCount--; // Decrement local count
-        
-        // Notify React
-        this.onEvent({
-          type: 'POTION_USED',
-          amount: healAmount
-        });
+        let didAutoBuy = false;
+        if (this.potionsCount <= 0 && this.autoBuyPotions && this.gold >= 200) {
+          this.potionsCount = 1;
+          this.gold -= 200;
+          didAutoBuy = true;
+        }
 
-        this.onEvent({
-          type: 'LOG_MESSAGE',
-          text: this.language === 'vi' 
-            ? `🧪 [TỰ ĐỘNG] Sử dụng Bình Máu hồi +${healAmount} HP!` 
-            : `🧪 [AUTO-USE] Used Health Potion to recover +${healAmount} HP!`,
-          category: 'combat'
-        });
+        if (this.potionsCount > 0) {
+          const healAmount = Math.round(hero.maxHp * 0.3);
+          hero.currentHp = Math.min(hero.maxHp, hero.currentHp + healAmount);
+          this.heroCurrentHp = hero.currentHp;
+          
+          // Spawn green healing text
+          const healText = new DamageText(`+${healAmount}`, hero.entity.x, hero.entity.y - 15, false, 0x10b981);
+          this.effectLayer.addChild(healText);
+          this.damageTexts.push(healText);
+          
+          this.potionCooldownRemaining = 15; // Set 15s cooldown
+          this.potionsCount--; // Decrement local count
+          
+          // Notify React
+          this.onEvent({
+            type: 'POTION_USED',
+            amount: healAmount,
+            didAutoBuy: didAutoBuy
+          });
+
+          this.onEvent({
+            type: 'LOG_MESSAGE',
+            text: this.language === 'vi' 
+              ? `🧪 [TỰ ĐỘNG] Sử dụng Bình Máu hồi +${healAmount} HP!` 
+              : `🧪 [AUTO-USE] Used Health Potion to recover +${healAmount} HP!`,
+            category: 'combat'
+          });
+        }
       }
     }
 
