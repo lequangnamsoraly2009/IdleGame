@@ -108,7 +108,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // General Tabs state
-  const [activeTab, setActiveTab] = useState<'monsters' | 'items' | 'exp' | 'classes'>('monsters');
+  const [activeTab, setActiveTab] = useState<'monsters' | 'items' | 'exp' | 'classes' | 'gems'>('monsters');
 
   // Monster search/filters
   const [monsterSearchStage, setMonsterSearchStage] = useState<string>('');
@@ -364,7 +364,8 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
           { id: 'monsters', icon: '👹', label: language === 'vi' ? 'Quái Vật & Boss' : 'Monsters & Bosses' },
           { id: 'items', icon: '🎒', label: language === 'vi' ? 'Vật Phẩm & Chỉ Số' : 'Gear & Item Stats' },
           { id: 'exp', icon: '⚡', label: language === 'vi' ? 'Ma Trận Kinh Nghiệm' : 'EXP Progression Matrix' },
-          { id: 'classes', icon: '🛡️', label: language === 'vi' ? 'Hệ Phái & Nhiệm Vụ' : 'Classes & Quests' }
+          { id: 'classes', icon: '🛡️', label: language === 'vi' ? 'Hệ Phái & Nhiệm Vụ' : 'Classes & Quests' },
+          { id: 'gems', icon: '💎', label: language === 'vi' ? 'Thuộc Tính Ngọc' : 'Gem Stats & Socketing' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -904,6 +905,89 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: GEMS & SOCKETING */}
+        {activeTab === 'gems' && (
+          <div className="space-y-6 flex flex-col">
+            <div className="bg-slate-950/40 p-4 border border-slate-900 rounded-2xl">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                {language === 'vi' ? 'Bản Đồ Chỉ Số Hệ Ngọc & Lò Rèn' : 'Gemstone Stats & Refinement Matrix'}
+              </h3>
+              <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                {language === 'vi'
+                  ? 'Trang bị có số lượng ô khảm ngọc ngẫu nhiên cố định theo Phẩm chất (Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4). Có thể tháo khảm tự do bằng Vàng tại rương đồ, nâng cấp ngọc tại Lò Rèn.'
+                  : 'Gear sockets are determined by rarity (Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4). Unsocketing/slotting is done in inventory modal, fusion at the Forge.'}
+              </p>
+            </div>
+
+            {/* Gems grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                {
+                  nameVi: 'Hồng Ngọc (Ruby 🔴)',
+                  nameEn: 'Ruby (🔴)',
+                  stat: language === 'vi' ? 'Công Vật Lý (ATK)' : 'Physical Attack',
+                  values: ['+15 ATK', '+35 ATK', '+80 ATK', '+180 ATK', '+400 ATK'],
+                  color: 'border-red-500/20 bg-red-950/10 text-red-400'
+                },
+                {
+                  nameVi: 'Hoàng Ngọc (Topaz 🟡)',
+                  nameEn: 'Topaz (🟡)',
+                  stat: language === 'vi' ? 'Công Phép Thuật (M.ATK)' : 'Magic Attack',
+                  values: ['+15 M.ATK', '+35 M.ATK', '+80 M.ATK', '+180 M.ATK', '+400 M.ATK'],
+                  color: 'border-yellow-500/20 bg-yellow-950/10 text-yellow-400'
+                },
+                {
+                  nameVi: 'Lục Bảo (Emerald 🟢)',
+                  nameEn: 'Emerald (🟢)',
+                  stat: language === 'vi' ? 'Máu Tối Đa (Max HP)' : 'Max HP',
+                  values: ['+150 HP', '+350 HP', '+800 HP', '+1800 HP', '+4000 HP'],
+                  color: 'border-emerald-500/20 bg-emerald-950/10 text-emerald-400'
+                },
+                {
+                  nameVi: 'Lam Bảo (Sapphire 🔵)',
+                  nameEn: 'Sapphire (🔵)',
+                  stat: language === 'vi' ? 'Giáp Vật Lý (DEF)' : 'Defense',
+                  values: ['+10 DEF', '+25 DEF', '+60 DEF', '+140 DEF', '+320 DEF'],
+                  color: 'border-blue-500/20 bg-blue-950/10 text-blue-400'
+                },
+                {
+                  nameVi: 'Thạch Anh (Amethyst 🔮)',
+                  nameEn: 'Amethyst (🔮)',
+                  stat: language === 'vi' ? 'Chí Mạng & Sát Thương CM' : 'Crit Rate & Crit DMG',
+                  values: [
+                    '+2% CRIT / +5% CDMG',
+                    '+4% CRIT / +10% CDMG',
+                    '+6% CRIT / +15% CDMG',
+                    '+8% CRIT / +20% CDMG',
+                    '+10% CRIT / +25% CDMG'
+                  ],
+                  color: 'border-purple-500/20 bg-purple-950/10 text-purple-400'
+                }
+              ].map((g, idx) => (
+                <div key={idx} className={`p-4 border rounded-2xl space-y-3 ${g.color}`}>
+                  <div className="border-b border-white/5 pb-2">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-white">
+                      {language === 'vi' ? g.nameVi : g.nameEn}
+                    </h4>
+                    <span className="text-[10px] text-slate-400 font-bold block mt-0.5 uppercase tracking-wide">
+                      {g.stat}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 font-mono text-[11px] text-slate-350">
+                    {g.values.map((v, tIdx) => (
+                      <div key={tIdx} className="flex justify-between py-1 border-b border-white/5 last:border-b-0">
+                        <span>Tier {tIdx + 1}:</span>
+                        <span className="font-extrabold text-white">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

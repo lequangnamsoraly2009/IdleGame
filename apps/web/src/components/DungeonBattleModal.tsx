@@ -517,8 +517,8 @@ export const DungeonBattleModal: React.FC = () => {
                 {useGameStore.getState().dungeonRewardGems && 
                   Object.entries(useGameStore.getState().dungeonRewardGems || {}).map(([key, count]) => {
                     const [type, tier] = key.split('_');
-                    const emoji = type === 'ruby' ? '🔴' : type === 'emerald' ? '🟢' : type === 'sapphire' ? '🔵' : '🔮';
-                    const name = type === 'ruby' ? 'Hồng Ngọc' : type === 'emerald' ? 'Lục Bảo' : type === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
+                    const emoji = type === 'ruby' ? '🔴' : type === 'topaz' ? '🟡' : type === 'emerald' ? '🟢' : type === 'sapphire' ? '🔵' : '🔮';
+                    const name = type === 'ruby' ? 'Hồng Ngọc' : type === 'topaz' ? 'Hoàng Ngọc' : type === 'emerald' ? 'Lục Bảo' : type === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
                     return (
                       <span key={key} className="bg-slate-950 border border-slate-900 rounded-xl px-2.5 py-1 text-xs font-black text-white flex items-center gap-1.5 shadow">
                         <span>{emoji}</span>

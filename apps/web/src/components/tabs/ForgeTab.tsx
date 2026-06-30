@@ -21,6 +21,7 @@ export const ForgeTab: React.FC = () => {
 
   const gemTypes = [
     { type: 'ruby', nameVi: 'Hồng Ngọc (Tăng Công)', nameEn: 'Ruby (+ATK)', emoji: '🔴' },
+    { type: 'topaz', nameVi: 'Hoàng Ngọc (Công Phép)', nameEn: 'Topaz (+M.ATK)', emoji: '🟡' },
     { type: 'emerald', nameVi: 'Lục Bảo (Tăng Máu)', nameEn: 'Emerald (+HP)', emoji: '🟢' },
     { type: 'sapphire', nameVi: 'Lam Bảo (Tăng Giáp)', nameEn: 'Sapphire (+DEF)', emoji: '🔵' },
     { type: 'amethyst', nameVi: 'Thạch Anh (Tăng CM)', nameEn: 'Amethyst (+CRIT)', emoji: '🔮' }

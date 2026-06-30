@@ -1900,7 +1900,7 @@ export const useGameStore = create<GameState>((set, get) => {
         }
       }
       
-      const gemTypes = ['ruby', 'emerald', 'sapphire', 'amethyst'];
+      const gemTypes = ['ruby', 'topaz', 'emerald', 'sapphire', 'amethyst'];
       const rewardsGems: Record<string, number> = {};
       
       for (let i = 0; i < rollCount; i++) {
@@ -1929,7 +1929,7 @@ export const useGameStore = create<GameState>((set, get) => {
       const language = useLanguageStore.getState().language;
       Object.entries(rewardsGems).forEach(([key, count]) => {
         const [type, tier] = key.split('_');
-        const gemName = type === 'ruby' ? 'Hồng Ngọc' : type === 'emerald' ? 'Lục Bảo' : type === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
+        const gemName = type === 'ruby' ? 'Hồng Ngọc' : type === 'topaz' ? 'Hoàng Ngọc' : type === 'emerald' ? 'Lục Bảo' : type === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
         get().addLogMessage(
           language === 'vi'
             ? `💎 PHÓ BẢN: Vượt ải thành công! Nhận được +${count} ${gemName} Cấp ${tier}!`

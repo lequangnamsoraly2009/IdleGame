@@ -325,8 +325,8 @@ export const ItemInfoModal: React.FC = () => {
                       .map(([key, qty]) => {
                         const [type, tierStr] = key.split('_');
                         const tier = parseInt(tierStr) || 1;
-                        const emoji = type === 'ruby' ? '🔴' : type === 'emerald' ? '🟢' : type === 'sapphire' ? '🔵' : '🔮';
-                        const name = type === 'ruby' ? 'Hồng Ngọc' : type === 'emerald' ? 'Lục Bảo' : type === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
+                        const emoji = type === 'ruby' ? '🔴' : type === 'topaz' ? '🟡' : type === 'emerald' ? '🟢' : type === 'sapphire' ? '🔵' : '🔮';
+                        const name = type === 'ruby' ? 'Hồng Ngọc' : type === 'topaz' ? 'Hoàng Ngọc' : type === 'emerald' ? 'Lục Bảo' : type === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
                         return { key, type, tier, qty, emoji, name };
                       });
 
@@ -340,12 +340,15 @@ export const ItemInfoModal: React.FC = () => {
                       const [t, tierStr] = gem.split('_');
                       gemType = t;
                       gemTier = parseInt(tierStr) || 1;
-                      emoji = gemType === 'ruby' ? '🔴' : gemType === 'emerald' ? '🟢' : gemType === 'sapphire' ? '🔵' : '🔮';
-                      gemName = gemType === 'ruby' ? 'Hồng Ngọc' : gemType === 'emerald' ? 'Lục Bảo' : gemType === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
+                      emoji = gemType === 'ruby' ? '🔴' : gemType === 'topaz' ? '🟡' : gemType === 'emerald' ? '🟢' : gemType === 'sapphire' ? '🔵' : '🔮';
+                      gemName = gemType === 'ruby' ? 'Hồng Ngọc' : gemType === 'topaz' ? 'Hoàng Ngọc' : gemType === 'emerald' ? 'Lục Bảo' : gemType === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
 
                       if (gemType === 'ruby') {
                         const vals = [15, 35, 80, 180, 400];
                         statsDesc = `+${vals[gemTier - 1] || 15} ATK`;
+                      } else if (gemType === 'topaz') {
+                        const vals = [15, 35, 80, 180, 400];
+                        statsDesc = `+${vals[gemTier - 1] || 15} M.ATK`;
                       } else if (gemType === 'emerald') {
                         const vals = [150, 350, 800, 1800, 4000];
                         statsDesc = `+${vals[gemTier - 1] || 150} HP`;

@@ -127,6 +127,10 @@ export function getFinalItemStats(item: EquipmentItem): BaseStats {
         // Attack: Tier 1: 15, Tier 2: 35, Tier 3: 80, Tier 4: 180, Tier 5: 400
         const values = [15, 35, 80, 180, 400];
         base.attack += values[tier - 1] || 15;
+      } else if (type === 'topaz') {
+        // Magic Attack: Tier 1: 15, Tier 2: 35, Tier 3: 80, Tier 4: 180, Tier 5: 400
+        const values = [15, 35, 80, 180, 400];
+        base.magicAttack = (base.magicAttack || 0) + (values[tier - 1] || 15);
       } else if (type === 'emerald') {
         // Max HP: Tier 1: 150, Tier 2: 350, Tier 3: 800, Tier 4: 1800, Tier 5: 4000
         const values = [150, 350, 800, 1800, 4000];
