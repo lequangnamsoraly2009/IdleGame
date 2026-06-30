@@ -14,6 +14,7 @@ out/
 .next/
 .svelte-kit/
 .vercel/
+*.tsbuildinfo
 
 # IDE files
 .idea/
@@ -36,4 +37,4 @@ out/
 Thumbs.db
 
 # firebase config
-firebase/
+/firebase/

@@ -5,7 +5,7 @@ export const translations = {
     // Auth Screen
     auth_title: "REALM KHỞI NGUYÊN",
     auth_subtitle: "GAME IDLE RPG ĐA THIẾT BỊ",
-    email_label: "Thư Điện Tử",
+    email_label: "Email",
     password_label: "Mật Khẩu",
     login_btn: "Bắt Đầu Cuộc Hành Trình",
     register_btn: "Tạo Anh Hùng Mới",

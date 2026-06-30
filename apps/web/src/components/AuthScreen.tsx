@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../stores/gameStore';
-import { isUsingMock } from '@idle-rpg/firebase';
+// import { isUsingMock } from '@idle-rpg/firebase';
 import { useTranslation } from '../utils/i18n';
 import { useLanguageStore } from '../stores/languageStore';
 
@@ -184,7 +184,7 @@ export const AuthScreen: React.FC = () => {
           </p>
         </div>
 
-        <div className="mt-8 border-t border-slate-900 pt-4 text-center">
+        {/* <div className="mt-8 border-t border-slate-900 pt-4 text-center">
           {isUsingMock ? (
             <>
               <span className="text-[10px] text-blue-400 uppercase tracking-widest block mb-1 font-semibold">
@@ -225,7 +225,7 @@ export const AuthScreen: React.FC = () => {
               </button>
             </>
           )}
-        </div>
+        </div> */}
       </div>
     </div>
   );
