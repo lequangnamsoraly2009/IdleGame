@@ -61,6 +61,8 @@ export function generateStarterSave(
     shardUpgrades: { attack: 0, magicAttack: 0, maxHp: 0 },
     potions: 5,
     autoUsePotion: false,
+    autoDismantleCommon: false,
+    autoDismantleUncommon: false,
     heroClass
   };
 

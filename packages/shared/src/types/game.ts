@@ -75,6 +75,8 @@ export interface HeroState {
   heroClass?: 'knight' | 'mage' | 'assassin';
   potions?: number;
   autoUsePotion?: boolean;
+  autoDismantleCommon?: boolean;
+  autoDismantleUncommon?: boolean;
 }
 
 export type DamageType = 'physical' | 'fire' | 'ice' | 'poison' | 'holy' | 'dark';

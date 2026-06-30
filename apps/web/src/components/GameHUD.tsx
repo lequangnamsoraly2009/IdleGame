@@ -48,7 +48,9 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     isDead,
     potionCooldownRemaining,
     usePotion,
-    toggleAutoUsePotion
+    toggleAutoUsePotion,
+    toggleAutoDismantleCommon,
+    toggleAutoDismantleUncommon
   } = useGameStore();
 
   const { t } = useTranslation();
@@ -794,6 +796,53 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                 >
                   {language === 'vi' ? 'Lưu' : 'Save'}
                 </button>
+              </div>
+            </div>
+
+            {/* Auto-Farming Settings */}
+            <div className="space-y-2.5 pt-2.5 border-t border-slate-850">
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">
+                {language === 'vi' ? 'Cài Đặt Treo Máy (Auto)' : 'Auto-Farming Settings'}
+              </span>
+              <div className="space-y-2 text-xs">
+                {/* Auto Potion */}
+                <label className="flex items-center justify-between cursor-pointer select-none text-slate-350 hover:text-slate-200 py-0.5">
+                  <span className="font-medium text-[11px]">
+                    {language === 'vi' ? 'Tự dùng bình HP (< 35%)' : 'Auto-use Potion (< 35%)'}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={hero.autoUsePotion ?? false}
+                    onChange={() => toggleAutoUsePotion()}
+                    className="w-3.5 h-3.5 rounded border border-slate-750 bg-slate-950 text-purple-600 focus:ring-purple-500 accent-purple-600 cursor-pointer"
+                  />
+                </label>
+
+                {/* Auto Dismantle Common */}
+                <label className="flex items-center justify-between cursor-pointer select-none text-slate-350 hover:text-slate-200 py-0.5">
+                  <span className="font-medium text-[11px]">
+                    {language === 'vi' ? 'Tự phân rã đồ Thường (Common)' : 'Auto-dismantle Common items'}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={hero.autoDismantleCommon ?? false}
+                    onChange={() => toggleAutoDismantleCommon()}
+                    className="w-3.5 h-3.5 rounded border border-slate-750 bg-slate-950 text-purple-600 focus:ring-purple-500 accent-purple-600 cursor-pointer"
+                  />
+                </label>
+
+                {/* Auto Dismantle Uncommon */}
+                <label className="flex items-center justify-between cursor-pointer select-none text-slate-350 hover:text-slate-200 py-0.5">
+                  <span className="font-medium text-[11px]">
+                    {language === 'vi' ? 'Tự phân rã đồ Tốt (Uncommon)' : 'Auto-dismantle Uncommon items'}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={hero.autoDismantleUncommon ?? false}
+                    onChange={() => toggleAutoDismantleUncommon()}
+                    className="w-3.5 h-3.5 rounded border border-slate-750 bg-slate-950 text-purple-600 focus:ring-purple-500 accent-purple-600 cursor-pointer"
+                  />
+                </label>
               </div>
             </div>
 

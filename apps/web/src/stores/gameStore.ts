@@ -97,6 +97,8 @@ interface GameState {
   usePotion: () => void;
   buyPotion: (quantity: number, currency: 'gold' | 'diamonds') => void;
   toggleAutoUsePotion: () => void;
+  toggleAutoDismantleCommon: () => void;
+  toggleAutoDismantleUncommon: () => void;
   clearLogs: () => void;
 }
 
@@ -254,6 +256,8 @@ export const useGameStore = create<GameState>((set, get) => {
               }
               if (data.hero.potions === undefined) data.hero.potions = 5;
               if (data.hero.autoUsePotion === undefined) data.hero.autoUsePotion = false;
+              if (data.hero.autoDismantleCommon === undefined) data.hero.autoDismantleCommon = false;
+              if (data.hero.autoDismantleUncommon === undefined) data.hero.autoDismantleUncommon = false;
 
               // Synchronize quests from templates
               try {
@@ -568,10 +572,24 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Add dropped items to inventory if there is space (limit: 50 items)
       for (const item of itemsDropped) {
-        if (newInventory.length < 50) {
-          newInventory.push(item);
+        const isCommonAuto = item.rarity === 'common' && (hero.autoDismantleCommon ?? false);
+        const isUncommonAuto = item.rarity === 'uncommon' && (hero.autoDismantleUncommon ?? false);
+
+        if (isCommonAuto || isUncommonAuto) {
+          const rewardShards = calculateDismantleRewards(item);
+          hero.aetherShards = (hero.aetherShards || 0) + rewardShards;
+          get().addLogMessage(
+            useLanguageStore.getState().language === 'vi'
+              ? `♻️ TỰ PHÂN RÃ: Nhặt [${item.name}] phẩm chất ${item.rarity === 'common' ? 'Thường' : 'Tốt'} -> Tự động phân rã nhận +${rewardShards} Mảnh Aether!`
+              : `♻️ AUTO-DISMANTLE: Looted [${item.name}] (${item.rarity.toUpperCase()}) -> Auto-dismantled for +${rewardShards} Aether Shards!`,
+            'loot'
+          );
         } else {
-          get().addLogMessage(tStore('log_inventory_full', { name: item.name }), 'system');
+          if (newInventory.length < 50) {
+            newInventory.push(item);
+          } else {
+            get().addLogMessage(tStore('log_inventory_full', { name: item.name }), 'system');
+          }
         }
       }
 
@@ -1123,6 +1141,58 @@ export const useGameStore = create<GameState>((set, get) => {
         useLanguageStore.getState().language === 'vi'
           ? `🧪 Đã ${nextVal ? 'BẬT' : 'TẮT'} tự động dùng Bình Máu (HP < 35%).`
           : `🧪 ${nextVal ? 'ENABLED' : 'DISABLED'} auto-use Health Potion (HP < 35%).`,
+        'system'
+      );
+    },
+
+    toggleAutoDismantleCommon: () => {
+      const state = get();
+      if (!state.saveData) return;
+
+      const hero = state.saveData.hero;
+      const nextVal = !(hero.autoDismantleCommon ?? false);
+
+      const nextSave = {
+        ...state.saveData,
+        hero: {
+          ...hero,
+          autoDismantleCommon: nextVal
+        }
+      };
+
+      set({ saveData: nextSave });
+      dbService.saveGame(nextSave).catch(err => console.error("Save error:", err));
+      
+      state.addLogMessage(
+        useLanguageStore.getState().language === 'vi'
+          ? `♻️ Đã ${nextVal ? 'BẬT' : 'TẮT'} tự động phân rã Trang bị Thường.`
+          : `♻️ ${nextVal ? 'ENABLED' : 'DISABLED'} auto-dismantle Common equipment.`,
+        'system'
+      );
+    },
+
+    toggleAutoDismantleUncommon: () => {
+      const state = get();
+      if (!state.saveData) return;
+
+      const hero = state.saveData.hero;
+      const nextVal = !(hero.autoDismantleUncommon ?? false);
+
+      const nextSave = {
+        ...state.saveData,
+        hero: {
+          ...hero,
+          autoDismantleUncommon: nextVal
+        }
+      };
+
+      set({ saveData: nextSave });
+      dbService.saveGame(nextSave).catch(err => console.error("Save error:", err));
+      
+      state.addLogMessage(
+        useLanguageStore.getState().language === 'vi'
+          ? `♻️ Đã ${nextVal ? 'BẬT' : 'TẮT'} tự động phân rã Trang bị Tốt.`
+          : `♻️ ${nextVal ? 'ENABLED' : 'DISABLED'} auto-dismantle Uncommon equipment.`,
         'system'
       );
     },
