@@ -436,7 +436,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-center">
                 {[
                   { label: language === 'vi' ? 'Cấp độ' : 'Level', value: 80, color: 'text-indigo-400' },
-                  { label: language === 'vi' ? 'Sinh Mệnh' : 'Max HP', value: '50,000', color: 'text-red-400' },
+                  { label: language === 'vi' ? 'HP' : 'Max HP', value: '50,000', color: 'text-red-400' },
                   { label: language === 'vi' ? 'Tấn Công' : 'Attack', value: 85, color: 'text-amber-400' },
                   { label: language === 'vi' ? 'Phòng Thủ' : 'Defense', value: 35, color: 'text-emerald-400' },
                   { label: language === 'vi' ? 'Tốc độ' : 'Speed', value: 90, color: 'text-sky-400' },

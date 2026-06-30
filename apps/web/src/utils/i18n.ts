@@ -3,7 +3,7 @@ import { useLanguageStore } from '../stores/languageStore';
 export const translations = {
   vi: {
     // Auth Screen
-    auth_title: "REALM KHỞI NGUYÊN",
+    auth_title: "LUMORIA ONLINE",
     auth_subtitle: "GAME IDLE RPG ĐA THIẾT BỊ",
     email_label: "Email",
     password_label: "Mật Khẩu",
@@ -14,7 +14,7 @@ export const translations = {
     auth_success_register: "Tạo tài khoản thành công!",
     auth_success_login: "Đăng nhập thành công!",
     auth_error_pass_length: "Mật khẩu phải từ 6 ký tự trở lên.",
-    
+
     // Header
     hero_level: "Cấp Anh Hùng",
     battle_stage: "Ải Chiến Đấu",
@@ -29,17 +29,17 @@ export const translations = {
     class_desc_knight: "🛡️ Chiến Binh: HP & Phòng thủ cực cao. Kỹ năng nộ: [THẦN KIẾM TRẢM] chém lan tất cả Slime.",
     class_desc_mage: "🔮 Pháp Sư: Sát thương phép thuật dồi dào. Kỹ năng nộ: [BÃO THIÊN THẠCH] dội bom lửa lan toàn bộ quái.",
     class_desc_assassin: "🗡️ Sát Thủ: Tốc độ đánh & Chí mạng siêu cao. Kỹ năng nộ: [VÔ ẢNH BỘ] dồn sát thương đơn cực đại.",
-    
+
     // Combat logs
     combat_feed: "Tin Chiến Sự",
     feed_silent: "Chiến trường đang im tiếng...",
     log_filter_all: "Tất cả",
     log_filter_combat: "Chiến đấu",
     log_filter_loot: "Rơi đồ",
-    
+
     // Tabs
     tab_hero: "👤 Nhân vật",
-    tab_bag: "🎒 Hành trang",
+    tab_bag: "🎒 Kho đồ",
     tab_quest: "📜 Nhiệm vụ",
     tab_guild: "🏰 Bang hội",
     tab_shop: "💰 Cửa hàng",
@@ -64,7 +64,7 @@ export const translations = {
     active_prestige_points: "Điểm Trùng Sinh Tích Lũy",
     active_buffs: "Bùa Lợi Kích Hoạt",
     damage_modifier: "⚔️ Tăng Sát Thương",
-    hp_modifier: "💖 Tăng Sinh Mệnh",
+    hp_modifier: "💖 Tăng HP",
     defense_modifier: "🛡️ Tăng Phòng Thủ",
     ascend_now: "Thức Tỉnh Ngay",
     ascension_locked: "Thức Tỉnh Đang Khóa",
@@ -238,7 +238,7 @@ export const translations = {
     shop_exp_charm_desc: "+100% kinh nghiệm quái vật trong 5 phút",
     shop_buff_simulated: "Thời gian bùa lợi là giả lập. Nhiều bùa lợi có thể cộng dồn.",
     shop_liquidation: "🧹 Dịch Vụ Thanh Lý",
-    shop_liquidation_desc: "Hành trang sắp đầy? Bán ngay lập tức toàn bộ trang bị Thường (Xám) chưa sử dụng để nhận vàng.",
+    shop_liquidation_desc: "Kho đồ sắp đầy? Bán ngay lập tức toàn bộ trang bị Thường (Xám) chưa sử dụng để nhận vàng.",
     shop_common_count: "Số lượng trang bị Thường:",
     shop_sell_all_commons: "Dọn Dẹp Đồ Thường",
     shop_liquidation_note: "Trang bị đang mặc sẽ không bao giờ bị bán. Trang bị Đặc biệt trở lên phải bán thủ công.",
@@ -271,20 +271,20 @@ export const translations = {
     log_hero_ult_knight: "🌟 [{attacker}] bộc phá nộ khí tung [THẦN KIẾM TRẢM] chém lan {target} gây {damage} sát thương!",
     log_hero_ult_mage: "🔮 [{attacker}] hô vang thần chú gọi [BÃO THIÊN THẠCH] thiêu rụi {target} gánh {damage} sát thương!",
     log_hero_ult_assassin: "🗡️ [{attacker}] lướt đi kích hoạt [VÔ ẢNH BỘ] ám sát {target} chí mạng cực đại {damage} sát thương!",
-    log_boss_sweep: "🐉 {boss} quét đuôi quật ngã {target} mất {damage} sinh mệnh!",
+    log_boss_sweep: "🐉 {boss} quét đuôi quật ngã {target} mất {damage} HP!",
     log_boss_apocalypse: "💥 {boss} bộc phá [THIÊN TAI HỦY DIỆT] càn quét toàn đội gánh {damage} sát thương!",
-    log_slime_ult_fire: "🔥 {monster} phun trào [HỎA CẦU PHÚN TRÀO] đốt cháy Anh Hùng mất {damage} sinh mệnh!",
-    log_slime_ult_ice: "❄️ {monster} thi triển [BĂNG PHONG THUẬT] đóng băng Anh Hùng mất {damage} sinh mệnh!",
-    log_slime_ult_stone: "🛡️ {monster} kích hoạt [GIÁP CƯƠNG THẠCH] húc Anh Hùng mất {damage} sinh mệnh!",
-    log_slime_ult_king: "👑 VUA SLIME giáng đòn [THẬP VẠN THIÊN QUÂN] đập bẹp Anh Hùng mất {damage} sinh mệnh!",
+    log_slime_ult_fire: "🔥 {monster} phun trào [HỎA CẦU PHÚN TRÀO] đốt cháy Anh Hùng mất {damage} HP!",
+    log_slime_ult_ice: "❄️ {monster} thi triển [BĂNG PHONG THUẬT] đóng băng Anh Hùng mất {damage} HP!",
+    log_slime_ult_stone: "🛡️ {monster} kích hoạt [GIÁP CƯƠNG THẠCH] húc Anh Hùng mất {damage} HP!",
+    log_slime_ult_king: "👑 VUA SLIME giáng đòn [THẬP VẠN THIÊN QUÂN] đập bẹp Anh Hùng mất {damage} HP!",
     log_slime_ult_common: "🟢 {monster} phóng [BONG BÓNG THẠCH] đập vào Anh Hùng gây {damage} sát thương!",
-    log_monster_strike: "{monster} đánh Anh Hùng mất {damage} sinh mệnh.",
+    log_monster_strike: "{monster} đánh Anh Hùng mất {damage} HP.",
     log_defeated_monster: "Đã tiêu diệt {monster}! Nhận {gold} Vàng, {exp} EXP.",
     log_loot_found: "TÌM THẤY VẬT PHẨM: [{name}] ({rarity})!",
-    log_hero_defeated: "Anh Hùng đã gục ngã! Đang hồi phục sinh mệnh...",
+    log_hero_defeated: "Anh Hùng đã gục ngã! Đang hồi phục HP...",
     log_prestige_complete: "TRÙNG SINH THÀNH CÔNG! Trở về cấp 1, nhận thêm +{points} Điểm Trùng Sinh.",
     log_class_changed: "🔄 Lớp nhân vật đã chuyển đổi thành {class}!",
-    log_inventory_full: "Hành trang đầy! Đánh rơi: [{name}]",
+    log_inventory_full: "Kho đồ đầy! Đánh rơi: [{name}]",
     log_level_up: "CẤP ĐỘ MỚI! Anh Hùng đã đạt Cấp {level}!",
     log_upgraded_item: "Cường hóa thành công [{name}] lên +{level}!",
     log_equipped_item: "Đã trang bị [{name}]",
@@ -349,7 +349,7 @@ export const translations = {
   },
   en: {
     // Auth Screen
-    auth_title: "THE ORIGIN REALM",
+    auth_title: "LUMORIA ONLINE",
     auth_subtitle: "CROSS-PLATFORM IDLE RPG GAME",
     email_label: "Email Address",
     password_label: "Password",
@@ -360,7 +360,7 @@ export const translations = {
     auth_success_register: "Account created successfully!",
     auth_success_login: "Login successful!",
     auth_error_pass_length: "Password must be at least 6 characters.",
-    
+
     // Header
     hero_level: "Hero Level",
     battle_stage: "Battle Stage",
@@ -375,14 +375,14 @@ export const translations = {
     class_desc_knight: "🛡️ Knight: Huge HP & Defense. Ultimate Skill: [AETHER STRIKE] strikes all slimes simultaneously.",
     class_desc_mage: "🔮 Mage: Extreme Magic Damage. Ultimate Skill: [METEOR STORM] rains fire over all enemies.",
     class_desc_assassin: "🗡️ Assassin: Ultra Attack Speed & Critical. Ultimate Skill: [SHADOW STRIKE] executes 5x single target blow.",
-    
+
     // Combat logs
     combat_feed: "Combat Feed",
     feed_silent: "Feed is silent...",
     log_filter_all: "All",
     log_filter_combat: "Combat",
     log_filter_loot: "Loot",
-    
+
     // Tabs
     tab_hero: "👤 Character",
     tab_bag: "🎒 Bag",
@@ -638,7 +638,7 @@ export const useTranslation = () => {
   const t = (key: keyof typeof translations['en'] | string, params?: Record<string, string | number>): string => {
     const dict = translations[language] || translations['en'];
     let val = (dict as any)[key] || (translations['en'] as any)[key] || String(key);
-    
+
     if (params) {
       Object.entries(params).forEach(([k, v]) => {
         val = val.replace(`{${k}}`, String(v));
@@ -654,7 +654,7 @@ export const tStore = (key: keyof typeof translations['en'] | string, params?: R
   const language = useLanguageStore.getState().language;
   const dict = translations[language] || translations['en'];
   let val = (dict as any)[key] || (translations['en'] as any)[key] || String(key);
-  
+
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
       val = val.replace(`{${k}}`, String(v));
@@ -686,7 +686,7 @@ export const getTranslatedQuestDesc = (t: any, questId: string, fallback: string
 
 export const getTranslatedMonsterName = (t: any, name: string) => {
   if (!name) return name;
-  
+
   // Clean up parenthesis like " (Lvl 1)" if present
   let cleanName = name;
   let lvlSuffix = '';
@@ -728,7 +728,7 @@ export const getTranslatedMonsterName = (t: any, name: string) => {
     const baseTrans = t(baseKey);
     const pStr = prefTrans === prefKey ? parts[0] : prefTrans;
     const bStr = baseTrans === baseKey ? parts[1] : baseTrans;
-    
+
     const language = useLanguageStore.getState().language;
     if (language === 'vi') {
       // In Vietnamese, "Stone Slime" becomes "Slime Đá" (Base + Modifier)
@@ -737,19 +737,19 @@ export const getTranslatedMonsterName = (t: any, name: string) => {
       translatedName = `${pStr} ${bStr}`;
     }
   }
-  
+
   return translatedName + lvlSuffix;
 };
 
 // Engine Log regex-based translator helper
 export const translateEngineLog = (text: string): string => {
   if (!text) return text;
-  
+
   // 1. Game engine initialized
   if (text.includes('Game engine initialized. Auto battle is ready.')) {
     return tStore('log_engine_ready');
   }
-  
+
   // 2. Hero defeated
   if (text.includes('Hero was defeated! Recovering health...')) {
     return tStore('log_hero_defeated');
@@ -788,11 +788,11 @@ export const translateEngineLog = (text: string): string => {
     const skill = classUltMatch[2].toUpperCase();
     const target = classUltMatch[3];
     const damage = classUltMatch[4];
-    
-    const translatedTarget = target.toLowerCase().includes('enemies') 
+
+    const translatedTarget = target.toLowerCase().includes('enemies')
       ? (lang === 'vi' ? 'kẻ địch' : 'enemies')
       : getTranslatedMonsterName(tStore, target);
-      
+
     if (skill === 'AETHER STRIKE') {
       return tStore('log_hero_ult_knight', { attacker, target: translatedTarget, damage });
     } else if (skill === 'METEOR STORM') {
@@ -830,7 +830,7 @@ export const translateEngineLog = (text: string): string => {
     const monster = getTranslatedMonsterName(tStore, monsterUltMatch[1]);
     const skill = monsterUltMatch[2].toUpperCase();
     const damage = monsterUltMatch[3];
-    
+
     if (skill === 'FIRE BLAST') {
       return tStore('log_slime_ult_fire', { monster, damage });
     } else if (skill === 'FROSTBITE') {
@@ -869,7 +869,7 @@ export const translateEngineLog = (text: string): string => {
   if (lootFoundMatch) {
     const itemName = lootFoundMatch[1];
     const rarity = lootFoundMatch[2];
-    
+
     // Map item name back to template translation if possible
     // Note: We can translate rarities as well
     const viRarityMap: Record<string, string> = {
@@ -881,7 +881,7 @@ export const translateEngineLog = (text: string): string => {
     };
     const lang = useLanguageStore.getState().language;
     const rarityStr = lang === 'vi' ? (viRarityMap[rarity.toLowerCase()] || rarity) : rarity;
-    
+
     return tStore('log_loot_found', { name: itemName, rarity: rarityStr });
   }
 

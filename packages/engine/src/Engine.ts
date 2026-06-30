@@ -3,6 +3,17 @@ import { BaseStats, MonsterTemplate, EquipmentItem, calculateMonsterCP, calculat
 import { recalculateHeroStats, DEFAULT_ITEM_TEMPLATES, createItemInstance } from '@idle-rpg/shared';
 import { Entity } from './entities/Entity';
 import { DamageText } from './effects/DamageText';
+import { VisualEffect } from './effects/VisualEffect';
+import {
+  AetherStrikeEffect,
+  MeteorStormEffect,
+  ShadowSlashEffect,
+  FireballEffect,
+  IceCrystalEffect,
+  ShieldEffect,
+  BubbleEffect,
+  ApocalypseEffect
+} from './effects/SkillEffects';
 
 function formatCP(cp: number): string {
   if (cp >= 1000000) {
@@ -60,6 +71,7 @@ export class GameEngine {
 
   // Effects
   private damageTexts: DamageText[] = [];
+  private activeEffects: VisualEffect[] = [];
 
   // Configured states passed from React Store
   private heroLevel: number = 1;
@@ -568,6 +580,17 @@ export class GameEngine {
       }
     }
 
+    // Update visual skill effects
+    for (let i = this.activeEffects.length - 1; i >= 0; i--) {
+      const effect = this.activeEffects[i];
+      effect.update(dt * 60);
+      if (effect.isFinished()) {
+        this.effectLayer.removeChild(effect);
+        this.activeEffects.splice(i, 1);
+        effect.destroy();
+      }
+    }
+
     // Auto Battle Logic
     if (this.isBattleActive) {
       // 1. Allies combat tick
@@ -677,6 +700,20 @@ export class GameEngine {
       attacker.rage = 0; // reset rage
 
       if (attacker.heroClass === 'knight' || attacker.heroClass === 'mage') {
+        // Trigger visual effect
+        if (attacker.heroClass === 'mage') {
+          const targets = this.activeMonsters
+            .filter(m => m.currentHp > 0)
+            .map(m => ({ x: m.entity.x, y: m.entity.y }));
+          const effect = new MeteorStormEffect(targets);
+          this.effectLayer.addChild(effect);
+          this.activeEffects.push(effect);
+        } else {
+          const effect = new AetherStrikeEffect(target.entity.x, target.entity.y);
+          this.effectLayer.addChild(effect);
+          this.activeEffects.push(effect);
+        }
+
         // --- AOE Ultimate strikes all alive monsters ---
         const mult = attacker.heroClass === 'mage' ? 3.0 : 2.0;
         const skillName = attacker.heroClass === 'mage' ? 'METEOR STORM' : 'AETHER STRIKE';
@@ -724,6 +761,11 @@ export class GameEngine {
           category: 'combat'
         });
       } else {
+        // Trigger visual effect
+        const effect = new ShadowSlashEffect(target.entity.x, target.entity.y);
+        this.effectLayer.addChild(effect);
+        this.activeEffects.push(effect);
+
         // --- Assassin single target massive ultimate: 5.0x ---
         let atkVal = attacker === this.allyEntities[0] ? this.heroStats.attack : 11;
         let dmg = Math.round(atkVal * 5.0);
@@ -887,6 +929,13 @@ export class GameEngine {
     if (this.battleMode === 'guild_boss') {
       // --- RAID BOSS COMBAT LOOP ---
       if (isUlt) {
+        // Trigger visual effect
+        const width = this.app?.screen.width || 800;
+        const height = this.app?.screen.height || 600;
+        const effect = new ApocalypseEffect(width, height);
+        this.effectLayer.addChild(effect);
+        this.activeEffects.push(effect);
+
         // Boss Ultimate: Apocalypse deals team-wide AOE
         skillName = 'VOID APOCALYPSE';
         let totalDmg = 0;
@@ -946,18 +995,30 @@ export class GameEngine {
           skillName = 'STONE ARMOR';
           damage = Math.round(damage * 1.2);
           attacker.entity.tint = 0xf59e0b; // barrier glow
+          const effect = new ShieldEffect(attacker.entity);
+          this.effectLayer.addChild(effect);
+          this.activeEffects.push(effect);
         } else if (lowerName.includes('lửa') || lowerName.includes('fire') || lowerName.includes('quỷ')) {
           skillName = 'FIRE BLAST';
           damage = Math.round(damage * 2.0);
+          const effect = new FireballEffect(attacker.entity.x, attacker.entity.y, target.entity.x, target.entity.y);
+          this.effectLayer.addChild(effect);
+          this.activeEffects.push(effect);
         } else if (lowerName.includes('băng') || lowerName.includes('ice') || lowerName.includes('nước')) {
           skillName = 'FROSTBITE';
           damage = Math.round(damage * 1.2);
           // Cooldown slow penalty
           const heroAttackInterval = 2.0 / (this.heroStats.speed / 100);
           target.attackCooldown = -heroAttackInterval * 0.5;
+          const effect = new IceCrystalEffect(target.entity.x, target.entity.y);
+          this.effectLayer.addChild(effect);
+          this.activeEffects.push(effect);
         } else if (lowerName.includes('king') || lowerName.includes('chúa') || lowerName.includes('vương')) {
           skillName = 'KINGS SLAM';
           damage = Math.round(damage * 2.0);
+          const effect = new AetherStrikeEffect(target.entity.x, target.entity.y);
+          this.effectLayer.addChild(effect);
+          this.activeEffects.push(effect);
           
           let shakeCount = 6;
           const shake = () => {
@@ -975,6 +1036,9 @@ export class GameEngine {
         } else {
           skillName = 'JELLY BUBBLE';
           damage = Math.round(damage * 1.5);
+          const effect = new BubbleEffect(attacker.entity.x, attacker.entity.y, target.entity.x, target.entity.y);
+          this.effectLayer.addChild(effect);
+          this.activeEffects.push(effect);
         }
 
         attacker.rage = 0; // reset rage

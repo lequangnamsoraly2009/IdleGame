@@ -12,7 +12,7 @@ export const HeroTab: React.FC = () => {
   const { language } = useLanguageStore();
   const { t } = useTranslation();
   const [subTab, setSubTab] = useState<'stats' | 'bag' | 'guide'>('stats');
-  
+
   if (!saveData) return null;
 
   const { hero, stagesCleared, inventory } = saveData;
@@ -47,7 +47,7 @@ export const HeroTab: React.FC = () => {
           titleEn: 'Knight',
           icon: '🛡️',
           bgClass: 'from-amber-900/40 to-orange-950/20 border-amber-500/30 shadow-amber-500/5',
-          description: language === 'vi' ? 'Hộ vệ kiên cường, sinh mệnh và thủ cao.' : 'Indomitable shield with high health and defense.'
+          description: language === 'vi' ? 'Hộ vệ kiên cường, HP và thủ cao.' : 'Indomitable shield with high health and defense.'
         };
     }
   };
@@ -165,17 +165,17 @@ export const HeroTab: React.FC = () => {
     if (item) {
       const borderClass = getRarityBorderClass(item.rarity);
       return (
-        <div 
-          key={slot} 
+        <div
+          key={slot}
           onClick={() => setActiveInspectItemId(item.id)}
           className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl border-2 flex flex-col items-center justify-center relative cursor-pointer group hover:scale-[1.03] transition duration-200 select-none ${borderClass}`}
         >
-          <ItemGraphic 
-            templateId={item.templateId} 
-            isCorrupted={item.isCorrupted} 
-            isCursed={item.isCursed} 
-            isIdentified={item.isIdentified} 
-            className="w-10 h-10 mb-1 relative z-10" 
+          <ItemGraphic
+            templateId={item.templateId}
+            isCorrupted={item.isCorrupted}
+            isCursed={item.isCursed}
+            isIdentified={item.isIdentified}
+            className="w-10 h-10 mb-1 relative z-10"
           />
           <span className="absolute bottom-0.5 right-1 text-[8px] bg-slate-950/90 border border-slate-800 text-amber-400 font-extrabold px-1 rounded">
             +{item.level}
@@ -196,8 +196,8 @@ export const HeroTab: React.FC = () => {
     }
 
     return (
-      <div 
-        key={slot} 
+      <div
+        key={slot}
         className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl border border-dashed border-slate-800 bg-slate-950/20 flex flex-col items-center justify-center relative select-none opacity-50"
       >
         <span className="text-lg sm:text-xl filter grayscale opacity-30">{placeholderIcon}</span>
@@ -212,17 +212,16 @@ export const HeroTab: React.FC = () => {
       <div className="flex gap-1 bg-slate-950/85 p-1.5 rounded-xl border border-slate-900 mb-4 select-none shrink-0 max-w-fit">
         {([
           { id: 'stats', label: language === 'vi' ? '🛡️ Chỉ Số' : '🛡️ Stats' },
-          { id: 'bag', label: language === 'vi' ? '🎒 Hành Trang' : '🎒 Bag' },
+          { id: 'bag', label: language === 'vi' ? '🎒 Kho Đồ' : '🎒 Bag' },
           { id: 'guide', label: language === 'vi' ? '📖 Sổ Tay' : '📖 Bestiary' }
         ] as const).map(tab => (
           <button
             key={tab.id}
             onClick={() => setSubTab(tab.id)}
-            className={`text-[10px] sm:text-xs font-bold py-2 px-4 rounded-lg cursor-pointer transition active:scale-95 ${
-              subTab === tab.id
+            className={`text-[10px] sm:text-xs font-bold py-2 px-4 rounded-lg cursor-pointer transition active:scale-95 ${subTab === tab.id
                 ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/10'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
-            }`}
+              }`}
           >
             {tab.label}
           </button>
@@ -309,7 +308,7 @@ export const HeroTab: React.FC = () => {
                     <span className="text-slate-450">{t('active_prestige_points')}</span>
                     <span className="font-bold text-yellow-400">{hero.prestigePoints}</span>
                   </div>
-                  
+
                   {hero.prestigePoints > 0 && (
                     <div className="pt-1 space-y-1.5">
                       <span className="block text-[8px] text-slate-500 uppercase tracking-widest font-semibold mb-1">

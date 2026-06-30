@@ -105,8 +105,8 @@ export const BagTab: React.FC = () => {
           text: 'text-amber-500 font-extrabold neon-text-gold',
           extraElements: (
             <>
-              <div 
-                className="absolute w-[180%] h-[180%] bg-[conic-gradient(from_0deg,transparent_10%,#f59e0b_45%,#fbbf24_55%,transparent_90%)] animate-spin pointer-events-none rounded-full" 
+              <div
+                className="absolute w-[180%] h-[180%] bg-[conic-gradient(from_0deg,transparent_10%,#f59e0b_45%,#fbbf24_55%,transparent_90%)] animate-spin pointer-events-none rounded-full"
                 style={{ animationDuration: '2.5s' }}
               />
               <div className="absolute inset-[1px] bg-slate-950 rounded-[11px] pointer-events-none" />
@@ -160,7 +160,7 @@ export const BagTab: React.FC = () => {
         <div>
           <div className="flex justify-between items-center mb-4 border-b border-slate-850 pb-2 gap-2 flex-wrap">
             <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-              🎒 {t('tab_bag')}
+              {t('tab_bag')}
             </h3>
             <div className="flex items-center gap-2">
               <button
@@ -168,11 +168,10 @@ export const BagTab: React.FC = () => {
                   setIsBulkSellMode(!isBulkSellMode);
                   setSelectedItemIds([]);
                 }}
-                className={`text-xs font-extrabold px-3 py-1.5 rounded-lg border transition active:scale-[0.98] cursor-pointer ${
-                  isBulkSellMode 
-                    ? 'bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30' 
+                className={`text-xs font-extrabold px-3 py-1.5 rounded-lg border transition active:scale-[0.98] cursor-pointer ${isBulkSellMode
+                    ? 'bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30'
                     : 'bg-amber-600/25 border-amber-600/40 text-amber-300 hover:bg-amber-600/40'
-                }`}
+                  }`}
               >
                 {isBulkSellMode ? '❌ Hủy Thanh Lý' : '🧹 Thanh Lý Hàng Loạt'}
               </button>
@@ -206,15 +205,13 @@ export const BagTab: React.FC = () => {
                   <button
                     onClick={handleItemClick}
                     disabled={isBulkSellMode && item.equipped}
-                    className={`w-full h-full relative flex flex-col items-center justify-center border rounded-xl overflow-hidden transition-all cursor-pointer select-none ${
-                      isSelected 
+                    className={`w-full h-full relative flex flex-col items-center justify-center border rounded-xl overflow-hidden transition-all cursor-pointer select-none ${isSelected
                         ? (isBulkSellMode ? 'ring-2 ring-red-500 scale-[0.96] border-transparent' : 'ring-2 ring-blue-500 scale-[0.96] border-transparent')
                         : ui.border
-                    } ${ui.bg} ${ui.glow} ${
-                      isSelected 
-                        ? '' 
+                      } ${ui.bg} ${ui.glow} ${isSelected
+                        ? ''
                         : (isBulkSellMode && item.equipped ? 'opacity-30 pointer-events-none' : 'hover:scale-[1.03] hover:bg-slate-800/20')
-                    }`}
+                      }`}
                   >
                     {ui.extraElements}
 

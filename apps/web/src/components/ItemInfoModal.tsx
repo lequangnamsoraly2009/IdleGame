@@ -208,7 +208,7 @@ export const ItemInfoModal: React.FC = () => {
             {item.isCorrupted ? (
               <span className="text-red-400 font-extrabold uppercase tracking-wide">👿 {language === 'vi' ? 'Vật Phẩm Hư Hỏng: Không thể nâng cấp. Sát thương x2, nhưng rút 0.5% máu tối đa mỗi giây trong chiến đấu.' : 'Corrupted Item: Cannot upgrade. x2 Dmg, but drains 0.5% max HP per second in battle.'}</span>
             ) : item.isCursed ? (
-              <span className="text-purple-400 font-extrabold uppercase tracking-wide">💀 {language === 'vi' ? 'Vật Phẩm Bị Nguyền Rủa: Tăng 150 Công nhưng trừ 80 Thủ, giảm 20% sinh mệnh tối đa.' : 'Cursed Item: +150 Atk but -80 Def, -20% max HP.'}</span>
+              <span className="text-purple-400 font-extrabold uppercase tracking-wide">💀 {language === 'vi' ? 'Vật Phẩm Bị Nguyền Rủa: Tăng 150 Công nhưng trừ 80 Thủ, giảm 20% HP tối đa.' : 'Cursed Item: +150 Atk but -80 Def, -20% max HP.'}</span>
             ) : item.rarity === 'legendary' 
               ? t('item_desc_legendary')
               : t('item_desc_standard', { slot: t('slot_' + item.slot).toLowerCase() })
