@@ -234,6 +234,127 @@ export const useGameStore = create<GameState>((set, get) => {
             if (data) {
               if (data.currentWave === undefined) data.currentWave = 1;
               if (data.autoAdvance === undefined) data.autoAdvance = true;
+
+              // Synchronize quests from templates
+              try {
+                const templates = await dbService.loadQuestTemplates();
+                const now = Date.now();
+                const lastDaily = data.lastDailyResetAt || 0;
+                const lastWeekly = data.lastWeeklyResetAt || 0;
+
+                const isDifferentDay = (ts1: number, ts2: number): boolean => {
+                  const d1 = new Date(ts1);
+                  const d2 = new Date(ts2);
+                  return d1.getFullYear() !== d2.getFullYear() || d1.getMonth() !== d2.getMonth() || d1.getDate() !== d2.getDate();
+                };
+
+                const isDifferentWeek = (ts1: number, ts2: number): boolean => {
+                  if (ts1 === 0) return true;
+                  const d1 = new Date(ts1);
+                  const d2 = new Date(ts2);
+                  const getMondayMidnight = (d: Date) => {
+                    const temp = new Date(d);
+                    const day = temp.getDay();
+                    const diff = temp.getDate() - day + (day === 0 ? -6 : 1);
+                    temp.setDate(diff);
+                    temp.setHours(0, 0, 0, 0);
+                    return temp.getTime();
+                  };
+                  return getMondayMidnight(d1) !== getMondayMidnight(d2);
+                };
+
+                const dailyResetNeeded = isDifferentDay(lastDaily, now);
+                const weeklyResetNeeded = isDifferentWeek(lastWeekly, now);
+
+                let playerQuests = data.quests ? [...data.quests] : [];
+
+                 // Heal legacy quests to ensure all required fields are present
+                playerQuests = playerQuests.map(q => {
+                  const id = q.id || '';
+                  const type = q.type || 'newbie';
+                  const title = q.title || '';
+                  const description = q.description || '';
+                  const targetType = q.targetType || 'defeat_monster';
+                  const targetCount = q.targetCount || 1;
+                  const currentCount = q.currentCount || 0;
+                  const rewardGold = q.rewardGold || 0;
+                  const rewardDiamonds = q.rewardDiamonds || 0;
+                  const completed = q.completed || false;
+                  const claimed = q.claimed || false;
+                  return {
+                    ...q,
+                    id,
+                    type,
+                    title,
+                    description,
+                    targetType,
+                    targetCount,
+                    currentCount,
+                    rewardGold,
+                    rewardDiamonds,
+                    completed,
+                    claimed
+                  };
+                });
+
+                if (dailyResetNeeded) {
+                  playerQuests = playerQuests.filter(q => q.type !== 'daily');
+                }
+                if (weeklyResetNeeded) {
+                  playerQuests = playerQuests.filter(q => q.type !== 'weekly');
+                }
+
+                playerQuests = playerQuests.filter(q => {
+                  if (q.type !== 'event') return true;
+                  if (q.endDate && now > q.endDate) return false;
+                  return true;
+                });
+
+                const currentLang = useLanguageStore.getState().language;
+
+                for (const t of templates) {
+                  if (t.startDate && now < t.startDate) continue;
+                  if (t.endDate && now > t.endDate) continue;
+
+                  const existingIdx = playerQuests.findIndex(q => q.id === t.id);
+                  if (existingIdx !== -1) {
+                    const eq = playerQuests[existingIdx];
+                    eq.type = t.type; // Explicitly update type
+                    eq.title = currentLang === 'vi' ? t.titleVi : t.titleEn;
+                    eq.description = currentLang === 'vi' ? t.descriptionVi : t.descriptionEn;
+                    eq.targetCount = t.targetCount;
+                    eq.rewardGold = t.rewardGold;
+                    eq.rewardDiamonds = t.rewardDiamonds;
+                    eq.startDate = t.startDate;
+                    eq.endDate = t.endDate;
+                    eq.completed = eq.currentCount >= t.targetCount;
+                  } else {
+                    playerQuests.push({
+                      id: t.id,
+                      type: t.type,
+                      title: currentLang === 'vi' ? t.titleVi : t.titleEn,
+                      description: currentLang === 'vi' ? t.descriptionVi : t.descriptionEn,
+                      targetType: t.targetType,
+                      targetCount: t.targetCount,
+                      currentCount: 0,
+                      rewardGold: t.rewardGold,
+                      rewardDiamonds: t.rewardDiamonds,
+                      completed: false,
+                      claimed: false,
+                      startDate: t.startDate,
+                      endDate: t.endDate
+                    });
+                  }
+                }
+
+                data.quests = playerQuests;
+                data.lastDailyResetAt = dailyResetNeeded ? now : lastDaily;
+                data.lastWeeklyResetAt = weeklyResetNeeded ? now : lastWeekly;
+
+                await dbService.saveGame(data);
+              } catch (questErr) {
+                console.error("Failed to sync quests on load:", questErr);
+              }
             }
             set({
               user: sessionUser,

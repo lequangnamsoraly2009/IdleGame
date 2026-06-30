@@ -94,8 +94,26 @@ export interface MonsterState {
 
 export type QuestTargetType = 'defeat_monster' | 'earn_gold' | 'reach_level' | 'upgrade_equipment';
 
+export type QuestType = 'newbie' | 'daily' | 'weekly' | 'event' | 'achievement';
+
+export interface QuestTemplate {
+  id: string;
+  type: QuestType;
+  titleVi: string;
+  titleEn: string;
+  descriptionVi: string;
+  descriptionEn: string;
+  targetType: QuestTargetType;
+  targetCount: number;
+  rewardGold: number;
+  rewardDiamonds: number;
+  startDate?: number; // timestamp in ms
+  endDate?: number;   // timestamp in ms
+}
+
 export interface QuestState {
   id: string;
+  type: QuestType;
   title: string;
   description: string;
   targetType: QuestTargetType;
@@ -105,6 +123,8 @@ export interface QuestState {
   rewardDiamonds: number;
   completed: boolean;
   claimed: boolean;
+  startDate?: number;
+  endDate?: number;
 }
 
 export interface ShopItem {
@@ -121,6 +141,8 @@ export interface ShopItem {
 export interface GameSaveData {
   userId: string;
   lastSavedAt: number;
+  lastDailyResetAt?: number;
+  lastWeeklyResetAt?: number;
   hero: HeroState;
   inventory: EquipmentItem[];
   quests: QuestState[];

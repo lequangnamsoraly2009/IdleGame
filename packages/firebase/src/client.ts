@@ -1,7 +1,7 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as fbSignOut, onAuthStateChanged as fbOnAuthStateChanged } from 'firebase/auth';
-import { getDatabase, ref, get, set } from 'firebase/database';
-import { GameSaveData, DEFAULT_ITEM_TEMPLATES, calculateItemStats, calculateUpgradeCost } from '@idle-rpg/shared';
+import { getDatabase, ref, get, set, remove } from 'firebase/database';
+import { GameSaveData, DEFAULT_ITEM_TEMPLATES, calculateItemStats, calculateUpgradeCost, QuestTemplate } from '@idle-rpg/shared';
 import { mockAuth, mockDb, generateStarterSave } from './mockDb';
 
 export interface UserSession {
@@ -20,6 +20,9 @@ export interface AuthService {
 export interface DbService {
   saveGame: (data: GameSaveData) => Promise<void>;
   loadGame: (userId: string) => Promise<GameSaveData | null>;
+  loadQuestTemplates: () => Promise<QuestTemplate[]>;
+  saveQuestTemplate: (template: QuestTemplate) => Promise<void>;
+  deleteQuestTemplate: (templateId: string) => Promise<void>;
 }
 
 // Check environment variables (supports standard Vite import.meta.env prefixes or process.env fallback)
@@ -111,7 +114,8 @@ if (isFirebaseConfigured) {
     saveGame: async (data) => {
       try {
         const dbRef = ref(fbDb, `idleRpg/users/${data.userId}`);
-        await set(dbRef, data);
+        const sanitized = JSON.parse(JSON.stringify(data));
+        await set(dbRef, sanitized);
       } catch (err) {
         console.warn('Firebase Realtime Database save failed, falling back to LocalStorage:', err);
         await mockDb.saveGame(data);
@@ -172,6 +176,39 @@ if (isFirebaseConfigured) {
         console.warn('Firebase Realtime Database load failed, falling back to LocalStorage:', err);
         return await mockDb.loadGame(userId);
       }
+    },
+    loadQuestTemplates: async (): Promise<QuestTemplate[]> => {
+      try {
+        const dbRef = ref(fbDb, 'idleRpg/config/quests');
+        const snapshot = await get(dbRef);
+        if (snapshot.exists()) {
+          const val = snapshot.val();
+          return Object.values(val) as QuestTemplate[];
+        }
+        return [];
+      } catch (err) {
+        console.warn('Firebase Realtime Database loadQuestTemplates failed, falling back to mockDb:', err);
+        return await mockDb.loadQuestTemplates();
+      }
+    },
+    saveQuestTemplate: async (template: QuestTemplate): Promise<void> => {
+      try {
+        const dbRef = ref(fbDb, `idleRpg/config/quests/${template.id}`);
+        const sanitized = JSON.parse(JSON.stringify(template));
+        await set(dbRef, sanitized);
+      } catch (err) {
+        console.warn('Firebase Realtime Database saveQuestTemplate failed, falling back to mockDb:', err);
+        await mockDb.saveQuestTemplate(template);
+      }
+    },
+    deleteQuestTemplate: async (templateId: string): Promise<void> => {
+      try {
+        const dbRef = ref(fbDb, `idleRpg/config/quests/${templateId}`);
+        await remove(dbRef);
+      } catch (err) {
+        console.warn('Firebase Realtime Database deleteQuestTemplate failed, falling back to mockDb:', err);
+        await mockDb.deleteQuestTemplate(templateId);
+      }
     }
   };
 } else {
@@ -186,6 +223,9 @@ if (isFirebaseConfigured) {
 
   dbService = {
     saveGame: mockDb.saveGame,
-    loadGame: mockDb.loadGame
+    loadGame: mockDb.loadGame,
+    loadQuestTemplates: mockDb.loadQuestTemplates,
+    saveQuestTemplate: mockDb.saveQuestTemplate,
+    deleteQuestTemplate: mockDb.deleteQuestTemplate
   };
 }

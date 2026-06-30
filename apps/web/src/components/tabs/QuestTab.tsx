@@ -1,35 +1,117 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { useTranslation, getTranslatedQuestTitle, getTranslatedQuestDesc } from '../../utils/i18n';
 
 export const QuestTab: React.FC = () => {
   const { saveData, claimQuestReward } = useGameStore();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const [activeSubTab, setActiveSubTab] = useState<'all' | 'newbie_achieve' | 'daily_weekly' | 'event'>('all');
 
   if (!saveData) return null;
 
-  const { quests } = saveData;
+  const { quests = [] } = saveData;
+
+  // Filter player quests based on active subtab
+  const filteredQuests = quests.filter((q) => {
+    // Legacy quests that don't have a type should fall back to newbie
+    const type = q.type || 'newbie';
+    
+    if (activeSubTab === 'newbie_achieve') {
+      return type === 'newbie' || type === 'achievement';
+    }
+    if (activeSubTab === 'daily_weekly') {
+      return type === 'daily' || type === 'weekly';
+    }
+    if (activeSubTab === 'event') {
+      return type === 'event';
+    }
+    return true; // 'all'
+  });
+
+  // Helper to render type badge
+  const renderTypeBadge = (type?: string) => {
+    const tVal = type || 'newbie';
+    let style = '';
+    let label = '';
+
+    switch (tVal) {
+      case 'newbie':
+        style = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+        label = language === 'vi' ? 'Tân Thủ' : 'Newbie';
+        break;
+      case 'daily':
+        style = 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400';
+        label = language === 'vi' ? 'Hàng Ngày' : 'Daily';
+        break;
+      case 'weekly':
+        style = 'bg-blue-500/10 border-blue-500/30 text-blue-400';
+        label = language === 'vi' ? 'Hàng Tuần' : 'Weekly';
+        break;
+      case 'event':
+        style = 'bg-pink-500/10 border-pink-500/30 text-pink-400';
+        label = language === 'vi' ? 'Sự Kiện' : 'Event';
+        break;
+      case 'achievement':
+        style = 'bg-purple-500/10 border-purple-500/30 text-purple-400';
+        label = language === 'vi' ? 'Thành Tựu' : 'Achievement';
+        break;
+      default:
+        style = 'bg-slate-500/10 border-slate-500/30 text-slate-400';
+        label = tVal;
+    }
+
+    return (
+      <span className={`px-2 py-0.5 text-[8px] font-extrabold uppercase rounded border tracking-wider font-mono ${style}`}>
+        {label}
+      </span>
+    );
+  };
 
   return (
     <div className="flex flex-col h-full bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 overflow-hidden">
-      <div className="flex justify-between items-center mb-4 border-b border-slate-850 pb-2">
+      {/* Title */}
+      <div className="flex justify-between items-center mb-4 border-b border-slate-850 pb-2 flex-wrap gap-2">
         <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
           📜 {t('active_bounties')}
         </h3>
         <span className="text-xs font-semibold px-2.5 py-1 bg-slate-950/80 border border-slate-800 rounded-lg text-slate-400">
-          Active: {quests.filter(q => !q.claimed).length}
+          {language === 'vi' ? 'Chưa nhận' : 'Unclaimed'}: {quests.filter(q => !q.claimed).length}
         </span>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 overflow-x-auto scrollbar-none mb-4 pb-1 border-b border-slate-850/40">
+        {([
+          { value: 'all', vi: 'Tất cả', en: 'All' },
+          { value: 'newbie_achieve', vi: 'Tân thủ & Thành tựu', en: 'Newbie & Achievements' },
+          { value: 'daily_weekly', vi: 'Hàng ngày & Hàng tuần', en: 'Daily & Weekly' },
+          { value: 'event', vi: 'Sự kiện', en: 'Events' }
+        ] as { value: typeof activeSubTab; vi: string; en: string }[]).map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setActiveSubTab(tab.value)}
+            className={`px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider rounded-lg transition whitespace-nowrap cursor-pointer border ${
+              activeSubTab === tab.value
+                ? 'bg-indigo-600/15 border-indigo-500/30 text-indigo-300 shadow shadow-indigo-600/5'
+                : 'bg-slate-950/20 border-slate-850/60 hover:bg-slate-900/40 text-slate-400 hover:text-slate-300'
+            }`}
+          >
+            {language === 'vi' ? tab.vi : tab.en}
+          </button>
+        ))}
       </div>
 
       {/* Quest Cards List */}
       <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-        {quests.length === 0 ? (
+        {filteredQuests.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-slate-500">
             <span className="text-3xl mb-2">🕊️</span>
-            <span className="text-xs uppercase tracking-wider font-semibold">{t('no_quests')}</span>
+            <span className="text-xs uppercase tracking-wider font-semibold">
+              {language === 'vi' ? 'Không có nhiệm vụ nào thuộc mục này' : t('no_quests')}
+            </span>
           </div>
         ) : (
-          quests.map((quest) => {
+          filteredQuests.map((quest) => {
             const percentage = Math.min(100, Math.floor((quest.currentCount / quest.targetCount) * 100));
             
             return (
@@ -44,11 +126,12 @@ export const QuestTab: React.FC = () => {
                 }`}
               >
                 {/* Details */}
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
+                <div className="flex-1 space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-extrabold text-white font-display">
                       {getTranslatedQuestTitle(t, quest.id, quest.title)}
                     </span>
+                    {renderTypeBadge(quest.type)}
                     {quest.completed && !quest.claimed && (
                       <span className="bg-emerald-500/20 text-emerald-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse font-display">
                         {t('quest_ready')}
@@ -61,7 +144,7 @@ export const QuestTab: React.FC = () => {
                   
                   {/* Progress Bar */}
                   {!quest.claimed && (
-                    <div className="pt-2 w-full max-w-md">
+                    <div className="pt-2.5 w-full max-w-md">
                       <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold mb-1">
                         <span>{t('progress_label')}: {quest.currentCount} / {quest.targetCount}</span>
                         <span>{percentage}%</span>
@@ -74,6 +157,13 @@ export const QuestTab: React.FC = () => {
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
+                    </div>
+                  )}
+
+                  {/* Dates for events */}
+                  {quest.type === 'event' && quest.endDate && !quest.claimed && (
+                    <div className="text-[9px] text-slate-500 font-mono">
+                      ⏱️ {language === 'vi' ? 'Hạn cuối:' : 'Expires:'} {new Date(quest.endDate).toLocaleString()}
                     </div>
                   )}
                 </div>
@@ -100,14 +190,14 @@ export const QuestTab: React.FC = () => {
                   ) : quest.completed ? (
                     <button
                       onClick={() => claimQuestReward(quest.id)}
-                      className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold py-2 px-4 rounded-xl border border-emerald-400/20 shadow shadow-emerald-500/10 active:scale-[0.98] transition cursor-pointer"
+                      className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold py-2 px-4 rounded-xl border border-emerald-400/20 shadow shadow-emerald-500/10 active:scale-[0.98] transition cursor-pointer font-display"
                     >
                       🎁 {t('claim_btn')}
                     </button>
                   ) : (
                     <button
                       disabled
-                      className="bg-slate-950 border border-slate-900 text-slate-600 text-xs font-bold py-2 px-4 rounded-xl cursor-not-allowed"
+                      className="bg-slate-950 border border-slate-900 text-slate-600 text-xs font-bold py-2 px-4 rounded-xl cursor-not-allowed font-display"
                     >
                       🔒 {t('quest_in_progress')}
                     </button>
@@ -121,3 +211,4 @@ export const QuestTab: React.FC = () => {
     </div>
   );
 };
+

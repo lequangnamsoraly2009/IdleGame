@@ -3,6 +3,7 @@ import { useGameStore } from './stores/gameStore';
 import { AuthScreen } from './components/AuthScreen';
 import { GameHUD } from './components/GameHUD';
 import { DocumentsPage } from './components/DocumentsPage';
+import { AdminPage } from './components/AdminPage';
 
 export const App: React.FC = () => {
   const { user, isLoading, initializeAuth } = useGameStore();
@@ -56,6 +57,10 @@ export const App: React.FC = () => {
 
   if (currentPath === '/documents' || currentPath === '/documents/') {
     return <DocumentsPage onNavigate={navigate} />;
+  }
+
+  if (currentPath === '/admin' || currentPath === '/admin/') {
+    return <AdminPage onNavigate={navigate} />;
   }
 
   return user ? <GameHUD onNavigate={navigate} /> : <AuthScreen />;

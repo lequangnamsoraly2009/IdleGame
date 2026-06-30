@@ -1,4 +1,4 @@
-import { GameSaveData, HeroState, EquipmentItem, QuestState } from '@idle-rpg/shared';
+import { GameSaveData, HeroState, EquipmentItem, QuestState, QuestTemplate } from '@idle-rpg/shared';
 import { createItemInstance, DEFAULT_ITEM_TEMPLATES, calculateItemStats, calculateUpgradeCost } from '@idle-rpg/shared';
 
 // Predefined starting stats and equipment
@@ -99,6 +99,7 @@ export function generateStarterSave(
   const quests: QuestState[] = [
     {
       id: 'q1',
+      type: 'newbie',
       title: 'First Blood',
       description: 'Defeat 5 monsters to prove your combat skills.',
       targetType: 'defeat_monster',
@@ -111,6 +112,7 @@ export function generateStarterSave(
     },
     {
       id: 'q2',
+      type: 'daily',
       title: 'Accumulate Wealth',
       description: 'Gather 1,000 total gold.',
       targetType: 'earn_gold',
@@ -123,6 +125,7 @@ export function generateStarterSave(
     },
     {
       id: 'q3',
+      type: 'weekly',
       title: 'Ready for Battle',
       description: 'Upgrade an equipment item to Level 2.',
       targetType: 'upgrade_equipment',
@@ -138,6 +141,8 @@ export function generateStarterSave(
   return {
     userId,
     lastSavedAt: Date.now(),
+    lastDailyResetAt: Date.now(),
+    lastWeeklyResetAt: Date.now(),
     hero: initialHero,
     inventory,
     quests,
@@ -306,5 +311,87 @@ export const mockDb = {
       await mockDb.saveGame(starterSave);
       return starterSave;
     }
+  },
+
+  loadQuestTemplates: async (): Promise<QuestTemplate[]> => {
+    const templatesStr = localStorage.getItem('idle_rpg_quest_templates');
+    if (!templatesStr) {
+      localStorage.setItem('idle_rpg_quest_templates', JSON.stringify(DEFAULT_QUEST_TEMPLATES));
+      return DEFAULT_QUEST_TEMPLATES;
+    }
+    try {
+      return JSON.parse(templatesStr);
+    } catch {
+      return DEFAULT_QUEST_TEMPLATES;
+    }
+  },
+
+  saveQuestTemplate: async (template: QuestTemplate): Promise<void> => {
+    const templates = await mockDb.loadQuestTemplates();
+    const existingIdx = templates.findIndex(t => t.id === template.id);
+    if (existingIdx !== -1) {
+      templates[existingIdx] = template;
+    } else {
+      templates.push(template);
+    }
+    localStorage.setItem('idle_rpg_quest_templates', JSON.stringify(templates));
+  },
+
+  deleteQuestTemplate: async (templateId: string): Promise<void> => {
+    const templates = await mockDb.loadQuestTemplates();
+    const filtered = templates.filter(t => t.id !== templateId);
+    localStorage.setItem('idle_rpg_quest_templates', JSON.stringify(filtered));
   }
 };
+
+const DEFAULT_QUEST_TEMPLATES: QuestTemplate[] = [
+  {
+    id: 'q1',
+    type: 'newbie',
+    titleVi: 'Chiến Công Đầu',
+    titleEn: 'First Blood',
+    descriptionVi: 'Tiêu diệt 5 quái vật để chứng minh kỹ năng chiến đấu.',
+    descriptionEn: 'Defeat 5 monsters to prove your combat skills.',
+    targetType: 'defeat_monster',
+    targetCount: 5,
+    rewardGold: 100,
+    rewardDiamonds: 10
+  },
+  {
+    id: 'q2',
+    type: 'daily',
+    titleVi: 'Tích Lũy Tài Sản',
+    titleEn: 'Accumulate Wealth',
+    descriptionVi: 'Tích lũy tổng cộng 1.000 Vàng.',
+    descriptionEn: 'Gather 1,000 total gold.',
+    targetType: 'earn_gold',
+    targetCount: 1000,
+    rewardGold: 200,
+    rewardDiamonds: 15
+  },
+  {
+    id: 'q3',
+    type: 'weekly',
+    titleVi: 'Sẵn Sàng Chiến Đấu',
+    titleEn: 'Ready for Battle',
+    descriptionVi: 'Nâng cấp một trang bị bất kỳ lên Cấp 2.',
+    descriptionEn: 'Upgrade an equipment item to Level 2.',
+    targetType: 'upgrade_equipment',
+    targetCount: 1,
+    rewardGold: 150,
+    rewardDiamonds: 10
+  },
+  {
+    id: 'q4',
+    type: 'achievement',
+    titleVi: 'Kẻ Diệt Địch',
+    titleEn: 'Monster Slayer',
+    descriptionVi: 'Tiêu diệt 100 quái vật.',
+    descriptionEn: 'Defeat 100 monsters.',
+    targetType: 'defeat_monster',
+    targetCount: 100,
+    rewardGold: 1000,
+    rewardDiamonds: 50
+  }
+];
+
