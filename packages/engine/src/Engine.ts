@@ -1492,7 +1492,7 @@ export class GameEngine {
     });
   }
 
-  public reviveHero(sameStage: boolean) {
+  public reviveHero(_sameStage: boolean) {
     if (this.respawnTimeout) {
       clearTimeout(this.respawnTimeout);
       this.respawnTimeout = null;
@@ -1517,26 +1517,9 @@ export class GameEngine {
       category: 'system'
     });
 
-    if (!sameStage) {
-      // Stage penalty: downstage by 1 (minimum Stage 1)
-      const penaltyStage = Math.max(1, this.currentStage - 1);
-      if (penaltyStage !== this.currentStage) {
-        this.currentStage = penaltyStage;
-        this.onEvent({
-          type: 'STAGE_ADVANCED',
-          nextStage: penaltyStage
-        });
-      } else {
-        // Just restart the current battle
-        if (this.monsterTemplate) {
-          this.startBattle(this.monsterTemplate);
-        }
-      }
-    } else {
-      // Restart battle at same stage
-      if (this.monsterTemplate) {
-        this.startBattle(this.monsterTemplate);
-      }
+    // No stage penalty: always revive on the same stage, return to Wave 1
+    if (this.monsterTemplate) {
+      this.startBattle(this.monsterTemplate);
     }
 
     this.isBattleActive = true;

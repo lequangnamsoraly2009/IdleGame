@@ -2211,24 +2211,17 @@ export const useGameStore = create<GameState>((set, get) => {
           return false;
         }
         hero.diamonds -= reviveCostDiamonds;
-      } else if (method === 'time') {
-        sameStage = false;
       }
 
       // Restore health
       hero.currentHp = hero.currentStats.maxHp;
-
-      let updatedStage = saveData.activeStage;
-      if (!sameStage) {
-        updatedStage = Math.max(1, saveData.activeStage - 1);
-      }
 
       const wasBossDeath = saveData.currentWave === 20;
 
       const updatedSave: GameSaveData = {
         ...saveData,
         hero,
-        activeStage: updatedStage,
+        activeStage: saveData.activeStage,
         currentWave: 1,
         autoAdvance: wasBossDeath ? false : (saveData.autoAdvance !== false),
         lastSavedAt: Date.now()
