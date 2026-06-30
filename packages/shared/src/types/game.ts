@@ -73,6 +73,8 @@ export interface HeroState {
   prestigePoints: number;
   prestigeCount: number;
   heroClass?: 'knight' | 'mage' | 'assassin';
+  potions?: number;
+  autoUsePotion?: boolean;
 }
 
 export type DamageType = 'physical' | 'fire' | 'ice' | 'poison' | 'holy' | 'dark';

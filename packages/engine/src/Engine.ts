@@ -29,10 +29,11 @@ export type EngineEvent =
   | { type: 'DAMAGE_DEALT'; amount: number; isCrit: boolean; isHeroTarget: boolean; currentHp: number }
   | { type: 'MONSTER_DEFEATED'; exp: number; gold: number; diamonds: number; itemsDropped: any[]; monsterId?: string; isMutated?: boolean; durationMs?: number }
   | { type: 'HERO_DEFEATED' }
-  | { type: 'BATTLE_TICK'; heroHp: number; monsterHp: number; maxHeroHp: number; maxMonsterHp: number; heroRage: number; monsterRage: number }
+  | { type: 'BATTLE_TICK'; heroHp: number; monsterHp: number; maxHeroHp: number; maxMonsterHp: number; heroRage: number; monsterRage: number; potionCd?: number }
   | { type: 'STAGE_ADVANCED'; nextStage: number }
   | { type: 'GUILD_RAID_ENDED' }
-  | { type: 'LOG_MESSAGE'; text: string; category: 'combat' | 'loot' | 'system' };
+  | { type: 'LOG_MESSAGE'; text: string; category: 'combat' | 'loot' | 'system' }
+  | { type: 'POTION_USED'; amount: number };
 
 export interface ActiveMonster {
   template: MonsterTemplate;
@@ -85,6 +86,12 @@ export class GameEngine {
   private monsterTemplate: MonsterTemplate | null = null;
   private heroRage: number = 0;
   private language: 'vi' | 'en' = 'vi';
+  private shardUpgrades?: { attack?: number; magicAttack?: number; maxHp?: number };
+  
+  // Health potion settings & cooldown
+  private autoUsePotion: boolean = false;
+  private potionsCount: number = 0;
+  private potionCooldownRemaining: number = 0;
 
   // Timers (in seconds)
   private isBattleActive: boolean = false;
@@ -306,7 +313,10 @@ export class GameEngine {
     stage: number,
     heroClass?: 'knight' | 'mage' | 'assassin',
     heroName?: string,
-    language?: 'vi' | 'en'
+    language?: 'vi' | 'en',
+    shardUpgrades?: { attack?: number; magicAttack?: number; maxHp?: number },
+    potionsCount?: number,
+    autoUsePotion?: boolean
   ) {
     this.heroLevel = level;
     this.prestigePoints = prestigePoints;
@@ -317,6 +327,15 @@ export class GameEngine {
     }
     if (language) {
       this.language = language;
+    }
+    if (shardUpgrades) {
+      this.shardUpgrades = shardUpgrades;
+    }
+    if (potionsCount !== undefined) {
+      this.potionsCount = potionsCount;
+    }
+    if (autoUsePotion !== undefined) {
+      this.autoUsePotion = autoUsePotion;
     }
     this.recalculateStats();
 
@@ -336,8 +355,33 @@ export class GameEngine {
     }
   }
 
+  public healHero(amount: number) {
+    if (this.allyEntities[0] && this.allyEntities[0].currentHp > 0) {
+      this.allyEntities[0].currentHp = Math.min(this.allyEntities[0].maxHp, this.allyEntities[0].currentHp + amount);
+      this.heroCurrentHp = this.allyEntities[0].currentHp;
+      
+      const healText = new DamageText(`+${amount}`, this.allyEntities[0].entity.x, this.allyEntities[0].entity.y - 15, false, 0x10b981);
+      this.effectLayer.addChild(healText);
+      this.damageTexts.push(healText);
+      
+      this.potionCooldownRemaining = 15; // Set 15s cooldown
+      
+      this.onEvent({
+        type: 'LOG_MESSAGE',
+        text: this.language === 'vi' 
+          ? `🧪 [BÌNH MÁU] Sử dụng Bình Máu hồi +${amount} HP!` 
+          : `🧪 [POTION] Used Health Potion to recover +${amount} HP!`,
+        category: 'combat'
+      });
+    }
+  }
+
+  public getPotionCooldownRemaining(): number {
+    return this.potionCooldownRemaining;
+  }
+
   private recalculateStats() {
-    this.heroStats = recalculateHeroStats(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass);
+    this.heroStats = recalculateHeroStats(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass, this.shardUpgrades);
   }
 
   // Load a new battle scene
@@ -591,6 +635,43 @@ export class GameEngine {
       }
     }
 
+    // Potion Cooldown Tick
+    if (this.potionCooldownRemaining > 0) {
+      this.potionCooldownRemaining = Math.max(0, this.potionCooldownRemaining - dt);
+    }
+
+    // Auto-use potion check
+    if (this.isBattleActive && this.autoUsePotion && this.potionsCount > 0 && this.potionCooldownRemaining === 0) {
+      const hero = this.allyEntities[0];
+      if (hero && hero.currentHp > 0 && (hero.currentHp / hero.maxHp) < 0.35) {
+        const healAmount = Math.round(hero.maxHp * 0.3);
+        hero.currentHp = Math.min(hero.maxHp, hero.currentHp + healAmount);
+        this.heroCurrentHp = hero.currentHp;
+        
+        // Spawn green healing text
+        const healText = new DamageText(`+${healAmount}`, hero.entity.x, hero.entity.y - 15, false, 0x10b981);
+        this.effectLayer.addChild(healText);
+        this.damageTexts.push(healText);
+        
+        this.potionCooldownRemaining = 15; // Set 15s cooldown
+        this.potionsCount--; // Decrement local count
+        
+        // Notify React
+        this.onEvent({
+          type: 'POTION_USED',
+          amount: healAmount
+        });
+
+        this.onEvent({
+          type: 'LOG_MESSAGE',
+          text: this.language === 'vi' 
+            ? `🧪 [TỰ ĐỘNG] Sử dụng Bình Máu hồi +${healAmount} HP!` 
+            : `🧪 [AUTO-USE] Used Health Potion to recover +${healAmount} HP!`,
+          category: 'combat'
+        });
+      }
+    }
+
     // Auto Battle Logic
     if (this.isBattleActive) {
       // 1. Allies combat tick
@@ -646,7 +727,8 @@ export class GameEngine {
         maxHeroHp: totalMaxHeroHp,
         maxMonsterHp: totalMonsterMaxHp,
         heroRage: userRage,
-        monsterRage: activeMonsterRage
+        monsterRage: activeMonsterRage,
+        potionCd: this.potionCooldownRemaining
       });
 
     } else if (this.respawnTimer > 0) {

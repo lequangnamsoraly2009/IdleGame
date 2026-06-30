@@ -57,6 +57,10 @@ export function generateStarterSave(
     diamonds: 50,
     prestigePoints: 0,
     prestigeCount: 0,
+    aetherShards: 0,
+    shardUpgrades: { attack: 0, magicAttack: 0, maxHp: 0 },
+    potions: 5,
+    autoUsePotion: false,
     heroClass
   };
 

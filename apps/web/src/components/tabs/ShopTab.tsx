@@ -7,10 +7,10 @@ import { ItemGraphic } from '../ItemGraphic';
 import { calculateDismantleRewards } from '@idle-rpg/shared';
 
 export const ShopTab: React.FC = () => {
-  const { saveData, buyGoldPack, buyShardUpgrade, buyAetherChest, buyAetherDiamonds, dismantleMultipleEquipment, addLogMessage } = useGameStore();
+  const { saveData, buyGoldPack, buyShardUpgrade, buyAetherChest, buyAetherDiamonds, dismantleMultipleEquipment, addLogMessage, buyPotion } = useGameStore();
   const { t } = useTranslation();
   const { language } = useLanguageStore();
-  const [subTab, setSubTab] = useState<'shop' | 'summon' | 'aether'>('shop');
+  const [subTab, setSubTab] = useState<'gold_shop' | 'diamond_shop' | 'summon' | 'aether'>('gold_shop');
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
   if (!saveData) return null;
@@ -47,9 +47,10 @@ export const ShopTab: React.FC = () => {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Sub tabs selector */}
-      <div className="flex gap-1 bg-slate-950/85 p-1.5 rounded-xl border border-slate-900 mb-4 select-none shrink-0 max-w-fit">
+      <div className="flex gap-1 bg-slate-950/85 p-1.5 rounded-xl border border-slate-900 mb-4 select-none shrink-0 max-w-fit overflow-x-auto scrollbar-none">
         {([
-          { id: 'shop', label: language === 'vi' ? '💰 Cửa Hàng' : '💰 Shop' },
+          { id: 'gold_shop', label: language === 'vi' ? '🪙 Shop Vàng' : '🪙 Gold Shop' },
+          { id: 'diamond_shop', label: language === 'vi' ? '💎 Shop Kim Cương' : '💎 Diamond Shop' },
           { id: 'summon', label: language === 'vi' ? '🎁 Triệu Hồi' : '🎁 Summon' },
           { id: 'aether', label: language === 'vi' ? '🌀 Đền Aether' : '🌀 Aether Shrine' }
         ] as const).map(tab => {
@@ -69,11 +70,11 @@ export const ShopTab: React.FC = () => {
                 }
                 setSubTab(tab.id);
               }}
-              className={`text-[10px] sm:text-xs font-bold py-2 px-4 rounded-lg cursor-pointer transition active:scale-95 ${
+              className={`text-[10px] sm:text-xs font-bold py-2 px-3 sm:px-4 rounded-lg cursor-pointer transition active:scale-95 whitespace-nowrap ${
                 subTab === tab.id
                   ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/10'
                   : isSummonLocked
-                  ? 'text-slate-650 opacity-40 cursor-not-allowed'
+                  ? 'text-slate-655 opacity-40 cursor-not-allowed'
                   : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
               }`}
               title={isSummonLocked ? (language === 'vi' ? 'Khóa đến cấp 7' : 'Locked until level 7') : ''}
@@ -86,7 +87,110 @@ export const ShopTab: React.FC = () => {
 
       {/* Sub tab content */}
       <div className="flex-1 overflow-hidden relative">
-        {subTab === 'shop' && (
+        {subTab === 'gold_shop' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full overflow-y-auto pr-1 pb-4 scrollbar-thin">
+            {/* Left Column: Health Potions Purchase */}
+            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5 font-display">
+                    🧪 BÌNH MÁU HỒI PHỤC
+                  </h4>
+                  <span className="text-xs px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/20 text-emerald-300 font-extrabold rounded-lg">
+                    {hero.potions ?? 5} 🧪
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed mb-5">
+                  Hồi phục **30% HP tối đa** lập tức khi sử dụng. Hữu ích khi đối đầu với Boss hiểm họa hoặc vượt ải khó khăn. Có thể cài đặt Tự Động dùng trong bảng điều khiển chiến đấu.
+                </p>
+
+                <div className="space-y-3">
+                  {/* Option 1: Buy 1 */}
+                  <div className="p-3 bg-slate-950/60 border border-slate-900 hover:border-slate-850 rounded-xl flex justify-between items-center transition">
+                    <div className="text-left flex items-center gap-3">
+                      <span className="text-xl">🧪</span>
+                      <div>
+                        <span className="text-xs font-extrabold text-white block">Mua 1 Bình Máu</span>
+                        <span className="text-[10px] text-slate-500">Giá gốc: 200 Vàng</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => buyPotion(1, 'gold')}
+                      disabled={hero.gold < 200}
+                      className="bg-blue-600/10 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-[10px] font-bold px-3 py-1.5 rounded transition disabled:opacity-30 cursor-pointer"
+                    >
+                      200 🪙
+                    </button>
+                  </div>
+
+                  {/* Option 2: Buy 5 */}
+                  <div className="p-3 bg-slate-950/60 border border-slate-900 hover:border-slate-850 rounded-xl flex justify-between items-center transition">
+                    <div className="text-left flex items-center gap-3">
+                      <span className="text-xl">🧪🧪</span>
+                      <div>
+                        <span className="text-xs font-extrabold text-amber-400 block">Gói 5 Bình Máu 🔥</span>
+                        <span className="text-[10px] text-slate-500">Giá khuyến mãi (Tiết kiệm 100 Vàng)</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => buyPotion(5, 'gold')}
+                      disabled={hero.gold < 900}
+                      className="bg-amber-600/10 hover:bg-amber-600/30 border border-amber-500/30 text-amber-300 text-[10px] font-bold px-3 py-1.5 rounded transition disabled:opacity-30 cursor-pointer"
+                    >
+                      900 🪙
+                    </button>
+                  </div>
+
+                  {/* Option 3: Buy 10 */}
+                  <div className="p-3 bg-slate-950/60 border border-slate-900 hover:border-slate-850 rounded-xl flex justify-between items-center transition">
+                    <div className="text-left flex items-center gap-3">
+                      <span className="text-xl">🧪✨</span>
+                      <div>
+                        <span className="text-xs font-extrabold text-purple-400 block">Thùng 10 Bình Máu ⚡</span>
+                        <span className="text-[10px] text-slate-500">Giá sỉ cực tốt (Tiết kiệm 300 Vàng)</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => buyPotion(10, 'gold')}
+                      disabled={hero.gold < 1700}
+                      className="bg-purple-650/10 hover:bg-purple-600/35 border border-purple-500/30 text-purple-300 text-[10px] font-bold px-3 py-1.5 rounded transition disabled:opacity-30 cursor-pointer"
+                    >
+                      1,700 🪙
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[9px] text-slate-550 mt-4 text-center">
+                * Bình máu có thể mua không giới hạn số lượng bằng Vàng nhận được từ phó bản hoặc đánh quái.
+              </div>
+            </div>
+
+            {/* Right Column: Other Gold items in future */}
+            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between">
+              <div>
+                <h4 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-2.5 flex items-center gap-1.5 font-display">
+                  🎒 HÀNG TIÊU DÙNG VÀNG
+                </h4>
+                <p className="text-xs text-slate-400 leading-relaxed mb-6">
+                  Nơi trao đổi các vật phẩm bổ trợ và tiêu dùng bằng tiền tệ Vàng kiếm được trong game.
+                </p>
+
+                <div className="border border-dashed border-slate-800 rounded-xl p-6 text-center bg-slate-950/20 my-auto">
+                  <span className="text-3xl block mb-2">🎁</span>
+                  <span className="text-xs font-bold text-slate-400 block mb-1">Cửa Hàng Thương Hội</span>
+                  <span className="text-[9px] text-slate-550 block">Các vật phẩm cuộn giấy nâng cấp, hộp ngọc tiêu dùng bằng Vàng sẽ xuất hiện tại đây trong các bản cập nhật tiếp theo!</span>
+                </div>
+              </div>
+
+              <div className="text-[9px] text-slate-550 mt-4 text-center">
+                * Hãy tích lũy Vàng bằng cách treo máy ở các ải cao hơn.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {subTab === 'diamond_shop' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full overflow-y-auto pr-1 pb-4 scrollbar-thin">
             {/* Left Column: Diamond Exchange */}
             <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between">
@@ -98,7 +202,7 @@ export const ShopTab: React.FC = () => {
                   {t('shop_desc')}
                 </p>
 
-                <div className="bg-slate-950/60 border border-slate-900 rounded-xl p-4 text-center">
+                <div className="bg-slate-950/60 border border-slate-900 rounded-xl p-4 text-center mb-4">
                   <span className="text-3xl block mb-2">💰</span>
                   <span className="text-sm font-extrabold text-white block">
                     {t('gold_pack_title')}
@@ -115,6 +219,22 @@ export const ShopTab: React.FC = () => {
                     <span>{t('buy_btn')}</span>
                     <span className="bg-slate-950/40 text-blue-300 px-2 py-0.5 rounded font-bold border border-blue-500/20">
                       15 💎
+                    </span>
+                  </button>
+                </div>
+
+                {/* Bulk Diamond Potion Chest */}
+                <div className="p-3.5 bg-slate-950/60 border border-slate-900 rounded-xl text-center">
+                  <span className="text-xs font-extrabold text-white block mb-1">🧪 Rương Bình Máu Lớn (Diamond Potion Chest)</span>
+                  <p className="text-[9px] text-slate-500 mb-3">Chứa 30 Bình Máu cao cấp giúp bạn cắm máy tự động không lo hết máu.</p>
+                  <button
+                    onClick={() => buyPotion(30, 'diamonds')}
+                    disabled={hero.diamonds < 40}
+                    className="w-full bg-gradient-to-r from-purple-650 to-indigo-650 hover:from-purple-600 hover:to-indigo-600 text-white text-xs font-extrabold py-2.5 px-4 rounded-xl border border-purple-500/20 active:scale-[0.98] transition flex justify-between items-center disabled:opacity-40 cursor-pointer"
+                  >
+                    <span>Mua 30 Bình Máu</span>
+                    <span className="bg-slate-950/40 text-purple-300 px-2 py-0.5 rounded border border-purple-500/20 font-bold">
+                      40 💎
                     </span>
                   </button>
                 </div>
@@ -320,7 +440,6 @@ export const ShopTab: React.FC = () => {
                       <div className="grid grid-cols-4 gap-1.5 overflow-y-auto max-h-[160px] pr-1 scrollbar-thin">
                         {unequippedItems.map(item => {
                           const isSelected = selectedItemIds.includes(item.id);
-                          // Determine border/bg color based on rarity
                           const borderClass = isSelected 
                             ? 'border-purple-500 ring-1 ring-purple-500/50 bg-purple-950/20' 
                             : item.rarity === 'legendary' 
@@ -369,7 +488,7 @@ export const ShopTab: React.FC = () => {
                         const state = getRaritySelectionState('common');
                         const activeClass = state === 'all' 
                           ? 'bg-slate-700 border-slate-400 text-white ring-1 ring-slate-450/40' 
-                          : 'bg-slate-850 hover:bg-slate-800 text-slate-300 border-slate-750';
+                          : 'bg-slate-850 hover:bg-slate-800 text-slate-350 border-slate-750';
                         return (
                           <button
                             onClick={() => selectAllByRarity('common')}
@@ -384,7 +503,7 @@ export const ShopTab: React.FC = () => {
                         const state = getRaritySelectionState('uncommon');
                         const activeClass = state === 'all' 
                           ? 'bg-emerald-600/40 border-emerald-450 text-emerald-200 ring-1 ring-emerald-450/40' 
-                          : 'bg-emerald-950/20 hover:bg-emerald-900/35 text-emerald-400 border-emerald-500/10';
+                          : 'bg-emerald-950/20 hover:bg-emerald-900/35 text-emerald-405 border-emerald-500/10';
                         return (
                           <button
                             onClick={() => selectAllByRarity('uncommon')}
@@ -399,7 +518,7 @@ export const ShopTab: React.FC = () => {
                         const state = getRaritySelectionState('rare');
                         const activeClass = state === 'all' 
                           ? 'bg-blue-600/40 border-blue-450 text-blue-200 ring-1 ring-blue-450/40' 
-                          : 'bg-blue-950/20 hover:bg-blue-900/35 text-blue-400 border-blue-500/10';
+                          : 'bg-blue-950/20 hover:bg-blue-900/35 text-blue-405 border-blue-500/10';
                         return (
                           <button
                             onClick={() => selectAllByRarity('rare')}
@@ -414,7 +533,7 @@ export const ShopTab: React.FC = () => {
                         const state = getRaritySelectionState('epic');
                         const activeClass = state === 'all' 
                           ? 'bg-purple-600/40 border-purple-450 text-purple-200 ring-1 ring-purple-450/40' 
-                          : 'bg-purple-950/20 hover:bg-purple-900/35 text-purple-400 border-purple-500/10';
+                          : 'bg-purple-950/20 hover:bg-purple-900/35 text-purple-405 border-purple-500/10';
                         return (
                           <button
                             onClick={() => selectAllByRarity('epic')}
@@ -508,8 +627,8 @@ export const ShopTab: React.FC = () => {
                 </div>
               </div>
 
-              <div className="text-[10px] text-slate-500 mt-4 text-center">
-                * Hành lý cần có ít nhất 1 chỗ trống khi mở Rương Thần Khí Aether.
+              <div className="text-[10px] text-slate-550 mt-4 text-center">
+                * Hành lý cần có nhất 1 chỗ trống khi mở Rương Thần Khí Aether.
               </div>
             </div>
           </div>

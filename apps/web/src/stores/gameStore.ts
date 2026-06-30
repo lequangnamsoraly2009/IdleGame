@@ -59,7 +59,7 @@ interface GameState {
   saveGame: () => Promise<void>;
   
   // Combat Loops
-  syncBattleStats: (heroHp: number, monsterHp: number, maxHeroHp: number, maxMonsterHp: number, heroRage: number, monsterRage: number) => void;
+  syncBattleStats: (heroHp: number, monsterHp: number, maxHeroHp: number, maxMonsterHp: number, heroRage: number, monsterRage: number, potionCd?: number) => void;
   onMonsterDefeated: (expGained: number, goldGained: number, diamondsGained: number, itemsDropped: EquipmentItem[], monsterId?: string, isMutated?: boolean, durationMs?: number) => void;
   onStageChange: (newStage: number) => void;
   toggleAutoAdvance: () => void;
@@ -88,6 +88,12 @@ interface GameState {
   startGuildRaid: () => void;
   exitGuildRaid: () => void;
   addLogMessage: (text: string, category: 'combat' | 'loot' | 'system') => void;
+  potionCooldownRemaining: number;
+  setPotionCooldownRemaining: (sec: number) => void;
+  onPotionUsedByEngine: (amount: number) => void;
+  usePotion: () => void;
+  buyPotion: (quantity: number, currency: 'gold' | 'diamonds') => void;
+  toggleAutoUsePotion: () => void;
   clearLogs: () => void;
 }
 
@@ -242,6 +248,8 @@ export const useGameStore = create<GameState>((set, get) => {
               if (!data.hero.shardUpgrades) {
                 data.hero.shardUpgrades = { attack: 0, magicAttack: 0, maxHp: 0 };
               }
+              if (data.hero.potions === undefined) data.hero.potions = 5;
+              if (data.hero.autoUsePotion === undefined) data.hero.autoUsePotion = false;
 
               // Synchronize quests from templates
               try {
@@ -428,8 +436,12 @@ export const useGameStore = create<GameState>((set, get) => {
 
     setActiveInspectItemId: (itemId) => set({ activeInspectItemId: itemId }),
 
-    syncBattleStats: (heroHp, monsterHp, maxHeroHp, maxMonsterHp, heroRage, monsterRage) => {
-      set({ heroHp, monsterHp, heroMaxHp: maxHeroHp, monsterMaxHp: maxMonsterHp, heroRage, monsterRage });
+    syncBattleStats: (heroHp, monsterHp, maxHeroHp, maxMonsterHp, heroRage, monsterRage, potionCd) => {
+      const updates: any = { heroHp, monsterHp, heroMaxHp: maxHeroHp, monsterMaxHp: maxMonsterHp, heroRage, monsterRage };
+      if (potionCd !== undefined) {
+        updates.potionCooldownRemaining = potionCd;
+      }
+      set(updates);
     },
 
     onMonsterDefeated: (expGained, goldGained, diamondsGained, itemsDropped, monsterId, _isMutated, durationMs) => {
@@ -965,6 +977,149 @@ export const useGameStore = create<GameState>((set, get) => {
       };
 
       autoSave(updatedSave);
+    },
+
+    potionCooldownRemaining: 0,
+    setPotionCooldownRemaining: (sec) => set({ potionCooldownRemaining: sec }),
+    
+    onPotionUsedByEngine: (_amount) => {
+      set(state => {
+        if (state.saveData) {
+          const hero = state.saveData.hero;
+          const currentPotions = hero.potions ?? 5;
+          const nextPotions = Math.max(0, currentPotions - 1);
+          const nextSave = {
+            ...state.saveData,
+            hero: {
+              ...hero,
+              potions: nextPotions
+            }
+          };
+          dbService.saveGame(nextSave).catch(err => console.error("Save error:", err));
+          return { saveData: nextSave, potionCooldownRemaining: 15 };
+        }
+        return {};
+      });
+    },
+
+    usePotion: () => {
+      const state = get();
+      if (!state.saveData) return;
+      
+      const hero = state.saveData.hero;
+      const currentPotions = hero.potions ?? 5;
+      
+      if (currentPotions <= 0) {
+        state.addLogMessage(useLanguageStore.getState().language === 'vi' ? '❌ Hết bình máu! Hãy mua thêm ở Cửa Hàng.' : '❌ Out of health potions! Purchase more in the Shop.', 'system');
+        return;
+      }
+      
+      if (state.potionCooldownRemaining > 0) {
+        state.addLogMessage(useLanguageStore.getState().language === 'vi' ? '⏳ Bình máu đang hồi chiêu!' : '⏳ Health potion is on cooldown!', 'system');
+        return;
+      }
+      
+      const maxHp = hero.currentStats.maxHp;
+      if (hero.currentHp >= maxHp) {
+        state.addLogMessage(useLanguageStore.getState().language === 'vi' ? '💖 Máu đã đầy, không cần sử dụng!' : '💖 Health is already full!', 'system');
+        return;
+      }
+
+      const healAmount = Math.round(maxHp * 0.3);
+      const nextHp = Math.min(maxHp, hero.currentHp + healAmount);
+      
+      const nextSave = {
+        ...state.saveData,
+        hero: {
+          ...hero,
+          currentHp: nextHp,
+          potions: currentPotions - 1
+        }
+      };
+
+      set({
+        saveData: nextSave,
+        heroHp: nextHp,
+        potionCooldownRemaining: 15
+      });
+
+      dbService.saveGame(nextSave).catch(err => console.error("Save error:", err));
+      
+      if (state.engineInstance) {
+        state.engineInstance.healHero(healAmount);
+      }
+    },
+
+    buyPotion: (quantity: number, currency: 'gold' | 'diamonds') => {
+      const state = get();
+      if (!state.saveData) return;
+      
+      const hero = state.saveData.hero;
+      let cost = 0;
+      
+      if (currency === 'gold') {
+        if (quantity === 1) cost = 200;
+        else if (quantity === 5) cost = 900;
+        else cost = quantity * 180;
+        
+        if (hero.gold < cost) {
+          state.addLogMessage(useLanguageStore.getState().language === 'vi' ? '❌ Không đủ Vàng!' : '❌ Insufficient Gold!', 'system');
+          return;
+        }
+      } else {
+        if (quantity === 10) cost = 15;
+        else if (quantity === 30) cost = 40;
+        else cost = Math.ceil(quantity * 1.5);
+        
+        if (hero.diamonds < cost) {
+          state.addLogMessage(useLanguageStore.getState().language === 'vi' ? '❌ Không đủ Kim Cương!' : '❌ Insufficient Diamonds!', 'system');
+          return;
+        }
+      }
+      
+      const nextSave = {
+        ...state.saveData,
+        hero: {
+          ...hero,
+          gold: currency === 'gold' ? hero.gold - cost : hero.gold,
+          diamonds: currency === 'diamonds' ? hero.diamonds - cost : hero.diamonds,
+          potions: (hero.potions ?? 5) + quantity
+        }
+      };
+      
+      autoSave(nextSave);
+      state.addLogMessage(
+        useLanguageStore.getState().language === 'vi' 
+          ? `🧪 Đã mua +${quantity} Bình Máu (-${cost} ${currency === 'gold' ? 'Vàng' : 'Kim Cương'})` 
+          : `🧪 Purchased +${quantity} Health Potions (-${cost} ${currency === 'gold' ? 'Gold' : 'Diamonds'})`,
+        'system'
+      );
+    },
+
+    toggleAutoUsePotion: () => {
+      const state = get();
+      if (!state.saveData) return;
+      
+      const hero = state.saveData.hero;
+      const nextVal = !(hero.autoUsePotion ?? false);
+      
+      const nextSave = {
+        ...state.saveData,
+        hero: {
+          ...hero,
+          autoUsePotion: nextVal
+        }
+      };
+      
+      set({ saveData: nextSave });
+      dbService.saveGame(nextSave).catch(err => console.error("Save error:", err));
+      
+      state.addLogMessage(
+        useLanguageStore.getState().language === 'vi'
+          ? `🧪 Đã ${nextVal ? 'BẬT' : 'TẮT'} tự động dùng Bình Máu (HP < 35%).`
+          : `🧪 ${nextVal ? 'ENABLED' : 'DISABLED'} auto-use Health Potion (HP < 35%).`,
+        'system'
+      );
     },
 
     claimQuestReward: (questId) => {

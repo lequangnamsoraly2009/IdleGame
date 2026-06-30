@@ -88,6 +88,9 @@ export const PixiGame: React.FC = () => {
           case 'HERO_DEFEATED':
             store.triggerHeroDefeated();
             break;
+          case 'POTION_USED':
+            store.onPotionUsedByEngine(event.amount);
+            break;
         }
       });
       engineRef.current = engine;
@@ -108,7 +111,18 @@ export const PixiGame: React.FC = () => {
         
         // Sync starting parameters
         if (hero) {
-          engine.updateState(hero.level, hero.prestigePoints, equipped, activeStage, hero.heroClass, hero.name || 'Hero', useLanguageStore.getState().language);
+          engine.updateState(
+            hero.level,
+            hero.prestigePoints,
+            equipped,
+            activeStage,
+            hero.heroClass,
+            hero.name || 'Hero',
+            useLanguageStore.getState().language,
+            hero.shardUpgrades,
+            hero.potions,
+            hero.autoUsePotion
+          );
         }
         
         // Generate monster for stage and boot combat
@@ -201,7 +215,18 @@ export const PixiGame: React.FC = () => {
             }
           } else {
             if (hero) {
-              engine.updateState(hero.level, hero.prestigePoints, equipped, activeStage, hero.heroClass, hero.name || 'Hero', useLanguageStore.getState().language);
+              engine.updateState(
+                hero.level,
+                hero.prestigePoints,
+                equipped,
+                activeStage,
+                hero.heroClass,
+                hero.name || 'Hero',
+                useLanguageStore.getState().language,
+                hero.shardUpgrades,
+                hero.potions,
+                hero.autoUsePotion
+              );
             }
 
             if ((stageChanged || levelChanged) && state.battleMode === 'stage') {
@@ -228,7 +253,10 @@ export const PixiGame: React.FC = () => {
           state.saveData.activeStage,
           hero.heroClass,
           hero.name || 'Hero',
-          langState.language
+          langState.language,
+          hero.shardUpgrades,
+          hero.potions,
+          hero.autoUsePotion
         );
       }
     });

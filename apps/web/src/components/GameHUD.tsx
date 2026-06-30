@@ -43,7 +43,11 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     activeInspectItemId,
     challengeBoss,
     renameHero,
-    toggleAutoAdvance
+    toggleAutoAdvance,
+    isDead,
+    potionCooldownRemaining,
+    usePotion,
+    toggleAutoUsePotion
   } = useGameStore();
 
   const { t } = useTranslation();
@@ -364,76 +368,126 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
           </div>
 
           {/* Health Indicators Console */}
-          <div className="glass-panel rounded-2xl p-3 sm:p-4 border-slate-800 shadow-lg grid grid-cols-2 gap-3 sm:gap-4 shrink-0">
+          <div className="glass-panel rounded-2xl p-3 sm:p-4 border border-slate-800/80 shadow-lg flex flex-col gap-3 shrink-0">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
 
-            {/* Hero Health & Rage */}
-            <div className="space-y-2">
-              {/* HP Row */}
-              <div className="flex items-center gap-2 text-xs">
-                <div className="w-[42px] sm:w-[70px] font-bold text-emerald-400 flex items-center gap-1 shrink-0">
-                  🛡️ <span className="hidden sm:inline">{t('max_health')}</span><span className="sm:hidden">HP</span>
+              {/* Hero Health & Rage */}
+              <div className="space-y-2">
+                {/* HP Row */}
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-[42px] sm:w-[70px] font-bold text-emerald-400 flex items-center gap-1 shrink-0">
+                    🛡️ <span className="hidden sm:inline">{t('max_health')}</span><span className="sm:hidden">HP</span>
+                  </div>
+                  <div className="flex-1 h-2 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 transition-all duration-200"
+                      style={{ width: `${Math.min(100, Math.max(0, Math.floor((heroHp / heroMaxHp) * 100)))}%` }}
+                    />
+                  </div>
+                  <div className="w-[45px] sm:w-[65px] text-right font-extrabold text-[11px] text-emerald-300 font-display shrink-0 flex justify-end">
+                    {heroHp}/{heroMaxHp}
+                  </div>
                 </div>
-                <div className="flex-1 h-2 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 transition-all duration-200"
-                    style={{ width: `${Math.min(100, Math.max(0, Math.floor((heroHp / heroMaxHp) * 100)))}%` }}
-                  />
-                </div>
-                <div className="w-[45px] sm:w-[65px] text-right font-extrabold text-[11px] text-emerald-300 font-display shrink-0 flex justify-end">
-                  {heroHp}/{heroMaxHp}
+
+                {/* Rage Row */}
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-[42px] sm:w-[70px] font-bold text-orange-400 flex items-center gap-1 shrink-0">
+                    ⚡ <span className="hidden sm:inline">{language === 'vi' ? 'Nộ khí' : 'Rage'}</span><span className="sm:hidden">RGE</span>
+                  </div>
+                  <div className="flex-1 h-1.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full bg-orange-500 transition-all duration-200 ${heroRage >= 100 ? 'animate-pulse' : ''}`}
+                      style={{ width: `${Math.min(100, Math.max(0, Math.floor(heroRage)))}%` }}
+                    />
+                  </div>
+                  <div className={`w-[45px] sm:w-[65px] text-right font-extrabold text-[10px] font-display shrink-0 flex justify-end ${heroRage >= 100 ? 'text-orange-400 animate-pulse font-black' : 'text-slate-500'}`}>
+                    {heroRage}%
+                  </div>
                 </div>
               </div>
 
-              {/* Rage Row */}
-              <div className="flex items-center gap-2 text-xs">
-                <div className="w-[42px] sm:w-[70px] font-bold text-orange-400 flex items-center gap-1 shrink-0">
-                  ⚡ <span className="hidden sm:inline">{language === 'vi' ? 'Nộ khí' : 'Rage'}</span><span className="sm:hidden">RGE</span>
+              {/* Monster Health & Rage */}
+              <div className="space-y-2">
+                {/* HP Row */}
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-[42px] sm:w-[70px] font-bold text-red-400 flex items-center gap-1 shrink-0">
+                    👹 <span className="hidden sm:inline">{battleMode === 'guild_boss' ? 'Raid Boss' : t('quest_target_defeat')}</span><span className="sm:hidden">{battleMode === 'guild_boss' ? 'BOSS' : 'MOB'}</span>
+                  </div>
+                  <div className="flex-1 h-2 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-red-500 transition-all duration-200"
+                      style={{ width: `${Math.min(100, Math.max(0, Math.floor((monsterHp / monsterMaxHp) * 100)))}%` }}
+                    />
+                  </div>
+                  <div className="w-[45px] sm:w-[65px] text-right font-extrabold text-[11px] text-red-300 font-display shrink-0 flex justify-end">
+                    {monsterHp}/{monsterMaxHp}
+                  </div>
                 </div>
-                <div className="flex-1 h-1.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full bg-orange-500 transition-all duration-200 ${heroRage >= 100 ? 'animate-pulse' : ''}`}
-                    style={{ width: `${Math.min(100, Math.max(0, Math.floor(heroRage)))}%` }}
-                  />
-                </div>
-                <div className={`w-[45px] sm:w-[65px] text-right font-extrabold text-[10px] font-display shrink-0 flex justify-end ${heroRage >= 100 ? 'text-orange-400 animate-pulse font-black' : 'text-slate-500'}`}>
-                  {heroRage}%
+
+                {/* Rage Row */}
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-[42px] sm:w-[70px] font-bold text-orange-400 flex items-center gap-1 shrink-0">
+                    ⚡ <span className="hidden sm:inline">{language === 'vi' ? 'Nộ khí' : 'Rage'}</span><span className="sm:hidden">RGE</span>
+                  </div>
+                  <div className="flex-1 h-1.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full bg-orange-500 transition-all duration-200 ${monsterRage >= 100 ? 'animate-pulse' : ''}`}
+                      style={{ width: `${Math.min(100, Math.max(0, Math.floor(monsterRage)))}%` }}
+                    />
+                  </div>
+                  <div className={`w-[45px] sm:w-[65px] text-right font-extrabold text-[10px] font-display shrink-0 flex justify-end ${monsterRage >= 100 ? 'text-orange-400 animate-pulse font-black' : 'text-slate-500'}`}>
+                    {monsterRage}%
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Monster Health & Rage */}
-            <div className="space-y-2">
-              {/* HP Row */}
-              <div className="flex items-center gap-2 text-xs">
-                <div className="w-[42px] sm:w-[70px] font-bold text-red-400 flex items-center gap-1 shrink-0">
-                  👹 <span className="hidden sm:inline">{battleMode === 'guild_boss' ? 'Raid Boss' : t('quest_target_defeat')}</span><span className="sm:hidden">{battleMode === 'guild_boss' ? 'BOSS' : 'MOB'}</span>
-                </div>
-                <div className="flex-1 h-2 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-red-500 transition-all duration-200"
-                    style={{ width: `${Math.min(100, Math.max(0, Math.floor((monsterHp / monsterMaxHp) * 100)))}%` }}
-                  />
-                </div>
-                <div className="w-[45px] sm:w-[65px] text-right font-extrabold text-[11px] text-red-300 font-display shrink-0 flex justify-end">
-                  {monsterHp}/{monsterMaxHp}
-                </div>
+            {/* Potion controls row */}
+            <div className="border-t border-slate-850 pt-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => usePotion()}
+                  disabled={(hero.potions ?? 0) <= 0 || potionCooldownRemaining > 0 || isDead}
+                  className={`relative overflow-hidden px-3.5 py-1.5 rounded-xl font-extrabold uppercase transition select-none flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
+                    potionCooldownRemaining > 0
+                      ? 'bg-slate-900 border border-slate-800 text-slate-500'
+                      : (hero.potions ?? 0) > 0
+                      ? (heroHp / heroMaxHp < 0.4 ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md animate-pulse border border-emerald-500' : 'bg-slate-850 hover:bg-slate-800 text-emerald-400 border border-slate-800')
+                      : 'bg-slate-900 border border-slate-950 text-slate-600'
+                  }`}
+                >
+                  {/* Cooldown progress bar overlay */}
+                  {potionCooldownRemaining > 0 && (
+                    <div 
+                      className="absolute inset-y-0 left-0 bg-slate-800/30 transition-all duration-100 ease-linear"
+                      style={{ width: `${(potionCooldownRemaining / 15) * 100}%` }}
+                    />
+                  )}
+                  <span className="relative z-10 text-sm">🧪</span>
+                  <span className="relative z-10 text-[9px] sm:text-xs">
+                    {potionCooldownRemaining > 0 
+                      ? (language === 'vi' ? `Hồi chiêu: ${Math.ceil(potionCooldownRemaining)}s` : `CD: ${Math.ceil(potionCooldownRemaining)}s`)
+                      : language === 'vi' 
+                      ? `Hồi HP (🧪 x${hero.potions ?? 5})` 
+                      : `Heal HP (🧪 x${hero.potions ?? 5})`
+                    }
+                  </span>
+                </button>
               </div>
 
-              {/* Rage Row */}
-              <div className="flex items-center gap-2 text-xs">
-                <div className="w-[42px] sm:w-[70px] font-bold text-orange-400 flex items-center gap-1 shrink-0">
-                  ⚡ <span className="hidden sm:inline">{language === 'vi' ? 'Nộ khí' : 'Rage'}</span><span className="sm:hidden">RGE</span>
-                </div>
-                <div className="flex-1 h-1.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full bg-orange-500 transition-all duration-200 ${monsterRage >= 100 ? 'animate-pulse' : ''}`}
-                    style={{ width: `${Math.min(100, Math.max(0, Math.floor(monsterRage)))}%` }}
-                  />
-                </div>
-                <div className={`w-[45px] sm:w-[65px] text-right font-extrabold text-[10px] font-display shrink-0 flex justify-end ${monsterRage >= 100 ? 'text-orange-400 animate-pulse font-black' : 'text-slate-500'}`}>
-                  {monsterRage}%
-                </div>
-              </div>
+              {/* Auto use checkbox */}
+              <label className="flex items-center gap-2 cursor-pointer select-none text-[9.5px] sm:text-xs text-slate-450 hover:text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={hero.autoUsePotion ?? false}
+                  onChange={() => toggleAutoUsePotion()}
+                  disabled={isDead}
+                  className="w-3.5 h-3.5 rounded border border-slate-750 bg-slate-950 text-purple-600 focus:ring-purple-500 focus:ring-offset-slate-900 transition-all accent-purple-600 cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                />
+                <span className="font-semibold">
+                  {language === 'vi' ? 'Tự dùng bình máu khi HP < 35%' : 'Auto use potion when HP < 35%'}
+                </span>
+              </label>
             </div>
           </div>
         </section>
