@@ -101,7 +101,7 @@ export const DungeonTab: React.FC = () => {
               : 'bg-slate-950/45 border-slate-850 hover:bg-slate-900/40 text-slate-450 hover:text-slate-300'
           }`}
         >
-          🏰 {language === 'vi' ? 'Khiêu chiến Phó bản' : 'Challenge Dungeons'}
+          💀 {language === 'vi' ? 'Khiêu chiến Phó bản' : 'Challenge Dungeons'}
         </button>
         <button
           onClick={() => setSubTab('fuse')}

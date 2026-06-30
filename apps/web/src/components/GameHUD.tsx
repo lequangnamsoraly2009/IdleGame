@@ -112,7 +112,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
       case 'shop': return '💰';
       case 'summon': return '🎁';
       case 'guide': return '📖';
-      case 'dungeon': return '🏰';
+      case 'dungeon': return '💀';
     }
   };
 
