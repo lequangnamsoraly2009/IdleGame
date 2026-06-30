@@ -448,51 +448,35 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
             </div>
 
             {/* Potion controls row */}
-            <div className="border-t border-slate-850 pt-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => usePotion()}
-                  disabled={(hero.potions ?? 0) <= 0 || potionCooldownRemaining > 0 || isDead}
-                  className={`relative overflow-hidden px-3.5 py-1.5 rounded-xl font-extrabold uppercase transition select-none flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
-                    potionCooldownRemaining > 0
-                      ? 'bg-slate-900 border border-slate-800 text-slate-500'
-                      : (hero.potions ?? 0) > 0
-                      ? (heroHp / heroMaxHp < 0.4 ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md animate-pulse border border-emerald-500' : 'bg-slate-850 hover:bg-slate-800 text-emerald-400 border border-slate-800')
-                      : 'bg-slate-900 border border-slate-950 text-slate-600'
-                  }`}
-                >
-                  {/* Cooldown progress bar overlay */}
-                  {potionCooldownRemaining > 0 && (
-                    <div 
-                      className="absolute inset-y-0 left-0 bg-slate-800/30 transition-all duration-100 ease-linear"
-                      style={{ width: `${(potionCooldownRemaining / 15) * 100}%` }}
-                    />
-                  )}
-                  <span className="relative z-10 text-sm">🧪</span>
-                  <span className="relative z-10 text-[9px] sm:text-xs">
-                    {potionCooldownRemaining > 0 
-                      ? (language === 'vi' ? `Hồi chiêu: ${Math.ceil(potionCooldownRemaining)}s` : `CD: ${Math.ceil(potionCooldownRemaining)}s`)
-                      : language === 'vi' 
-                      ? `Hồi HP (🧪 x${hero.potions ?? 5})` 
-                      : `Heal HP (🧪 x${hero.potions ?? 5})`
-                    }
-                  </span>
-                </button>
-              </div>
-
-              {/* Auto use checkbox */}
-              <label className="flex items-center gap-2 cursor-pointer select-none text-[9.5px] sm:text-xs text-slate-450 hover:text-slate-200">
-                <input
-                  type="checkbox"
-                  checked={hero.autoUsePotion ?? false}
-                  onChange={() => toggleAutoUsePotion()}
-                  disabled={isDead}
-                  className="w-3.5 h-3.5 rounded border border-slate-750 bg-slate-950 text-purple-600 focus:ring-purple-500 focus:ring-offset-slate-900 transition-all accent-purple-600 cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
-                />
-                <span className="font-semibold">
-                  {language === 'vi' ? 'Tự dùng bình máu khi HP < 35%' : 'Auto use potion when HP < 35%'}
+            <div className="border-t border-slate-850 pt-2.5 flex items-center justify-center text-xs">
+              <button
+                onClick={() => usePotion()}
+                disabled={(hero.potions ?? 0) <= 0 || potionCooldownRemaining > 0 || isDead}
+                className={`relative overflow-hidden px-4 py-2 w-full max-w-[260px] rounded-xl font-extrabold uppercase transition select-none flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed ${
+                  potionCooldownRemaining > 0
+                    ? 'bg-slate-900 border border-slate-800 text-slate-500'
+                    : (hero.potions ?? 0) > 0
+                    ? (heroHp / heroMaxHp < 0.4 ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md animate-pulse border border-emerald-500' : 'bg-slate-850 hover:bg-slate-800 text-emerald-455 border border-slate-800')
+                    : 'bg-slate-900 border border-slate-950 text-slate-600'
+                }`}
+              >
+                {/* Cooldown progress bar overlay */}
+                {potionCooldownRemaining > 0 && (
+                  <div 
+                    className="absolute inset-y-0 left-0 bg-slate-800/30 transition-all duration-100 ease-linear"
+                    style={{ width: `${(potionCooldownRemaining / 15) * 100}%` }}
+                  />
+                )}
+                <span className="relative z-10 text-sm">🧪</span>
+                <span className="relative z-10 text-[10px] sm:text-xs">
+                  {potionCooldownRemaining > 0 
+                    ? (language === 'vi' ? `Hồi chiêu: ${Math.ceil(potionCooldownRemaining)}s` : `CD: ${Math.ceil(potionCooldownRemaining)}s`)
+                    : language === 'vi' 
+                    ? `Sử dụng Bình HP (🧪 x${hero.potions ?? 5})` 
+                    : `Use HP Potion (🧪 x${hero.potions ?? 5})`
+                  }
                 </span>
-              </label>
+              </button>
             </div>
           </div>
         </section>
