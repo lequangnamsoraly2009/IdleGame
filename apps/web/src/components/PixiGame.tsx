@@ -5,13 +5,46 @@ import { generateMonsterForStage } from '@idle-rpg/shared';
 import { useTranslation } from '../utils/i18n';
 import { useLanguageStore } from '../stores/languageStore';
 
+const DUNGEON_BOSSES_TEMPLATES: Record<string, {
+  nameVi: string;
+  nameEn: string;
+  maxHp: number;
+  attack: number;
+  defense: number;
+  speed: number;
+}> = {
+  gem_1: { nameVi: 'Vệ Binh Golem', nameEn: 'Guardian Golem', maxHp: 1200, attack: 22, defense: 12, speed: 80 },
+  gem_2: { nameVi: 'Ma Thần Lửa Efreet', nameEn: 'Fire Demon Efreet', maxHp: 4500, attack: 56, defense: 26, speed: 105 },
+  gem_3: { nameVi: 'Rồng Bóng Tối Cổ Đại', nameEn: 'Ancient Shadow Dragon', maxHp: 18000, attack: 175, defense: 75, speed: 110 },
+  gold_1: { nameVi: 'Thủ Lĩnh Goblin', nameEn: 'Goblin Chieftain', maxHp: 1000, attack: 20, defense: 10, speed: 85 },
+  gold_2: { nameVi: 'Vua Goblin', nameEn: 'Goblin King', maxHp: 4000, attack: 50, defense: 22, speed: 95 },
+  gold_3: { nameVi: 'Rồng Vàng Hoàng Kim', nameEn: 'Golden Dragon', maxHp: 16000, attack: 160, defense: 70, speed: 105 },
+  diamond_1: { nameVi: 'Nhện Tinh Thể', nameEn: 'Crystal Spider', maxHp: 1500, attack: 28, defense: 15, speed: 90 },
+  diamond_2: { nameVi: 'Golem Tinh Thể', nameEn: 'Gemstone Golem', maxHp: 5500, attack: 68, defense: 32, speed: 95 },
+  diamond_3: { nameVi: 'Quái Thú Chimera Tinh Thể', nameEn: 'Diamond Chimera', maxHp: 22000, attack: 210, defense: 90, speed: 105 },
+  gear_1: { nameVi: 'Hiệp Sĩ Quỷ', nameEn: 'Undead Knight', maxHp: 1400, attack: 24, defense: 16, speed: 75 },
+  gear_2: { nameVi: 'Cự Ma Phong Ấn', nameEn: 'Sealed Archdemon', maxHp: 5000, attack: 60, defense: 30, speed: 85 },
+  gear_3: { nameVi: 'Vệ Binh Cổ Tự', nameEn: 'Relic Sentinel', maxHp: 20000, attack: 190, defense: 80, speed: 95 }
+};
+
 export const PixiGame: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
+  const battleMode = useGameStore(state => state.battleMode);
   
   const activeStage = useGameStore(state => state.saveData?.activeStage || 1);
+  const activeDungeonId = useGameStore(state => state.activeDungeonId);
   const { isDead, reviveCostGold, reviveCostDiamonds, reviveHero, saveData } = useGameStore();
+
+  const getDungeonBackgroundUrl = (dungeonId: string | null) => {
+    if (!dungeonId) return '/dungeon_ruins.png';
+    if (dungeonId.startsWith('gem')) return '/dungeon_cave.png';
+    if (dungeonId.startsWith('gold')) return '/dungeon_vault.png';
+    if (dungeonId.startsWith('diamond')) return '/dungeon_sky.png';
+    if (dungeonId.startsWith('gear')) return '/dungeon_ruins.png';
+    return '/dungeon_ruins.png';
+  };
 
   const getBackgroundUrl = (stage: number) => {
     const blockIndex = Math.floor((stage - 1) / 5);
@@ -90,6 +123,12 @@ export const PixiGame: React.FC = () => {
             break;
           case 'POTION_USED':
             store.onPotionUsedByEngine(event.amount, event.didAutoBuy);
+            break;
+          case 'DUNGEON_VICTORY':
+            store.onDungeonVictory(event.dungeonId);
+            break;
+          case 'DUNGEON_DEFEAT':
+            store.triggerDungeonDefeat();
             break;
         }
       });
@@ -212,6 +251,31 @@ export const PixiGame: React.FC = () => {
               ];
 
               engine.startGuildRaid(voidBehemothTemplate, guildMembers);
+            } else if (state.battleMode === 'dungeon') {
+              const dungeonId = state.activeDungeonId || 'gem_1';
+              const bossInfo = DUNGEON_BOSSES_TEMPLATES[dungeonId] || DUNGEON_BOSSES_TEMPLATES.gem_1;
+              const currentLang = useLanguageStore.getState().language;
+              
+              const bossTemplate = {
+                id: dungeonId,
+                name: currentLang === 'vi' ? bossInfo.nameVi : bossInfo.nameEn,
+                level: dungeonId.endsWith('_3') ? 45 : dungeonId.endsWith('_2') ? 25 : 10,
+                baseStats: {
+                  maxHp: bossInfo.maxHp,
+                  attack: bossInfo.attack,
+                  defense: bossInfo.defense,
+                  speed: bossInfo.speed,
+                  critRate: 0.1,
+                  critDamage: 1.5
+                },
+                expReward: 100,
+                goldRewardRange: [0, 0] as [number, number],
+                dropChance: 0,
+                dropPool: []
+              };
+              engine.startDungeonBattle(bossTemplate);
+            } else if (lastBattleMode === 'dungeon' && state.battleMode === 'stage') {
+              engine.exitDungeonMode();
             } else {
               engine.exitGuildRaid();
             }
@@ -281,7 +345,7 @@ export const PixiGame: React.FC = () => {
       {/* Dynamic Environment Background Image */}
       <div 
         className="absolute inset-0 w-full h-full bg-cover bg-bottom transition-all duration-700 ease-in-out opacity-55 pointer-events-none"
-        style={{ backgroundImage: `url(${getBackgroundUrl(activeStage)})` }}
+        style={{ backgroundImage: `url(${battleMode === 'dungeon' ? getDungeonBackgroundUrl(activeDungeonId) : getBackgroundUrl(activeStage)})` }}
       />
       {/* Dark overlay for contrast */}
       <div className="absolute inset-0 bg-slate-950/20 pointer-events-none" />

@@ -438,7 +438,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
 
   // UI Render 3: Authenticated Admin -> Show Quest CMS Panel
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-300 flex flex-col font-sans relative overflow-hidden">
+    <div className="h-screen bg-slate-950 text-slate-300 flex flex-col font-sans relative overflow-hidden">
       {/* Background radial glow */}
       <div className="absolute w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] top-1/4 left-1/4 pointer-events-none" />
       <div className="absolute w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[80px] bottom-1/4 right-1/4 pointer-events-none" />

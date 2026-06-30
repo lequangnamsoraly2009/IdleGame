@@ -8,6 +8,9 @@ import { GuildTab } from './tabs/GuildTab';
 import { ShopTab } from './tabs/ShopTab';
 import { SummonTab } from './tabs/SummonTab';
 import { GuideTab } from './tabs/GuideTab';
+import { DungeonTab } from './tabs/DungeonTab';
+import { ForgeTab } from './tabs/ForgeTab';
+import { DungeonBattleModal } from './DungeonBattleModal';
 import { useTranslation, getTranslatedQuestTitle } from '../utils/i18n';
 import { useLanguageStore } from '../stores/languageStore';
 import { ItemInfoModal } from './ItemInfoModal';
@@ -16,6 +19,8 @@ import { calculateHeroCP } from '@idle-rpg/shared';
 
 const LEVEL_LOCKS = {
   hero: 1,
+  dungeon: 5,
+  forge: 5,
   quest: 3,
   shop: 5,
   guild: 10
@@ -53,7 +58,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     toggleAutoDismantleUncommon,
     toggleAutoDismantleRare,
     toggleAutoBuyPotions,
-    toastMessage
+    toastMessage,
+    dungeonLoading
   } = useGameStore();
 
   const { t } = useTranslation();
@@ -81,6 +87,14 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     }
   }, [saveData?.hero?.level, activeTab, setActiveTab]);
 
+  // Redirect to Home tab and close mobile overlay modal when dungeon battle begins
+  React.useEffect(() => {
+    if (battleMode === 'dungeon') {
+      setActiveTab('home');
+      setIsMobilePanelOpen(false);
+    }
+  }, [battleMode, setActiveTab, setIsMobilePanelOpen]);
+
   if (!saveData) return null;
 
   const { hero, activeStage, currentWave, autoAdvance } = saveData;
@@ -100,7 +114,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
       default: return 'text-slate-300';
     }
   };
-  const getTabIconOnly = (tab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide') => {
+  const getTabIconOnly = (tab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide' | 'dungeon' | 'forge') => {
     switch (tab) {
       case 'home': return '🏠';
       case 'hero': return '👤';
@@ -110,6 +124,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
       case 'shop': return '💰';
       case 'summon': return '🎁';
       case 'guide': return '📖';
+      case 'dungeon': return '💀';
+      case 'forge': return '⚒️';
     }
   };
 
@@ -122,6 +138,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
       case 'shop': return <ShopTab />;
       case 'summon': return <SummonTab />;
       case 'guide': return <GuideTab />;
+      case 'dungeon': return <DungeonTab />;
+      case 'forge': return <ForgeTab />;
       default: return <HeroTab />;
     }
   };
@@ -373,6 +391,10 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                     </>
                   )}
                 </>
+              ) : battleMode === 'dungeon' ? (
+                <span className="font-extrabold text-blue-400 animate-pulse uppercase tracking-wider">
+                  {language === 'vi' ? '🏰 THỬ THÁCH PHÓ BẢN' : '🏰 DUNGEON TRIAL'}
+                </span>
               ) : (
                 <span className="font-extrabold text-red-400 animate-pulse uppercase tracking-wider">
                   {language === 'vi' ? '🔥 BOSS BANG HỘI' : '🔥 GUILD RAID'}
@@ -393,6 +415,18 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                   className="bg-red-600/90 hover:bg-red-500 border border-red-500 text-white font-extrabold text-[9px] uppercase tracking-wider py-1.5 px-3.5 rounded-xl shadow-lg active:scale-95 transition cursor-pointer flex items-center gap-1"
                 >
                   ⚔️ {language === 'vi' ? 'THOÁT BOSS' : 'EXIT BOSS'}
+                </button>
+              </div>
+            )}
+
+            {/* Dungeon Trial Retreat Button */}
+            {battleMode === 'dungeon' && (
+              <div className="absolute top-2.5 left-2.5 z-20">
+                <button
+                  onClick={() => useGameStore.getState().onDungeonDefeat()}
+                  className="bg-red-600/90 hover:bg-red-500 border border-red-500 text-white font-extrabold text-[9px] uppercase tracking-wider py-1.5 px-3.5 rounded-xl shadow-lg active:scale-95 transition cursor-pointer flex items-center gap-1"
+                >
+                  🏳️ {language === 'vi' ? 'THOÁT PHÓ BẢN' : 'RETREAT'}
                 </button>
               </div>
             )}
@@ -460,7 +494,12 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                 {/* HP Row */}
                 <div className="flex items-center gap-2 text-xs">
                   <div className="w-[42px] sm:w-[70px] font-bold text-red-400 flex items-center gap-1 shrink-0">
-                    👹 <span className="hidden sm:inline">{battleMode === 'guild_boss' ? 'Raid Boss' : t('quest_target_defeat')}</span><span className="sm:hidden">{battleMode === 'guild_boss' ? 'BOSS' : 'MOB'}</span>
+                    👹 <span className="hidden sm:inline">
+                      {battleMode === 'guild_boss' ? 'Raid Boss' : battleMode === 'dungeon' ? (language === 'vi' ? 'Boss Phó Bản' : 'Dungeon Boss') : t('quest_target_defeat')}
+                    </span>
+                    <span className="sm:hidden">
+                      {battleMode === 'guild_boss' ? 'BOSS' : battleMode === 'dungeon' ? 'BOSS' : 'MOB'}
+                    </span>
                   </div>
                   <div className="flex-1 h-2 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
                     <div
@@ -592,7 +631,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
             >
               🏠 {language === 'vi' ? 'Trang chủ' : 'Home'}
             </button>
-            {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => {
+            {(['hero', 'dungeon', 'forge', 'quest', 'guild', 'shop'] as const).map(tab => {
               const locked = hero.level < LEVEL_LOCKS[tab];
               return (
                 <button
@@ -652,7 +691,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
         >
           🏠
         </button>
-        {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => {
+        {(['hero', 'dungeon', 'forge', 'quest', 'guild', 'shop'] as const).map(tab => {
           const locked = hero.level < LEVEL_LOCKS[tab];
           return (
             <button
@@ -696,6 +735,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
               {activeTab === 'shop' && t('tab_shop')}
               {activeTab === 'summon' && t('tab_summon')}
               {activeTab === 'guide' && t('tab_guide')}
+              {activeTab === 'dungeon' && (language === 'vi' ? '🏰 Phó Bản' : '🏰 Dungeon')}
+              {activeTab === 'forge' && (language === 'vi' ? '⚒️ Lò Rèn' : '⚒️ Forge')}
             </h3>
 
             <button
@@ -726,7 +767,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
             >
               🏠
             </button>
-            {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => {
+            {(['hero', 'dungeon', 'forge', 'quest', 'guild', 'shop'] as const).map(tab => {
               const locked = hero.level < LEVEL_LOCKS[tab];
               return (
                 <button
@@ -939,6 +980,38 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
       {/* Gacha Summon Reveal Overlay */}
       <SummonResultOverlay />
+
+      {/* Dungeon Arena Battle Overlay */}
+      {battleMode === 'dungeon' && <DungeonBattleModal />}
+
+      {/* Dungeon Teleport Loading Screen */}
+      {dungeonLoading && (
+        <div className="fixed inset-0 bg-slate-950/95 z-[99] flex flex-col items-center justify-center select-none animate-fade-in">
+          <div className="absolute w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] animate-pulse pointer-events-none" />
+          
+          <div className="text-center relative z-10 space-y-6">
+            {/* Animated warp portal effect */}
+            <div className="inline-block p-6 bg-indigo-500/10 border-2 border-indigo-500/35 rounded-3xl animate-spin duration-[6s] relative">
+              <span className="text-5xl block">🌀</span>
+              <div className="absolute inset-0 border border-dashed border-indigo-400 rounded-3xl animate-ping opacity-35" />
+            </div>
+            
+            <div>
+              <h2 className="text-xl font-black tracking-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-400 to-purple-400 uppercase font-display drop-shadow-[0_0_8px_rgba(99,102,241,0.25)]">
+                {language === 'vi' ? 'ĐANG VÀO PHÓ BẢN...' : 'ENTERING DUNGEON...'}
+              </h2>
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black mt-2">
+                {language === 'vi' ? 'Đang dịch chuyển đến sảnh khiêu chiến...' : 'Teleporting to challenge chambers...'}
+              </p>
+            </div>
+
+            {/* Progress slider bar */}
+            <div className="w-56 h-1 bg-slate-900 border border-slate-850 rounded-full overflow-hidden mx-auto relative">
+              <div className="h-full bg-indigo-500 rounded-full animate-pulse w-full" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

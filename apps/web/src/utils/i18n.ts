@@ -45,6 +45,8 @@ export const translations = {
     tab_shop: "💰 Cửa hàng",
     tab_summon: "🎁 Triệu hồi",
     tab_guide: "📖 Sổ tay",
+    tab_dungeon: "🏰 Phó Bản",
+    tab_forge: "⚒️ Lò Rèn",
     hud_control_deck: "BẢNG ĐIỀU KHIỂN",
 
     // Hero Tab
@@ -187,7 +189,7 @@ export const translations = {
     item_t_rng_asura: "Nhẫn Quyền Lực Asura",
 
     // Quest Tab
-    active_bounties: "📜 Lệnh Truy Nã",
+    active_bounties: "📜 Nhiệm vụ",
     progress_label: "Tiến trình",
     claim_btn: "Nhận Thưởng",
     no_quests: "Không có nhiệm vụ hoạt động nào.",
@@ -397,6 +399,8 @@ export const translations = {
     tab_shop: "💰 Shop",
     tab_summon: "🎁 Summon",
     tab_guide: "📖 Bestiary",
+    tab_dungeon: "🏰 Dungeon",
+    tab_forge: "⚒️ Forge",
     hud_control_deck: "HUD Control Deck",
 
     // Hero Tab
@@ -458,7 +462,7 @@ export const translations = {
     class_restriction_error: "This equipment is restricted to character class {class}!",
 
     // Quest Tab
-    active_bounties: "📜 Active Bounties",
+    active_bounties: "📜 Quests",
     progress_label: "Progress",
     claim_btn: "Claim Reward",
     no_quests: "No active quest bounties.",

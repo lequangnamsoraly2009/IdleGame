@@ -25,11 +25,18 @@ interface CombatLogEntry {
 interface GameState {
   user: UserSession | null;
   saveData: GameSaveData | null;
-  activeTab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide';
+  activeTab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide' | 'dungeon' | 'forge';
+  activeDungeonId: string | null;
+  dungeonRewardGems: Record<string, number> | null;
+  dungeonRewardGold: number | null;
+  dungeonRewardDiamonds: number | null;
+  dungeonRewardItems: EquipmentItem[] | null;
   isLoading: boolean;
   activeInspectItemId: string | null;
   activeSummonResult: EquipmentItem[] | null;
   toastMessage: string | null;
+  dungeonLoading: boolean;
+  dungeonResult: 'victory' | 'defeat' | null;
   
   // Realtime Battle HUD healths (synced with Pixi tick updates)
   heroHp: number;
@@ -39,7 +46,7 @@ interface GameState {
   monsterMaxHp: number;
   monsterRage: number;
   monsterName: string;
-  battleMode: 'stage' | 'guild_boss';
+  battleMode: 'stage' | 'guild_boss' | 'dungeon';
 
   // Hero Revival System State
   isDead: boolean;
@@ -69,7 +76,7 @@ interface GameState {
   startNextBattle: () => void;
   
   // Gameplay Actions
-  setActiveTab: (tab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide') => void;
+  setActiveTab: (tab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide' | 'dungeon' | 'forge') => void;
   setActiveInspectItemId: (itemId: string | null) => void;
   upgradeEquipment: (itemId: string) => void;
   equipEquipment: (itemId: string) => void;
@@ -88,9 +95,18 @@ interface GameState {
   changeHeroClass: (newClass: 'knight' | 'mage' | 'assassin') => void;
   renameHero: (newName: string) => void;
   identifyEquipment: (itemId: string) => void;
-  insertGem: (itemId: string, gemType: string, socketIdx: number) => void;
   startGuildRaid: () => void;
   exitGuildRaid: () => void;
+  insertGem: (itemId: string, gemKey: string, socketIdx: number) => void;
+  removeGem: (itemId: string, socketIdx: number) => void;
+  enterDungeon: (dungeonId: string) => void;
+  combineGems: (gemType: string, tier: number) => void;
+  buyDungeonTicket: () => void;
+  onDungeonVictory: (dungeonId: string) => void;
+  onDungeonDefeat: () => void;
+  claimDungeonRewards: () => void;
+  triggerDungeonDefeat: () => void;
+  usePotionInDungeon: () => boolean;
   addLogMessage: (text: string, category: 'combat' | 'loot' | 'system') => void;
   potionCooldownRemaining: number;
   setPotionCooldownRemaining: (sec: number) => void;
@@ -198,11 +214,15 @@ export const useGameStore = create<GameState>((set, get) => {
         newCount += amount;
       }
 
+      const wasCompleted = q.completed;
       const completed = newCount >= q.targetCount;
+      const completedAt = (completed && !wasCompleted) ? Date.now() : q.completedAt;
+
       return {
         ...q,
         currentCount: Math.min(q.targetCount, newCount),
-        completed
+        completed,
+        completedAt
       };
     });
   };
@@ -211,10 +231,17 @@ export const useGameStore = create<GameState>((set, get) => {
     user: null,
     saveData: null,
     activeTab: 'hero',
+    activeDungeonId: null,
+    dungeonRewardGems: null,
+    dungeonRewardGold: null,
+    dungeonRewardDiamonds: null,
+    dungeonRewardItems: null,
     isLoading: true,
     activeInspectItemId: null,
     activeSummonResult: null,
     toastMessage: null,
+    dungeonLoading: false,
+    dungeonResult: null,
 
     // Combat HUD state
     heroHp: 100,
@@ -265,6 +292,8 @@ export const useGameStore = create<GameState>((set, get) => {
               if (data.hero.autoDismantleUncommon === undefined) data.hero.autoDismantleUncommon = false;
               if (data.hero.autoDismantleRare === undefined) data.hero.autoDismantleRare = false;
               if (data.hero.autoBuyPotions === undefined) data.hero.autoBuyPotions = false;
+              if (data.hero.gems === undefined) data.hero.gems = {};
+              if (data.hero.dungeonTickets === undefined) data.hero.dungeonTickets = 3;
 
               // Synchronize quests from templates
               try {
@@ -1316,7 +1345,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       const quests = saveData.quests.map(q => {
         if (q.id === questId) {
-          return { ...q, claimed: true };
+          return { ...q, claimed: true, claimedAt: Date.now() };
         }
         return q;
       });
@@ -1636,7 +1665,7 @@ export const useGameStore = create<GameState>((set, get) => {
       autoSave(updatedSave);
     },
 
-    insertGem: (itemId, gemType, socketIdx) => {
+    insertGem: (itemId, gemKey, socketIdx) => {
       const { saveData } = get();
       if (!saveData) return;
 
@@ -1645,37 +1674,596 @@ export const useGameStore = create<GameState>((set, get) => {
 
       if (!item.sockets || socketIdx < 0 || socketIdx >= item.sockets.length) return;
 
-      // Cost to slot a gem is 100 gold
-      const cost = 100;
-      if (saveData.hero.gold < cost) {
-        get().addLogMessage(tStore('insufficient_gold') + ` (${cost} Vàng)`, 'system');
+      const hero = { ...saveData.hero };
+      const heroGems = { ...(hero.gems || {}) };
+
+      // Check if player actually owns this gem
+      const quantity = heroGems[gemKey] || 0;
+      if (quantity < 1) {
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? '❌ KHÔNG ĐỦ NGỌC: Bạn không sở hữu ngọc này trong kho!'
+            : '❌ INSUFFICIENT GEMS: You do not own this gem in your inventory!',
+          'system'
+        );
         return;
       }
 
-      const hero = { ...saveData.hero };
+      // Cost to slot a gem is 100 gold
+      const cost = 100;
+      if (hero.gold < cost) {
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? `❌ KHÔNG ĐỦ VÀNG: Cần ${cost} Vàng để khảm!`
+            : `❌ INSUFFICIENT GOLD: Need ${cost} Gold to slot!`,
+          'system'
+        );
+        return;
+      }
+
       hero.gold -= cost;
+      
+      // Deduct gem from inventory
+      heroGems[gemKey] = quantity - 1;
+
+      // If socket already had a gem, return it to the inventory
+      const oldGem = item.sockets[socketIdx];
+      if (oldGem) {
+        heroGems[oldGem] = (heroGems[oldGem] || 0) + 1;
+      }
+
+      hero.gems = heroGems;
 
       const inventory = saveData.inventory.map(i => {
         if (i.id === itemId) {
           const newSockets = [...(i.sockets || [])];
-          newSockets[socketIdx] = gemType;
+          newSockets[socketIdx] = gemKey;
           return { ...i, sockets: newSockets };
         }
         return i;
       });
 
-      // Recalculate hero stats if the item is equipped!
+      // Recalculate stats
       const equipped = inventory.filter(i => i.equipped);
       hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades);
       hero.currentHp = Math.min(hero.currentHp, hero.currentStats.maxHp);
 
-      const gemName = gemType === 'ruby' ? 'Ruby' : gemType === 'emerald' ? 'Emerald' : 'Topaz';
-      get().addLogMessage(tStore('log_gem_inserted', { gem: gemName }), 'system');
+      const [type, tier] = gemKey.split('_');
+      const gemName = type === 'ruby' ? 'Hồng Ngọc' : type === 'emerald' ? 'Lục Bảo' : type === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
+      get().addLogMessage(
+        useLanguageStore.getState().language === 'vi'
+          ? `💎 KHẢM NGỌC: Khảm thành công ${gemName} Cấp ${tier} vào trang bị!`
+          : `💎 GEM SLOT: Successfully slotted ${type.toUpperCase()} Gem Tier ${tier}!`,
+        'system'
+      );
+
+      get().showToast(
+        useLanguageStore.getState().language === 'vi'
+          ? `🎉 Khảm ${gemName} Cấp ${tier} thành công!`
+          : `🎉 Slotted ${type.toUpperCase()} Gem Tier ${tier} successfully!`
+      );
 
       const updatedSave: GameSaveData = {
         ...saveData,
         hero,
         inventory,
+        lastSavedAt: Date.now()
+      };
+
+      autoSave(updatedSave);
+    },
+
+    removeGem: (itemId, socketIdx) => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const item = saveData.inventory.find(i => i.id === itemId);
+      if (!item) return;
+
+      if (!item.sockets || socketIdx < 0 || socketIdx >= item.sockets.length) return;
+
+      const oldGem = item.sockets[socketIdx];
+      if (!oldGem) return;
+
+      // Fee is free or 50 Gold, let's make it 50 Gold
+      const cost = 50;
+      const hero = { ...saveData.hero };
+      if (hero.gold < cost) {
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? `❌ KHÔNG ĐỦ VÀNG: Cần ${cost} Vàng để tháo ngọc!`
+            : `❌ INSUFFICIENT GOLD: Need ${cost} Gold to unsocket!`,
+          'system'
+        );
+        return;
+      }
+
+      hero.gold -= cost;
+
+      // Return gem to inventory
+      const heroGems = { ...(hero.gems || {}) };
+      heroGems[oldGem] = (heroGems[oldGem] || 0) + 1;
+      hero.gems = heroGems;
+
+      const inventory = saveData.inventory.map(i => {
+        if (i.id === itemId) {
+          const newSockets = [...(i.sockets || [])];
+          newSockets[socketIdx] = null;
+          return { ...i, sockets: newSockets };
+        }
+        return i;
+      });
+
+      // Recalculate stats
+      const equipped = inventory.filter(i => i.equipped);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades);
+      hero.currentHp = Math.min(hero.currentHp, hero.currentStats.maxHp);
+
+      const [type, tier] = oldGem.split('_');
+      const gemName = type === 'ruby' ? 'Hồng Ngọc' : type === 'emerald' ? 'Lục Bảo' : type === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
+      
+      get().addLogMessage(
+        useLanguageStore.getState().language === 'vi'
+          ? `💎 THÁO NGỌC: Tháo thành công ${gemName} Cấp ${tier} khỏi trang bị.`
+          : `💎 GEM REMOVED: Successfully unsocketed ${type.toUpperCase()} Gem Tier ${tier}.`,
+        'system'
+      );
+
+      get().showToast(
+        useLanguageStore.getState().language === 'vi'
+          ? `🎉 Đã tháo ${gemName} Cấp ${tier}!`
+          : `🎉 Unsocketed ${type.toUpperCase()} Gem Tier ${tier}!`
+      );
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        inventory,
+        lastSavedAt: Date.now()
+      };
+
+      autoSave(updatedSave);
+    },
+
+    enterDungeon: (dungeonId) => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      const currentTickets = hero.dungeonTickets ?? 3;
+
+      if (currentTickets <= 0) {
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? '❌ HẾT VÉ PHÓ BẢN: Hãy mua thêm vé bằng Vàng!'
+            : '❌ NO DUNGEON TICKETS: Purchase more tickets with Gold!',
+          'system'
+        );
+        return;
+      }
+
+      // Check level lock dynamically
+      let levelReq = 5;
+      if (dungeonId.endsWith('_2')) {
+        if (dungeonId.startsWith('gear_')) levelReq = 18;
+        else if (dungeonId.startsWith('diamond_')) levelReq = 20;
+        else levelReq = 15;
+      } else if (dungeonId.endsWith('_3')) {
+        if (dungeonId.startsWith('gear_')) levelReq = 32;
+        else if (dungeonId.startsWith('diamond_')) levelReq = 35;
+        else levelReq = 30;
+      } else if (dungeonId.startsWith('diamond_1')) {
+        levelReq = 10;
+      }
+
+      if (hero.level < levelReq) {
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? `🔒 PHÓ BẢN KHÓA: Yêu cầu Cấp ${levelReq} để vào!`
+            : `🔒 DUNGEON LOCKED: Requires Level ${levelReq} to enter!`,
+          'system'
+        );
+        return;
+      }
+
+      // Spend 1 ticket
+      hero.dungeonTickets = currentTickets - 1;
+
+      // Update state to loading transition and clear previous rewards
+      set({
+        activeDungeonId: dungeonId,
+        dungeonLoading: true,
+        dungeonRewardGems: null,
+        dungeonRewardGold: null,
+        dungeonRewardDiamonds: null,
+        dungeonRewardItems: null,
+        dungeonResult: null
+      });
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        lastSavedAt: Date.now()
+      };
+      autoSave(updatedSave);
+
+      // Transition to dungeon battle interface after 1.5 seconds loading
+      setTimeout(() => {
+        set({
+          dungeonLoading: false,
+          battleMode: 'dungeon'
+        });
+      }, 1500);
+    },
+
+    onDungeonVictory: (dungeonId) => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      const language = useLanguageStore.getState().language;
+
+      let rolledGems: Record<string, number> | null = null;
+      let rolledGold: number | null = null;
+      let rolledDiamonds: number | null = null;
+      let rolledItems: EquipmentItem[] | null = null;
+      let finalInventory = [...saveData.inventory];
+
+      if (dungeonId.startsWith('gem_') || dungeonId.startsWith('dungeon_')) {
+        // Roll gem drops
+        let minTier = 1;
+        let maxTier = 1;
+        let rollCount = 1;
+        
+        const isDungeon3 = dungeonId === 'dungeon_3' || dungeonId === 'gem_3';
+        const isDungeon2 = dungeonId === 'dungeon_2' || dungeonId === 'gem_2';
+        
+        if (dungeonId === 'dungeon_1' || dungeonId === 'gem_1') {
+          minTier = 1;
+          maxTier = 2;
+          rollCount = Math.random() < 0.35 ? 2 : 1;
+        } else if (isDungeon2) {
+          minTier = 2;
+          maxTier = 3;
+          rollCount = Math.random() < 0.4 ? 2 : 1;
+        } else if (isDungeon3) {
+          minTier = 3;
+          maxTier = 4;
+          rollCount = Math.random() < 0.5 ? 3 : 2;
+          if (Math.random() < 0.15) {
+            maxTier = 5;
+          }
+        }
+        
+        const gemTypes = ['ruby', 'topaz', 'emerald', 'sapphire', 'amethyst'];
+        const rewardsGems: Record<string, number> = {};
+        
+        for (let i = 0; i < rollCount; i++) {
+          const type = gemTypes[Math.floor(Math.random() * gemTypes.length)];
+          const tier = Math.floor(Math.random() * (maxTier - minTier + 1)) + minTier;
+          const key = `${type}_${tier}`;
+          rewardsGems[key] = (rewardsGems[key] || 0) + 1;
+        }
+        
+        const heroGems = { ...(hero.gems || {}) };
+        Object.entries(rewardsGems).forEach(([key, count]) => {
+          heroGems[key] = (heroGems[key] || 0) + count;
+        });
+        hero.gems = heroGems;
+        rolledGems = rewardsGems;
+
+        Object.entries(rewardsGems).forEach(([key, count]) => {
+          const [type, tier] = key.split('_');
+          const gemName = type === 'ruby' ? 'Hồng Ngọc' : type === 'topaz' ? 'Hoàng Ngọc' : type === 'emerald' ? 'Lục Bảo' : type === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
+          get().addLogMessage(
+            language === 'vi'
+              ? `💎 PHÓ BẢN: Vượt ải thành công! Nhận được +${count} ${gemName} Cấp ${tier}!`
+              : `💎 DUNGEON: Victory! Received +${count} ${type.toUpperCase()} Gem Tier ${tier}!`,
+            'loot'
+          );
+        });
+      } else if (dungeonId.startsWith('gold_')) {
+        if (dungeonId === 'gold_1') rolledGold = 10000;
+        else if (dungeonId === 'gold_2') rolledGold = 35000;
+        else if (dungeonId === 'gold_3') rolledGold = 120000;
+
+        if (rolledGold) {
+          hero.gold += rolledGold;
+          get().addLogMessage(
+            language === 'vi'
+              ? `💰 PHÓ BẢN: Vượt ải thành công! Nhận được +${rolledGold.toLocaleString()} Vàng!`
+              : `💰 DUNGEON: Victory! Received +${rolledGold.toLocaleString()} Gold!`,
+            'loot'
+          );
+        }
+      } else if (dungeonId.startsWith('diamond_')) {
+        if (dungeonId === 'diamond_1') rolledDiamonds = 100;
+        else if (dungeonId === 'diamond_2') rolledDiamonds = 300;
+        else if (dungeonId === 'diamond_3') rolledDiamonds = 1000;
+
+        if (rolledDiamonds) {
+          hero.diamonds += rolledDiamonds;
+          get().addLogMessage(
+            language === 'vi'
+              ? `💎 PHÓ BẢN: Vượt ải thành công! Nhận được +${rolledDiamonds.toLocaleString()} Kim Cương!`
+              : `💎 DUNGEON: Victory! Received +${rolledDiamonds.toLocaleString()} Diamonds!`,
+            'loot'
+          );
+        }
+      } else if (dungeonId.startsWith('gear_')) {
+        let count = 1;
+        let rarities: string[] = ['rare'];
+        if (dungeonId === 'gear_1') {
+          rarities = ['rare', 'epic'];
+        } else if (dungeonId === 'gear_2') {
+          rarities = ['epic', 'legendary'];
+        } else if (dungeonId === 'gear_3') {
+          rarities = ['legendary'];
+          count = Math.random() < 0.4 ? 2 : 1;
+        }
+
+        const pool = DEFAULT_ITEM_TEMPLATES.filter(t => rarities.includes(t.rarity));
+        const rolled: EquipmentItem[] = [];
+        for (let i = 0; i < count; i++) {
+          if (pool.length > 0) {
+            const randTemplate = pool[Math.floor(Math.random() * pool.length)];
+            const item = createItemInstance(randTemplate);
+            item.isIdentified = false; // Needs identification
+            rolled.push(item);
+          }
+        }
+
+        if (rolled.length > 0) {
+          if (saveData.inventory.length + rolled.length > 50) {
+            const shardsGained = rolled.length * 100;
+            hero.aetherShards = ((hero as any).aetherShards || 0) + shardsGained;
+            get().addLogMessage(
+              language === 'vi'
+                ? `🎒 HÀNH LÝ ĐẦY: Quy đổi ${rolled.length} trang bị phó bản thành +${shardsGained} Mảnh Aether!`
+                : `🎒 BAG FULL: Converted ${rolled.length} dungeon gear into +${shardsGained} Aether Shards!`,
+              'system'
+            );
+          } else {
+            finalInventory = [...finalInventory, ...rolled];
+            rolled.forEach(item => {
+              get().addLogMessage(
+                language === 'vi'
+                  ? `⚔️ PHÓ BẢN: Vượt ải thành công! Nhận được [${item.name}] chưa giám định!`
+                  : `⚔️ DUNGEON: Victory! Received unidentified [${item.name}]!`,
+                'loot'
+              );
+            });
+            rolledItems = rolled;
+          }
+        }
+      }
+
+      // Restore health
+      hero.currentHp = hero.currentStats.maxHp;
+
+      // Set reward values so they are visible on the victory screen
+      set({
+        dungeonRewardGems: rolledGems,
+        dungeonRewardGold: rolledGold,
+        dungeonRewardDiamonds: rolledDiamonds,
+        dungeonRewardItems: rolledItems,
+        dungeonResult: 'victory',
+        heroHp: hero.currentHp
+      });
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        inventory: finalInventory,
+        lastSavedAt: Date.now()
+      };
+      autoSave(updatedSave);
+    },
+
+    claimDungeonRewards: () => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      hero.currentHp = hero.currentStats.maxHp;
+
+      set({
+        battleMode: 'stage',
+        activeDungeonId: null,
+        dungeonRewardGems: null,
+        dungeonRewardGold: null,
+        dungeonRewardDiamonds: null,
+        dungeonRewardItems: null,
+        dungeonResult: null,
+        heroHp: hero.currentHp
+      });
+    },
+
+    onDungeonDefeat: () => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      hero.currentHp = hero.currentStats.maxHp;
+
+      set({
+        battleMode: 'stage',
+        activeDungeonId: null,
+        dungeonRewardGems: null,
+        dungeonRewardGold: null,
+        dungeonRewardDiamonds: null,
+        dungeonRewardItems: null,
+        dungeonResult: null,
+        heroHp: hero.currentHp
+      });
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        lastSavedAt: Date.now()
+      };
+      autoSave(updatedSave);
+    },
+
+    triggerDungeonDefeat: () => {
+      set({ dungeonResult: 'defeat' });
+    },
+
+    usePotionInDungeon: () => {
+      const { saveData } = get();
+      if (!saveData) return false;
+
+      const hero = { ...saveData.hero };
+      if (hero.potions === undefined || hero.potions <= 0) return false;
+      hero.potions -= 1;
+
+      set({
+        saveData: { ...saveData, hero }
+      });
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        lastSavedAt: Date.now()
+      };
+      autoSave(updatedSave);
+      return true;
+    },
+
+    combineGems: (gemType, tier) => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      if (tier >= 5) {
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? '❌ CẤP ĐỘ TỐI ĐA: Ngọc đã đạt Cấp 5 tối đa!'
+            : '❌ MAX TIER: Gem is already at maximum Tier 5!',
+          'system'
+        );
+        return;
+      }
+
+      const hero = { ...saveData.hero };
+      const heroGems = { ...(hero.gems || {}) };
+      const sourceKey = `${gemType}_${tier}`;
+      const targetKey = `${gemType}_${tier + 1}`;
+
+      const count = heroGems[sourceKey] || 0;
+      if (count < 3) {
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? `❌ KHÔNG ĐỦ NGỌC: Cần ít nhất 3 viên Cấp ${tier} để ghép!`
+            : `❌ INSUFFICIENT GEMS: Need at least 3 Tier ${tier} gems to combine!`,
+          'system'
+        );
+        return;
+      }
+
+      const cost = 500;
+      if (hero.gold < cost) {
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? `❌ KHÔNG ĐỦ VÀNG: Cần ${cost} Vàng để ghép ngọc!`
+            : `❌ INSUFFICIENT GOLD: Need ${cost} Gold to fuse gems!`,
+          'system'
+        );
+        return;
+      }
+
+      // Fulfill fusion
+      hero.gold -= cost;
+      heroGems[sourceKey] = count - 3;
+
+      const rates: Record<number, number> = {
+        1: 1.0,
+        2: 0.5,
+        3: 0.1,
+        4: 0.01
+      };
+      const successRate = rates[tier] ?? 1.0;
+      const isSuccess = Math.random() < successRate;
+
+      const gemName = gemType === 'ruby' ? 'Hồng Ngọc' : gemType === 'topaz' ? 'Hoàng Ngọc' : gemType === 'emerald' ? 'Lục Bảo' : gemType === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
+      
+      if (isSuccess) {
+        heroGems[targetKey] = (heroGems[targetKey] || 0) + 1;
+        hero.gems = heroGems;
+
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? `💎 GHÉP NGỌC: Ghép thành công 3x ${gemName} Cấp ${tier} -> 1x Cấp ${tier + 1} (-500 Vàng)`
+            : `💎 GEM FUSION: Successfully combined 3x ${gemType.toUpperCase()} Tier ${tier} -> 1x Tier ${tier + 1} (-500 Gold)`,
+          'system'
+        );
+
+        get().showToast(
+          useLanguageStore.getState().language === 'vi'
+            ? `🎉 Ghép thành công 1x ${gemName} Cấp ${tier + 1}!`
+            : `🎉 Successfully fused 1x ${gemType.toUpperCase()} Gem Tier ${tier + 1}!`
+        );
+      } else {
+        hero.gems = heroGems;
+
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? `💥 GHÉP THẤT BẠI: Ghép 3x ${gemName} Cấp ${tier} thất bại! Hao tổn tài nguyên (-500 Vàng)`
+            : `💥 FUSION FAILED: Failed to combine 3x ${gemType.toUpperCase()} Tier ${tier}! Resources lost (-500 Gold)`,
+          'system'
+        );
+
+        get().showToast(
+          useLanguageStore.getState().language === 'vi'
+            ? `💥 Ghép ngọc thất bại! (Tỷ lệ: ${successRate * 100}%)`
+            : `💥 Gem fusion failed! (Success rate: ${successRate * 100}%)`
+        );
+      }
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        lastSavedAt: Date.now()
+      };
+
+      autoSave(updatedSave);
+    },
+
+    buyDungeonTicket: () => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      const cost = 1000;
+
+      if (hero.gold < cost) {
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? `❌ KHÔNG ĐỦ VÀNG: Cần ${cost} Vàng để mua Vé Phó Bản!`
+            : `❌ INSUFFICIENT GOLD: Need ${cost} Gold to buy Dungeon Ticket!`,
+          'system'
+        );
+        return;
+      }
+
+      hero.gold -= cost;
+      hero.dungeonTickets = (hero.dungeonTickets ?? 3) + 1;
+
+      get().addLogMessage(
+        useLanguageStore.getState().language === 'vi'
+          ? `🎫 MUA VÉ: Đã mua +1 Vé Phó Bản (-${cost} Vàng)`
+          : `🎫 TICKET BOUGHT: Purchased +1 Dungeon Ticket (-${cost} Gold)`,
+        'system'
+      );
+
+      get().showToast(
+        useLanguageStore.getState().language === 'vi'
+          ? '🎉 Đã mua thành công +1 Vé Phó Bản!'
+          : '🎉 Purchased +1 Dungeon Ticket!'
+      );
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
         lastSavedAt: Date.now()
       };
 
@@ -1724,8 +2312,23 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     triggerHeroDefeated: () => {
-      const { saveData } = get();
+      const { saveData, battleMode } = get();
       if (!saveData) return;
+
+      if (battleMode === 'dungeon') {
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? '❌ PHÓ BẢN THẤT BẠI: Bạn đã bị hạ gục trong phó bản!'
+            : '❌ DUNGEON DEFEAT: You were defeated in the dungeon!',
+          'system'
+        );
+        
+        set({
+          dungeonResult: 'defeat'
+        });
+        return;
+      }
+
       const stage = saveData.activeStage;
       const goldCost = Math.max(500, stage * 300);
       const diamondCost = Math.max(5, Math.floor(stage / 10));
@@ -1755,24 +2358,17 @@ export const useGameStore = create<GameState>((set, get) => {
           return false;
         }
         hero.diamonds -= reviveCostDiamonds;
-      } else if (method === 'time') {
-        sameStage = false;
       }
 
       // Restore health
       hero.currentHp = hero.currentStats.maxHp;
-
-      let updatedStage = saveData.activeStage;
-      if (!sameStage) {
-        updatedStage = Math.max(1, saveData.activeStage - 1);
-      }
 
       const wasBossDeath = saveData.currentWave === 20;
 
       const updatedSave: GameSaveData = {
         ...saveData,
         hero,
-        activeStage: updatedStage,
+        activeStage: saveData.activeStage,
         currentWave: 1,
         autoAdvance: wasBossDeath ? false : (saveData.autoAdvance !== false),
         lastSavedAt: Date.now()
