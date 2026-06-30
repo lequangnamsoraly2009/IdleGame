@@ -2039,23 +2039,50 @@ export const useGameStore = create<GameState>((set, get) => {
       // Fulfill fusion
       hero.gold -= cost;
       heroGems[sourceKey] = count - 3;
-      heroGems[targetKey] = (heroGems[targetKey] || 0) + 1;
-      hero.gems = heroGems;
 
-      const gemName = gemType === 'ruby' ? 'Hồng Ngọc' : gemType === 'emerald' ? 'Lục Bảo' : gemType === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
+      const rates: Record<number, number> = {
+        1: 1.0,
+        2: 0.5,
+        3: 0.1,
+        4: 0.01
+      };
+      const successRate = rates[tier] ?? 1.0;
+      const isSuccess = Math.random() < successRate;
+
+      const gemName = gemType === 'ruby' ? 'Hồng Ngọc' : gemType === 'topaz' ? 'Hoàng Ngọc' : gemType === 'emerald' ? 'Lục Bảo' : gemType === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
       
-      get().addLogMessage(
-        useLanguageStore.getState().language === 'vi'
-          ? `💎 GHÉP NGỌC: Ghép thành công 3x ${gemName} Cấp ${tier} -> 1x Cấp ${tier + 1} (-500 Vàng)`
-          : `💎 GEM FUSION: Successfully combined 3x ${gemType.toUpperCase()} Tier ${tier} -> 1x Tier ${tier + 1} (-500 Gold)`,
-        'system'
-      );
+      if (isSuccess) {
+        heroGems[targetKey] = (heroGems[targetKey] || 0) + 1;
+        hero.gems = heroGems;
 
-      get().showToast(
-        useLanguageStore.getState().language === 'vi'
-          ? `🎉 Ghép thành công 1x ${gemName} Cấp ${tier + 1}!`
-          : `🎉 Successfully fused 1x ${gemType.toUpperCase()} Gem Tier ${tier + 1}!`
-      );
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? `💎 GHÉP NGỌC: Ghép thành công 3x ${gemName} Cấp ${tier} -> 1x Cấp ${tier + 1} (-500 Vàng)`
+            : `💎 GEM FUSION: Successfully combined 3x ${gemType.toUpperCase()} Tier ${tier} -> 1x Tier ${tier + 1} (-500 Gold)`,
+          'system'
+        );
+
+        get().showToast(
+          useLanguageStore.getState().language === 'vi'
+            ? `🎉 Ghép thành công 1x ${gemName} Cấp ${tier + 1}!`
+            : `🎉 Successfully fused 1x ${gemType.toUpperCase()} Gem Tier ${tier + 1}!`
+        );
+      } else {
+        hero.gems = heroGems;
+
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? `💥 GHÉP THẤT BẠI: Ghép 3x ${gemName} Cấp ${tier} thất bại! Hao tổn tài nguyên (-500 Vàng)`
+            : `💥 FUSION FAILED: Failed to combine 3x ${gemType.toUpperCase()} Tier ${tier}! Resources lost (-500 Gold)`,
+          'system'
+        );
+
+        get().showToast(
+          useLanguageStore.getState().language === 'vi'
+            ? `💥 Ghép ngọc thất bại! (Tỷ lệ: ${successRate * 100}%)`
+            : `💥 Gem fusion failed! (Success rate: ${successRate * 100}%)`
+        );
+      }
 
       const updatedSave: GameSaveData = {
         ...saveData,

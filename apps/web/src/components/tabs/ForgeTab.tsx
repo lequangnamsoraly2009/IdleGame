@@ -94,11 +94,17 @@ export const ForgeTab: React.FC = () => {
               <span className="font-black text-purple-400 uppercase tracking-wider block">
                 ⚒️ {language === 'vi' ? 'CÔNG THỨC GHÉP NGỌC' : 'GEM CRAFTING FORMULA'}
               </span>
-              <p className="text-slate-400 font-medium text-[11px]">
+              <p className="text-slate-400 font-medium text-[11px] leading-relaxed">
                 {language === 'vi'
-                  ? 'Ghép 3 viên Ngọc cùng hệ và cùng Cấp độ để tạo ra 1 viên Ngọc cấp cao hơn (+1 Cấp). Chi phí ghép là 500 Vàng cho mỗi lần thử. Tỷ lệ thành công là 100%!'
-                  : 'Combine 3 Gems of the same type and Tier to craft 1 Gem of the next higher Tier. Cost: 500 Gold per fusion. Success rate: 100%!'}
+                  ? 'Ghép 3 viên Ngọc cùng hệ và cùng Cấp độ để nâng lên +1 Cấp. Chi phí ghép: 500 Vàng. Tỷ lệ thành công tùy theo Cấp độ ngọc nguồn:'
+                  : 'Combine 3 Gems of the same type and Tier to craft 1 Gem of the next higher Tier. Cost: 500 Gold. Success rates by source Tier:'}
               </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1.5 text-[10px] font-mono text-purple-300">
+                <div>Cấp 1 ➡️ 2: <span className="text-emerald-400 font-extrabold">100%</span></div>
+                <div>Cấp 2 ➡️ 3: <span className="text-yellow-400 font-extrabold">50%</span></div>
+                <div>Cấp 3 ➡️ 4: <span className="text-amber-500 font-extrabold">10%</span></div>
+                <div>Cấp 4 ➡️ 5: <span className="text-red-500 font-extrabold">1%</span></div>
+              </div>
             </div>
 
             {/* Gems lists by type */}
@@ -125,8 +131,16 @@ export const ForgeTab: React.FC = () => {
                               <GemGraphic type={gt.type} tier={tier} className="w-6 h-6" />
                             </div>
                             <div>
-                              <span className="font-bold text-slate-200 block">
-                                {language === 'vi' ? `Ngọc Cấp ${tier}` : `Tier ${tier} Gem`}
+                              <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                                <span>{language === 'vi' ? `Ngọc Cấp ${tier}` : `Tier ${tier} Gem`}</span>
+                                <span className={`text-[8.5px] font-black px-1 rounded ${
+                                  tier === 1 ? 'text-emerald-400 bg-emerald-950/30' :
+                                  tier === 2 ? 'text-yellow-400 bg-yellow-950/30' :
+                                  tier === 3 ? 'text-amber-500 bg-amber-950/30' :
+                                  'text-red-500 bg-red-950/30'
+                                }`}>
+                                  {tier === 1 ? '100%' : tier === 2 ? '50%' : tier === 3 ? '10%' : '1%'}
+                                </span>
                               </span>
                               <span className="text-[9.5px] font-semibold text-slate-500 block mt-0.5">
                                 {language === 'vi' ? `Sở hữu: ${count}` : `Owned: ${count}`}
