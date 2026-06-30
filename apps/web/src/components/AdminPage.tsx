@@ -438,7 +438,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
 
   // UI Render 3: Authenticated Admin -> Show Quest CMS Panel
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-300 flex flex-col font-sans relative">
+    <div className="h-screen bg-slate-950 text-slate-300 flex flex-col font-sans relative overflow-hidden">
       {/* Background radial glow */}
       <div className="absolute w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] top-1/4 left-1/4 pointer-events-none" />
       <div className="absolute w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[80px] bottom-1/4 right-1/4 pointer-events-none" />
@@ -482,7 +482,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
       </header>
 
       {/* Main Container */}
-      <main className="relative z-10 flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
+      <main className="relative z-10 flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6 overflow-y-auto">
         {/* Quick Statistics Grid */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
