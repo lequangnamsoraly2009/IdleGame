@@ -15,7 +15,7 @@ export const QuestTab: React.FC = () => {
   const filteredQuests = quests.filter((q) => {
     // Legacy quests that don't have a type should fall back to newbie
     const type = q.type || 'newbie';
-    
+
     if (activeSubTab === 'newbie_achieve') {
       return type === 'newbie' || type === 'achievement';
     }
@@ -72,7 +72,7 @@ export const QuestTab: React.FC = () => {
       {/* Title */}
       <div className="flex justify-between items-center mb-4 border-b border-slate-850 pb-2 flex-wrap gap-2">
         <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-          📜 {t('active_bounties')}
+          {t('active_bounties')}
         </h3>
         <span className="text-xs font-semibold px-2.5 py-1 bg-slate-950/80 border border-slate-800 rounded-lg text-slate-400">
           {language === 'vi' ? 'Chưa nhận' : 'Unclaimed'}: {quests.filter(q => !q.claimed).length}
@@ -90,11 +90,10 @@ export const QuestTab: React.FC = () => {
           <button
             key={tab.value}
             onClick={() => setActiveSubTab(tab.value)}
-            className={`px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider rounded-lg transition whitespace-nowrap cursor-pointer border ${
-              activeSubTab === tab.value
+            className={`px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider rounded-lg transition whitespace-nowrap cursor-pointer border ${activeSubTab === tab.value
                 ? 'bg-indigo-600/15 border-indigo-500/30 text-indigo-300 shadow shadow-indigo-600/5'
                 : 'bg-slate-950/20 border-slate-850/60 hover:bg-slate-900/40 text-slate-400 hover:text-slate-300'
-            }`}
+              }`}
           >
             {language === 'vi' ? tab.vi : tab.en}
           </button>
@@ -113,17 +112,16 @@ export const QuestTab: React.FC = () => {
         ) : (
           filteredQuests.map((quest) => {
             const percentage = Math.min(100, Math.floor((quest.currentCount / quest.targetCount) * 100));
-            
+
             return (
               <div
                 key={quest.id}
-                className={`border rounded-xl p-4 transition-all flex flex-col sm:flex-row justify-between sm:items-center gap-4 ${
-                  quest.claimed
+                className={`border rounded-xl p-4 transition-all flex flex-col sm:flex-row justify-between sm:items-center gap-4 ${quest.claimed
                     ? 'border-slate-950 bg-slate-950/20 opacity-60'
                     : quest.completed
-                    ? 'border-emerald-500/30 bg-emerald-500/5 shadow-md shadow-emerald-500/5'
-                    : 'border-slate-800 bg-slate-950/40'
-                }`}
+                      ? 'border-emerald-500/30 bg-emerald-500/5 shadow-md shadow-emerald-500/5'
+                      : 'border-slate-800 bg-slate-950/40'
+                  }`}
               >
                 {/* Details */}
                 <div className="flex-1 space-y-1.5">
@@ -141,7 +139,7 @@ export const QuestTab: React.FC = () => {
                   <p className="text-xs text-slate-400">
                     {getTranslatedQuestDesc(t, quest.id, quest.description)}
                   </p>
-                  
+
                   {/* Progress Bar */}
                   {!quest.claimed && (
                     <div className="pt-2.5 w-full max-w-md">
@@ -151,9 +149,8 @@ export const QuestTab: React.FC = () => {
                       </div>
                       <div className="h-1.5 bg-slate-900 border border-slate-850 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            quest.completed ? 'bg-emerald-500' : 'bg-blue-500'
-                          }`}
+                          className={`h-full rounded-full transition-all duration-300 ${quest.completed ? 'bg-emerald-500' : 'bg-blue-500'
+                            }`}
                           style={{ width: `${percentage}%` }}
                         />
                       </div>

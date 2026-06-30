@@ -79,6 +79,8 @@ export interface HeroState {
   autoDismantleUncommon?: boolean;
   autoDismantleRare?: boolean;
   autoBuyPotions?: boolean;
+  gems?: Record<string, number>;
+  dungeonTickets?: number;
 }
 
 export type DamageType = 'physical' | 'fire' | 'ice' | 'poison' | 'holy' | 'dark';

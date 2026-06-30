@@ -116,15 +116,33 @@ export function getFinalItemStats(item: EquipmentItem): BaseStats {
   base.attack = Math.round(base.attack * evolutionMult);
   base.defense = Math.round(base.defense * evolutionMult);
 
-  // Gem stats
+  // Gem stats (Ruby, Emerald, Sapphire, Amethyst Tiers 1-5)
   if (item.sockets) {
     item.sockets.forEach(gem => {
-      if (gem === 'ruby') {
-        base.attack += 15;
-      } else if (gem === 'emerald') {
-        base.critRate += 0.04;
+      if (!gem) return;
+      const [type, tierStr] = gem.split('_');
+      const tier = parseInt(tierStr) || 1;
+      
+      if (type === 'ruby') {
+        // Attack: Tier 1: 15, Tier 2: 35, Tier 3: 80, Tier 4: 180, Tier 5: 400
+        const values = [15, 35, 80, 180, 400];
+        base.attack += values[tier - 1] || 15;
+      } else if (type === 'emerald') {
+        // Max HP: Tier 1: 150, Tier 2: 350, Tier 3: 800, Tier 4: 1800, Tier 5: 4000
+        const values = [150, 350, 800, 1800, 4000];
+        base.maxHp += values[tier - 1] || 150;
+      } else if (type === 'sapphire') {
+        // Defense: Tier 1: 10, Tier 2: 25, Tier 3: 60, Tier 4: 140, Tier 5: 320
+        const values = [10, 25, 60, 140, 320];
+        base.defense += values[tier - 1] || 10;
+      } else if (type === 'amethyst') {
+        // Crit Rate: Tier 1: 2%, Tier 2: 4%, Tier 3: 6%, Tier 4: 8%, Tier 5: 10%
+        // Crit Damage: Tier 1: 5%, Tier 2: 10%, Tier 3: 15%, Tier 4: 20%, Tier 5: 25%
+        const rateValues = [0.02, 0.04, 0.06, 0.08, 0.10];
+        const dmgValues = [0.05, 0.10, 0.15, 0.20, 0.25];
+        base.critRate += rateValues[tier - 1] || 0.02;
+        base.critDamage += dmgValues[tier - 1] || 0.05;
       }
-      // Topaz is +gold, which is combat-independent and processed in gameStore
     });
   }
 
@@ -354,26 +372,17 @@ const SUFFIXES = [
 export function createItemInstance(template: ItemTemplate, level = 1): EquipmentItem {
   const stats = calculateItemStats(template.slot, template.rarity, level);
 
-  // Sockets roll
   let socketCount = 0;
-  const socketRoll = Math.random();
   if (template.rarity === 'common') {
-    if (socketRoll < 0.15) socketCount = 1;
+    socketCount = 0;
   } else if (template.rarity === 'uncommon') {
-    if (socketRoll < 0.2) socketCount = 2;
-    else if (socketRoll < 0.6) socketCount = 1;
+    socketCount = 1;
   } else if (template.rarity === 'rare') {
-    if (socketRoll < 0.25) socketCount = 3;
-    else if (socketRoll < 0.6) socketCount = 2;
-    else if (socketRoll < 0.9) socketCount = 1;
+    socketCount = 2;
   } else if (template.rarity === 'epic') {
-    if (socketRoll < 0.3) socketCount = 4;
-    else if (socketRoll < 0.7) socketCount = 3;
-    else socketCount = 2;
+    socketCount = 3;
   } else if (template.rarity === 'legendary') {
-    if (socketRoll < 0.4) socketCount = 5;
-    else if (socketRoll < 0.8) socketCount = 4;
-    else socketCount = 3;
+    socketCount = 4;
   }
   const sockets: Array<string | null> = Array(socketCount).fill(null);
 

@@ -8,6 +8,7 @@ import { GuildTab } from './tabs/GuildTab';
 import { ShopTab } from './tabs/ShopTab';
 import { SummonTab } from './tabs/SummonTab';
 import { GuideTab } from './tabs/GuideTab';
+import { DungeonTab } from './tabs/DungeonTab';
 import { useTranslation, getTranslatedQuestTitle } from '../utils/i18n';
 import { useLanguageStore } from '../stores/languageStore';
 import { ItemInfoModal } from './ItemInfoModal';
@@ -16,6 +17,7 @@ import { calculateHeroCP } from '@idle-rpg/shared';
 
 const LEVEL_LOCKS = {
   hero: 1,
+  dungeon: 5,
   quest: 3,
   shop: 5,
   guild: 10
@@ -100,7 +102,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
       default: return 'text-slate-300';
     }
   };
-  const getTabIconOnly = (tab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide') => {
+  const getTabIconOnly = (tab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide' | 'dungeon') => {
     switch (tab) {
       case 'home': return '🏠';
       case 'hero': return '👤';
@@ -110,6 +112,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
       case 'shop': return '💰';
       case 'summon': return '🎁';
       case 'guide': return '📖';
+      case 'dungeon': return '🏰';
     }
   };
 
@@ -122,6 +125,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
       case 'shop': return <ShopTab />;
       case 'summon': return <SummonTab />;
       case 'guide': return <GuideTab />;
+      case 'dungeon': return <DungeonTab />;
       default: return <HeroTab />;
     }
   };
@@ -592,7 +596,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
             >
               🏠 {language === 'vi' ? 'Trang chủ' : 'Home'}
             </button>
-            {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => {
+            {(['hero', 'dungeon', 'quest', 'guild', 'shop'] as const).map(tab => {
               const locked = hero.level < LEVEL_LOCKS[tab];
               return (
                 <button
@@ -652,7 +656,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
         >
           🏠
         </button>
-        {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => {
+        {(['hero', 'dungeon', 'quest', 'guild', 'shop'] as const).map(tab => {
           const locked = hero.level < LEVEL_LOCKS[tab];
           return (
             <button
@@ -696,6 +700,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
               {activeTab === 'shop' && t('tab_shop')}
               {activeTab === 'summon' && t('tab_summon')}
               {activeTab === 'guide' && t('tab_guide')}
+              {activeTab === 'dungeon' && (language === 'vi' ? '🏰 Phó Bản' : '🏰 Dungeon')}
             </h3>
 
             <button
@@ -726,7 +731,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
             >
               🏠
             </button>
-            {(['hero', 'quest', 'guild', 'shop'] as const).map(tab => {
+            {(['hero', 'dungeon', 'quest', 'guild', 'shop'] as const).map(tab => {
               const locked = hero.level < LEVEL_LOCKS[tab];
               return (
                 <button

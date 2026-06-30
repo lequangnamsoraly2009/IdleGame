@@ -63,6 +63,10 @@ export function generateStarterSave(
     autoUsePotion: false,
     autoDismantleCommon: false,
     autoDismantleUncommon: false,
+    autoDismantleRare: false,
+    autoBuyPotions: false,
+    gems: {},
+    dungeonTickets: 3,
     heroClass
   };
 
