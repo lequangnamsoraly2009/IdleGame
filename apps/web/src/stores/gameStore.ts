@@ -28,11 +28,15 @@ interface GameState {
   activeTab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide' | 'dungeon' | 'forge';
   activeDungeonId: string | null;
   dungeonRewardGems: Record<string, number> | null;
+  dungeonRewardGold: number | null;
+  dungeonRewardDiamonds: number | null;
+  dungeonRewardItems: EquipmentItem[] | null;
   isLoading: boolean;
   activeInspectItemId: string | null;
   activeSummonResult: EquipmentItem[] | null;
   toastMessage: string | null;
   dungeonLoading: boolean;
+  dungeonResult: 'victory' | 'defeat' | null;
   
   // Realtime Battle HUD healths (synced with Pixi tick updates)
   heroHp: number;
@@ -100,6 +104,8 @@ interface GameState {
   buyDungeonTicket: () => void;
   onDungeonVictory: (dungeonId: string) => void;
   onDungeonDefeat: () => void;
+  claimDungeonRewards: () => void;
+  triggerDungeonDefeat: () => void;
   usePotionInDungeon: () => boolean;
   addLogMessage: (text: string, category: 'combat' | 'loot' | 'system') => void;
   potionCooldownRemaining: number;
@@ -227,11 +233,15 @@ export const useGameStore = create<GameState>((set, get) => {
     activeTab: 'hero',
     activeDungeonId: null,
     dungeonRewardGems: null,
+    dungeonRewardGold: null,
+    dungeonRewardDiamonds: null,
+    dungeonRewardItems: null,
     isLoading: true,
     activeInspectItemId: null,
     activeSummonResult: null,
     toastMessage: null,
     dungeonLoading: false,
+    dungeonResult: null,
 
     // Combat HUD state
     heroHp: 100,
@@ -1832,12 +1842,18 @@ export const useGameStore = create<GameState>((set, get) => {
         return;
       }
 
-      // Check level lock
+      // Check level lock dynamically
       let levelReq = 5;
-      if (dungeonId === 'dungeon_2') {
-        levelReq = 15;
-      } else if (dungeonId === 'dungeon_3') {
-        levelReq = 30;
+      if (dungeonId.endsWith('_2')) {
+        if (dungeonId.startsWith('gear_')) levelReq = 18;
+        else if (dungeonId.startsWith('diamond_')) levelReq = 20;
+        else levelReq = 15;
+      } else if (dungeonId.endsWith('_3')) {
+        if (dungeonId.startsWith('gear_')) levelReq = 32;
+        else if (dungeonId.startsWith('diamond_')) levelReq = 35;
+        else levelReq = 30;
+      } else if (dungeonId.startsWith('diamond_1')) {
+        levelReq = 10;
       }
 
       if (hero.level < levelReq) {
@@ -1853,11 +1869,15 @@ export const useGameStore = create<GameState>((set, get) => {
       // Spend 1 ticket
       hero.dungeonTickets = currentTickets - 1;
 
-      // Update state to loading transition
+      // Update state to loading transition and clear previous rewards
       set({
         activeDungeonId: dungeonId,
         dungeonLoading: true,
-        dungeonRewardGems: null
+        dungeonRewardGems: null,
+        dungeonRewardGold: null,
+        dungeonRewardDiamonds: null,
+        dungeonRewardItems: null,
+        dungeonResult: null
       });
 
       const updatedSave: GameSaveData = {
@@ -1881,76 +1901,182 @@ export const useGameStore = create<GameState>((set, get) => {
       if (!saveData) return;
 
       const hero = { ...saveData.hero };
+      const language = useLanguageStore.getState().language;
 
-      // Roll gem drops
-      let minTier = 1;
-      let maxTier = 1;
-      let rollCount = 1;
-      
-      if (dungeonId === 'dungeon_1') {
-        minTier = 1;
-        maxTier = 2;
-        rollCount = Math.random() < 0.35 ? 2 : 1;
-      } else if (dungeonId === 'dungeon_2') {
-        minTier = 2;
-        maxTier = 3;
-        rollCount = Math.random() < 0.4 ? 2 : 1;
-      } else if (dungeonId === 'dungeon_3') {
-        minTier = 3;
-        maxTier = 4;
-        rollCount = Math.random() < 0.5 ? 3 : 2;
-        if (Math.random() < 0.15) {
-          maxTier = 5;
+      let rolledGems: Record<string, number> | null = null;
+      let rolledGold: number | null = null;
+      let rolledDiamonds: number | null = null;
+      let rolledItems: EquipmentItem[] | null = null;
+      let finalInventory = [...saveData.inventory];
+
+      if (dungeonId.startsWith('gem_') || dungeonId.startsWith('dungeon_')) {
+        // Roll gem drops
+        let minTier = 1;
+        let maxTier = 1;
+        let rollCount = 1;
+        
+        const isDungeon3 = dungeonId === 'dungeon_3' || dungeonId === 'gem_3';
+        const isDungeon2 = dungeonId === 'dungeon_2' || dungeonId === 'gem_2';
+        
+        if (dungeonId === 'dungeon_1' || dungeonId === 'gem_1') {
+          minTier = 1;
+          maxTier = 2;
+          rollCount = Math.random() < 0.35 ? 2 : 1;
+        } else if (isDungeon2) {
+          minTier = 2;
+          maxTier = 3;
+          rollCount = Math.random() < 0.4 ? 2 : 1;
+        } else if (isDungeon3) {
+          minTier = 3;
+          maxTier = 4;
+          rollCount = Math.random() < 0.5 ? 3 : 2;
+          if (Math.random() < 0.15) {
+            maxTier = 5;
+          }
+        }
+        
+        const gemTypes = ['ruby', 'topaz', 'emerald', 'sapphire', 'amethyst'];
+        const rewardsGems: Record<string, number> = {};
+        
+        for (let i = 0; i < rollCount; i++) {
+          const type = gemTypes[Math.floor(Math.random() * gemTypes.length)];
+          const tier = Math.floor(Math.random() * (maxTier - minTier + 1)) + minTier;
+          const key = `${type}_${tier}`;
+          rewardsGems[key] = (rewardsGems[key] || 0) + 1;
+        }
+        
+        const heroGems = { ...(hero.gems || {}) };
+        Object.entries(rewardsGems).forEach(([key, count]) => {
+          heroGems[key] = (heroGems[key] || 0) + count;
+        });
+        hero.gems = heroGems;
+        rolledGems = rewardsGems;
+
+        Object.entries(rewardsGems).forEach(([key, count]) => {
+          const [type, tier] = key.split('_');
+          const gemName = type === 'ruby' ? 'Hồng Ngọc' : type === 'topaz' ? 'Hoàng Ngọc' : type === 'emerald' ? 'Lục Bảo' : type === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
+          get().addLogMessage(
+            language === 'vi'
+              ? `💎 PHÓ BẢN: Vượt ải thành công! Nhận được +${count} ${gemName} Cấp ${tier}!`
+              : `💎 DUNGEON: Victory! Received +${count} ${type.toUpperCase()} Gem Tier ${tier}!`,
+            'loot'
+          );
+        });
+      } else if (dungeonId.startsWith('gold_')) {
+        if (dungeonId === 'gold_1') rolledGold = 10000;
+        else if (dungeonId === 'gold_2') rolledGold = 35000;
+        else if (dungeonId === 'gold_3') rolledGold = 120000;
+
+        if (rolledGold) {
+          hero.gold += rolledGold;
+          get().addLogMessage(
+            language === 'vi'
+              ? `💰 PHÓ BẢN: Vượt ải thành công! Nhận được +${rolledGold.toLocaleString()} Vàng!`
+              : `💰 DUNGEON: Victory! Received +${rolledGold.toLocaleString()} Gold!`,
+            'loot'
+          );
+        }
+      } else if (dungeonId.startsWith('diamond_')) {
+        if (dungeonId === 'diamond_1') rolledDiamonds = 100;
+        else if (dungeonId === 'diamond_2') rolledDiamonds = 300;
+        else if (dungeonId === 'diamond_3') rolledDiamonds = 1000;
+
+        if (rolledDiamonds) {
+          hero.diamonds += rolledDiamonds;
+          get().addLogMessage(
+            language === 'vi'
+              ? `💎 PHÓ BẢN: Vượt ải thành công! Nhận được +${rolledDiamonds.toLocaleString()} Kim Cương!`
+              : `💎 DUNGEON: Victory! Received +${rolledDiamonds.toLocaleString()} Diamonds!`,
+            'loot'
+          );
+        }
+      } else if (dungeonId.startsWith('gear_')) {
+        let count = 1;
+        let rarities: string[] = ['rare'];
+        if (dungeonId === 'gear_1') {
+          rarities = ['rare', 'epic'];
+        } else if (dungeonId === 'gear_2') {
+          rarities = ['epic', 'legendary'];
+        } else if (dungeonId === 'gear_3') {
+          rarities = ['legendary'];
+          count = Math.random() < 0.4 ? 2 : 1;
+        }
+
+        const pool = DEFAULT_ITEM_TEMPLATES.filter(t => rarities.includes(t.rarity));
+        const rolled: EquipmentItem[] = [];
+        for (let i = 0; i < count; i++) {
+          if (pool.length > 0) {
+            const randTemplate = pool[Math.floor(Math.random() * pool.length)];
+            const item = createItemInstance(randTemplate);
+            item.isIdentified = false; // Needs identification
+            rolled.push(item);
+          }
+        }
+
+        if (rolled.length > 0) {
+          if (saveData.inventory.length + rolled.length > 50) {
+            const shardsGained = rolled.length * 100;
+            hero.aetherShards = ((hero as any).aetherShards || 0) + shardsGained;
+            get().addLogMessage(
+              language === 'vi'
+                ? `🎒 HÀNH LÝ ĐẦY: Quy đổi ${rolled.length} trang bị phó bản thành +${shardsGained} Mảnh Aether!`
+                : `🎒 BAG FULL: Converted ${rolled.length} dungeon gear into +${shardsGained} Aether Shards!`,
+              'system'
+            );
+          } else {
+            finalInventory = [...finalInventory, ...rolled];
+            rolled.forEach(item => {
+              get().addLogMessage(
+                language === 'vi'
+                  ? `⚔️ PHÓ BẢN: Vượt ải thành công! Nhận được [${item.name}] chưa giám định!`
+                  : `⚔️ DUNGEON: Victory! Received unidentified [${item.name}]!`,
+                'loot'
+              );
+            });
+            rolledItems = rolled;
+          }
         }
       }
-      
-      const gemTypes = ['ruby', 'topaz', 'emerald', 'sapphire', 'amethyst'];
-      const rewardsGems: Record<string, number> = {};
-      
-      for (let i = 0; i < rollCount; i++) {
-        const type = gemTypes[Math.floor(Math.random() * gemTypes.length)];
-        const tier = Math.floor(Math.random() * (maxTier - minTier + 1)) + minTier;
-        const key = `${type}_${tier}`;
-        rewardsGems[key] = (rewardsGems[key] || 0) + 1;
-      }
-      
-      const heroGems = { ...(hero.gems || {}) };
-      Object.entries(rewardsGems).forEach(([key, count]) => {
-        heroGems[key] = (heroGems[key] || 0) + count;
-      });
-      hero.gems = heroGems;
 
-      // Revive HP to full
+      // Restore health
       hero.currentHp = hero.currentStats.maxHp;
 
+      // Set reward values so they are visible on the victory screen
       set({
-        battleMode: 'stage',
-        activeDungeonId: null,
-        dungeonRewardGems: rewardsGems,
+        dungeonRewardGems: rolledGems,
+        dungeonRewardGold: rolledGold,
+        dungeonRewardDiamonds: rolledDiamonds,
+        dungeonRewardItems: rolledItems,
+        dungeonResult: 'victory',
         heroHp: hero.currentHp
-      });
-
-      const language = useLanguageStore.getState().language;
-      Object.entries(rewardsGems).forEach(([key, count]) => {
-        const [type, tier] = key.split('_');
-        const gemName = type === 'ruby' ? 'Hồng Ngọc' : type === 'topaz' ? 'Hoàng Ngọc' : type === 'emerald' ? 'Lục Bảo' : type === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
-        get().addLogMessage(
-          language === 'vi'
-            ? `💎 PHÓ BẢN: Vượt ải thành công! Nhận được +${count} ${gemName} Cấp ${tier}!`
-            : `💎 DUNGEON: Victory! Received +${count} ${type.toUpperCase()} Gem Tier ${tier}!`,
-          'loot'
-        );
       });
 
       const updatedSave: GameSaveData = {
         ...saveData,
         hero,
+        inventory: finalInventory,
         lastSavedAt: Date.now()
       };
       autoSave(updatedSave);
+    },
 
-      // Close modal / popup rewards after clicking claim
-      set({ dungeonRewardGems: null });
+    claimDungeonRewards: () => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      hero.currentHp = hero.currentStats.maxHp;
+
+      set({
+        battleMode: 'stage',
+        activeDungeonId: null,
+        dungeonRewardGems: null,
+        dungeonRewardGold: null,
+        dungeonRewardDiamonds: null,
+        dungeonRewardItems: null,
+        dungeonResult: null,
+        heroHp: hero.currentHp
+      });
     },
 
     onDungeonDefeat: () => {
@@ -1963,6 +2089,11 @@ export const useGameStore = create<GameState>((set, get) => {
       set({
         battleMode: 'stage',
         activeDungeonId: null,
+        dungeonRewardGems: null,
+        dungeonRewardGold: null,
+        dungeonRewardDiamonds: null,
+        dungeonRewardItems: null,
+        dungeonResult: null,
         heroHp: hero.currentHp
       });
 
@@ -1972,6 +2103,10 @@ export const useGameStore = create<GameState>((set, get) => {
         lastSavedAt: Date.now()
       };
       autoSave(updatedSave);
+    },
+
+    triggerDungeonDefeat: () => {
+      set({ dungeonResult: 'defeat' });
     },
 
     usePotionInDungeon: () => {
@@ -2181,35 +2316,16 @@ export const useGameStore = create<GameState>((set, get) => {
       if (!saveData) return;
 
       if (battleMode === 'dungeon') {
-        const hero = { ...saveData.hero };
-        hero.currentHp = hero.currentStats.maxHp;
-        
         get().addLogMessage(
           useLanguageStore.getState().language === 'vi'
-            ? '❌ PHÓ BẢN THẤT BẠI: Bạn đã bị hạ gục trong phó bản! Tự động rút lui về ải chính.'
-            : '❌ DUNGEON FAILED: You were defeated! Automatically retreated to main stage.',
+            ? '❌ PHÓ BẢN THẤT BẠI: Bạn đã bị hạ gục trong phó bản!'
+            : '❌ DUNGEON DEFEAT: You were defeated in the dungeon!',
           'system'
         );
         
-        const updatedSave: GameSaveData = {
-          ...saveData,
-          hero,
-          lastSavedAt: Date.now()
-        };
-        
         set({
-          battleMode: 'stage',
-          activeDungeonId: null,
-          heroHp: hero.currentHp
+          dungeonResult: 'defeat'
         });
-        
-        autoSave(updatedSave);
-        
-        if (get().engineInstance) {
-          get().engineInstance.exitGuildRaid();
-        }
-        
-        get().startNextBattle();
         return;
       }
 

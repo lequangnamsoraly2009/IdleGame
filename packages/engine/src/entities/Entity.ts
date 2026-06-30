@@ -1,4 +1,69 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Sprite, Texture } from 'pixi.js';
+
+const colorKeyedCache: Record<string, Texture> = {};
+
+function loadBossSprite(imageUrl: string, sprite: Sprite, targetWidth = 64, targetHeight = 64) {
+  if (colorKeyedCache[imageUrl]) {
+    sprite.texture = colorKeyedCache[imageUrl];
+    sprite.width = targetWidth;
+    sprite.height = targetHeight;
+    return;
+  }
+
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(img, 0, 0);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+
+      // Auto-detect background color from top-left corner pixel
+      const bgR = data[0];
+      const bgG = data[1];
+      const bgB = data[2];
+
+      const isWhiteBg = bgR > 200 && bgG > 200 && bgB > 200;
+      const isBlackBg = bgR < 60 && bgG < 60 && bgB < 60;
+
+      if (isWhiteBg || isBlackBg) {
+        const tolerance = 48; // RGB distance threshold
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+
+          const dist = Math.sqrt(
+            Math.pow(r - bgR, 2) +
+            Math.pow(g - bgG, 2) +
+            Math.pow(b - bgB, 2)
+          );
+
+          if (dist < tolerance) {
+            data[i + 3] = 0; // Make pixel transparent
+          }
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+
+      const texture = Texture.from(canvas);
+      colorKeyedCache[imageUrl] = texture;
+      sprite.texture = texture;
+
+      // Update dimensions after texture is set
+      sprite.width = targetWidth;
+      sprite.height = targetHeight;
+    }
+  };
+  img.onerror = (err) => {
+    console.error(`Failed to load boss sprite image: ${imageUrl}`, err);
+  };
+  img.src = imageUrl;
+}
 
 export class Entity extends Container {
   public isHero: boolean;
@@ -12,7 +77,7 @@ export class Entity extends Container {
   private rageBarBg: Graphics;
   private rageBarFill: Graphics;
   private nameText: Text;
-  
+
   // Animation states
   private targetX: number = 0;
   private targetY: number = 0;
@@ -213,81 +278,268 @@ export class Entity extends Container {
       this.body.fill({ color: 0x475569 });
       this.body.stroke({ width: 2, color: 0x1e293b });
     } else {
-      // 3. CUTE SQUISHY SLIME (Dynamic coloring based on name) - Shifted by +8px to make bottom edge exactly y = 32
       const lowerName = this.name.toLowerCase();
-      let slimeColor = 0x10b981; // default green slime
-      let cheekColor = 0xfca5a5; // cute pink blush
+      let bossImageUrl = '';
 
-      if (lowerName.includes('đá') || lowerName.includes('stone') || lowerName.includes('sắt') || lowerName.includes('brass') || lowerName.includes('đồng')) {
-        slimeColor = 0x78716c; // stone/gray slime
-      } else if (lowerName.includes('lửa') || lowerName.includes('fire') || lowerName.includes('quỷ') || lowerName.includes('bộc')) {
-        slimeColor = 0xef4444; // fire/red slime
-      } else if (lowerName.includes('băng') || lowerName.includes('ice') || lowerName.includes('nước') || lowerName.includes('khí')) {
-        slimeColor = 0x3b82f6; // ice/blue slime
-      } else if (lowerName.includes('vàng') || lowerName.includes('gold') || lowerName.includes('hoàng')) {
-        slimeColor = 0xeab308; // golden slime
-      } else if (lowerName.includes('bóng') || lowerName.includes('shadow') || lowerName.includes('hắc')) {
-        slimeColor = 0x6b21a8; // shadow/purple slime
+      if (lowerName.includes('golem') || lowerName.includes('vệ binh') || lowerName.includes('sentinel') || lowerName.includes('cổ tự')) {
+        bossImageUrl = '/boss_golem.png';
+      } else if (lowerName.includes('demon') || lowerName.includes('quỷ') || lowerName.includes('archdemon') || lowerName.includes('mực') || lowerName.includes('hỏa')) {
+        bossImageUrl = '/boss_demon.png';
+      } else if (lowerName.includes('dragon') || lowerName.includes('rồng') || lowerName.includes('behemoth')) {
+        bossImageUrl = '/boss_dragon.png';
+      } else if (lowerName.includes('goblin') || lowerName.includes('thủ lĩnh')) {
+        bossImageUrl = '/boss_goblin.png';
+      } else if (lowerName.includes('spider') || lowerName.includes('nhện')) {
+        bossImageUrl = '/boss_spider.png';
+      } else if (lowerName.includes('chimera') || lowerName.includes('octopus') || lowerName.includes('leviathan') || lowerName.includes('quái thú') || lowerName.includes('thần thoại')) {
+        bossImageUrl = '/boss_octopus.png';
+      } else if (lowerName.includes('knight') || lowerName.includes('hiệp sĩ')) {
+        bossImageUrl = '/boss_knight.png';
       }
 
-      // Draw squishy slime jelly blob
-      this.body.moveTo(-28, 24);
-      // Bottom squish flat - Exactly y = 32
-      this.body.quadraticCurveTo(0, 32, 28, 24);
-      // Right side curve
-      this.body.quadraticCurveTo(34, 6, 22, -8);
-      // Top round dome
-      this.body.quadraticCurveTo(0, -24, -22, -8);
-      // Left side curve
-      this.body.quadraticCurveTo(-34, 6, -28, 24);
-      this.body.closePath();
+      if (bossImageUrl) {
+        this.body.clear();
+        this.body.removeChildren();
+        const bossSprite = new Sprite();
+        bossSprite.anchor.set(0.5, 0.5);
+        bossSprite.y = 0;
+        this.body.addChild(bossSprite);
+        loadBossSprite(bossImageUrl, bossSprite, 156, 156);
+        return;
+      }
 
-      // Slime inner transparent color
-      this.body.fill({ color: slimeColor, alpha: 0.85 });
-      this.body.stroke({ width: 3, color: 0x1e293b });
+      if (lowerName.includes('golem') || lowerName.includes('vệ binh') || lowerName.includes('sentinel') || lowerName.includes('cổ tự')) {
+        // --- GOLEM / SENTINEL ---
+        // Head
+        this.body.roundRect(-18, -26, 36, 24, 5);
+        this.body.fill({ color: 0x64748b });
+        this.body.stroke({ width: 2.5, color: 0x334155 });
+        // Glowing cyan eyes
+        this.body.circle(-7, -15, 2.5);
+        this.body.circle(7, -15, 2.5);
+        this.body.fill({ color: 0x06b6d4 });
+        // Massive shoulders / chest
+        this.body.roundRect(-30, -2, 60, 30, 8);
+        this.body.fill({ color: 0x475569 });
+        this.body.stroke({ width: 2.5, color: 0x1e293b });
+        // Glowing magic core
+        this.body.circle(0, 10, 8);
+        this.body.fill({ color: 0x22d3ee });
+      } else if (lowerName.includes('dragon') || lowerName.includes('rồng') || lowerName.includes('behemoth')) {
+        // --- DRAGON / BEHEMOTH ---
+        const isGold = lowerName.includes('vàng') || lowerName.includes('gold') || lowerName.includes('hoàng');
+        const dragonColor = isGold ? 0xf59e0b : 0x4c1d95;
+        const dragonStroke = isGold ? 0x78350f : 0x2e1065;
 
-      // Highlight glossy spot (top left)
-      this.body.circle(-10, -6, 5);
-      this.body.fill({ color: 0xffffff, alpha: 0.4 });
-
-      // Cute big anime eyes
-      this.body.circle(-8, 8, 4);
-      this.body.circle(8, 8, 4);
-      this.body.fill({ color: 0x0f172a }); // dark pupil
-
-      // White eye sparkles
-      this.body.circle(-9.5, 6.5, 1.2);
-      this.body.circle(6.5, 6.5, 1.2);
-      this.body.fill({ color: 0xffffff });
-
-      // Blushing cheeks
-      this.body.circle(-15, 12, 3);
-      this.body.circle(15, 12, 3);
-      this.body.fill({ color: cheekColor, alpha: 0.7 });
-
-      // Cute tiny mouth
-      this.body.moveTo(-2, 12);
-      this.body.quadraticCurveTo(0, 15, 2, 12);
-      this.body.stroke({ width: 1.5, color: 0x0f172a });
-
-      // Draw a golden crown if it is the Slime King (Vua Slime)
-      if (lowerName.includes('king') || lowerName.includes('chúa') || lowerName.includes('vương') || lowerName.includes('boss')) {
-        this.body.moveTo(-10, -20);
-        this.body.lineTo(-14, -30);
-        this.body.lineTo(-5, -25);
-        this.body.lineTo(0, -36);
-        this.body.lineTo(5, -25);
-        this.body.lineTo(14, -30);
-        this.body.lineTo(10, -20);
+        this.body.moveTo(0, -26);
+        this.body.lineTo(20, -10);
+        this.body.lineTo(12, 18);
+        this.body.lineTo(0, 24);
+        this.body.lineTo(-12, 18);
+        this.body.lineTo(-20, -10);
         this.body.closePath();
+        this.body.fill({ color: dragonColor });
+        this.body.stroke({ width: 2.5, color: dragonStroke });
+        // Horns
+        this.body.moveTo(-12, -18);
+        this.body.quadraticCurveTo(-26, -38, -24, -42);
+        this.body.quadraticCurveTo(-16, -30, -5, -21);
+        this.body.fill({ color: 0x111827 });
+        this.body.stroke({ width: 1.5, color: 0x000000 });
+        this.body.moveTo(12, -18);
+        this.body.quadraticCurveTo(26, -38, 24, -42);
+        this.body.quadraticCurveTo(16, -30, 5, -21);
+        this.body.fill({ color: 0x111827 });
+        this.body.stroke({ width: 1.5, color: 0x000000 });
+        // Glowing reptile eyes
+        this.body.circle(-7, -6, 2.5);
+        this.body.circle(7, -6, 2.5);
+        this.body.fill({ color: 0xef4444 });
+        // Scales
+        this.body.circle(0, 4, 3);
+        this.body.fill({ color: 0xfacc15 });
+      } else if (lowerName.includes('demon') || lowerName.includes('quỷ') || lowerName.includes('efreet') || lowerName.includes('cự ma')) {
+        // --- DEMON / EFREET ---
+        this.body.circle(0, -6, 22);
+        this.body.fill({ color: 0xef4444 });
+        this.body.stroke({ width: 2.5, color: 0x7f1d1d });
+        // Large curved black horns
+        this.body.moveTo(-12, -22);
+        this.body.quadraticCurveTo(-30, -38, -32, -30);
+        this.body.quadraticCurveTo(-20, -20, -6, -12);
+        this.body.fill({ color: 0x111827 });
+        this.body.moveTo(12, -22);
+        this.body.quadraticCurveTo(30, -38, 32, -30);
+        this.body.quadraticCurveTo(20, -20, 6, -12);
+        this.body.fill({ color: 0x111827 });
+        // Savage glowing yellow eyes
+        this.body.circle(-6, -10, 3);
+        this.body.circle(6, -10, 3);
+        this.body.fill({ color: 0xfacc15 });
+        // Fanged mouth
+        this.body.rect(-8, 2, 16, 5);
+        this.body.fill({ color: 0x111827 });
+        this.body.moveTo(-6, 2);
+        this.body.lineTo(-4, 6);
+        this.body.lineTo(-2, 2);
+        this.body.moveTo(6, 2);
+        this.body.lineTo(4, 6);
+        this.body.lineTo(2, 2);
+        this.body.fill({ color: 0xffffff });
+      } else if (lowerName.includes('goblin')) {
+        // --- GOBLIN ---
+        this.body.circle(0, -2, 20);
+        this.body.fill({ color: 0x22c55e });
+        this.body.stroke({ width: 2.5, color: 0x14532d });
+        // Long pointy ears
+        this.body.moveTo(-18, -4);
+        this.body.lineTo(-38, -15);
+        this.body.lineTo(-18, 8);
+        this.body.closePath();
+        this.body.fill({ color: 0x16a34a });
+        this.body.stroke({ width: 1.5, color: 0x14532d });
+        this.body.moveTo(18, -4);
+        this.body.lineTo(38, -15);
+        this.body.lineTo(18, 8);
+        this.body.closePath();
+        this.body.fill({ color: 0x16a34a });
+        this.body.stroke({ width: 1.5, color: 0x14532d });
+        // Nose
+        this.body.moveTo(0, -4);
+        this.body.lineTo(-8, 8);
+        this.body.lineTo(0, 8);
+        this.body.closePath();
+        this.body.fill({ color: 0x15803d });
+        // Yellow eyes
+        this.body.circle(-6, -7, 2.5);
+        this.body.circle(6, -7, 2.5);
         this.body.fill({ color: 0xeab308 });
-        this.body.stroke({ width: 1.5, color: 0x1e293b });
+      } else if (lowerName.includes('spider') || lowerName.includes('nhện')) {
+        // --- SPIDER ---
+        this.body.ellipse(0, 4, 26, 18);
+        this.body.fill({ color: 0x1e293b });
+        this.body.stroke({ width: 2.5, color: 0x0ea5e9 });
+        // Multiple small cyan eyes
+        this.body.circle(-8, -4, 2);
+        this.body.circle(-3, -6, 2);
+        this.body.circle(3, -6, 2);
+        this.body.circle(8, -4, 2);
+        this.body.fill({ color: 0x38bdf8 });
+        // Creepy fangs
+        this.body.moveTo(-5, 10);
+        this.body.lineTo(-8, 18);
+        this.body.lineTo(-2, 10);
+        this.body.moveTo(5, 10);
+        this.body.lineTo(8, 18);
+        this.body.lineTo(2, 10);
+        this.body.fill({ color: 0xffffff });
+      } else if (lowerName.includes('knight') || lowerName.includes('hiệp sĩ')) {
+        // --- UNDEAD KNIGHT ---
+        this.body.circle(0, -10, 20);
+        this.body.fill({ color: 0x475569 });
+        this.body.stroke({ width: 2.5, color: 0x1e293b });
+        // Visor gap
+        this.body.rect(-14, -16, 28, 5);
+        this.body.fill({ color: 0x0f172a });
+        // Glowing red eyes
+        this.body.circle(-5, -13, 2);
+        this.body.circle(5, -13, 2);
+        this.body.fill({ color: 0xef4444 });
+        // Dark pauldrons
+        this.body.roundRect(-24, 4, 48, 20, 5);
+        this.body.fill({ color: 0x334155 });
+        this.body.stroke({ width: 2, color: 0x111827 });
+      } else if (lowerName.includes('chimera') || lowerName.includes('quái thú') || lowerName.includes('beast')) {
+        // --- CHIMERA ---
+        this.body.circle(0, -4, 26);
+        this.body.fill({ color: 0xea580c });
+        this.body.stroke({ width: 2, color: 0x9a3412 });
+        // Savage face
+        this.body.circle(0, -2, 18);
+        this.body.fill({ color: 0xd97706 });
+        this.body.stroke({ width: 2.5, color: 0x7c2d12 });
+        // Horns
+        this.body.moveTo(-8, -16);
+        this.body.lineTo(-16, -30);
+        this.body.lineTo(-3, -20);
+        this.body.moveTo(8, -16);
+        this.body.lineTo(16, -30);
+        this.body.lineTo(3, -20);
+        this.body.fill({ color: 0x1e293b });
+        // Glowing eyes
+        this.body.circle(-6, -6, 2.5);
+        this.body.circle(6, -6, 2.5);
+        this.body.fill({ color: 0xef4444 });
+      } else {
+        // --- DEFAULT CUTE SLIME ---
+        let slimeColor = 0x10b981; // default green slime
+        let cheekColor = 0xfca5a5; // cute pink blush
 
-        // Crown gems
-        this.body.circle(-14, -31, 1.5);
-        this.body.circle(0, -37, 1.5);
-        this.body.circle(14, -31, 1.5);
-        this.body.fill({ color: 0xef4444 }); // ruby red gems
+        if (lowerName.includes('đá') || lowerName.includes('stone') || lowerName.includes('sắt') || lowerName.includes('brass') || lowerName.includes('đồng')) {
+          slimeColor = 0x78716c; // stone/gray slime
+        } else if (lowerName.includes('lửa') || lowerName.includes('fire') || lowerName.includes('quỷ') || lowerName.includes('bộc')) {
+          slimeColor = 0xef4444; // fire/red slime
+        } else if (lowerName.includes('băng') || lowerName.includes('ice') || lowerName.includes('nước') || lowerName.includes('khí')) {
+          slimeColor = 0x3b82f6; // ice/blue slime
+        } else if (lowerName.includes('vàng') || lowerName.includes('gold') || lowerName.includes('hoàng')) {
+          slimeColor = 0xeab308; // golden slime
+        } else if (lowerName.includes('bóng') || lowerName.includes('shadow') || lowerName.includes('hắc')) {
+          slimeColor = 0x6b21a8; // shadow/purple slime
+        }
+
+        // Draw squishy slime jelly blob
+        this.body.moveTo(-28, 24);
+        this.body.quadraticCurveTo(0, 32, 28, 24);
+        this.body.quadraticCurveTo(34, 6, 22, -8);
+        this.body.quadraticCurveTo(0, -24, -22, -8);
+        this.body.quadraticCurveTo(-34, 6, -28, 24);
+        this.body.closePath();
+
+        this.body.fill({ color: slimeColor, alpha: 0.85 });
+        this.body.stroke({ width: 3, color: 0x1e293b });
+
+        // Highlight
+        this.body.circle(-10, -6, 5);
+        this.body.fill({ color: 0xffffff, alpha: 0.4 });
+
+        // Eyes
+        this.body.circle(-8, 8, 4);
+        this.body.circle(8, 8, 4);
+        this.body.fill({ color: 0x0f172a });
+
+        // Sparkles
+        this.body.circle(-9.5, 6.5, 1.2);
+        this.body.circle(6.5, 6.5, 1.2);
+        this.body.fill({ color: 0xffffff });
+
+        // Blushing cheeks
+        this.body.circle(-15, 12, 3);
+        this.body.circle(15, 12, 3);
+        this.body.fill({ color: cheekColor, alpha: 0.7 });
+
+        // Mouth
+        this.body.moveTo(-2, 12);
+        this.body.quadraticCurveTo(0, 15, 2, 12);
+        this.body.stroke({ width: 1.5, color: 0x0f172a });
+
+        // Draw a golden crown if it is the Slime King (Vua Slime)
+        if (lowerName.includes('king') || lowerName.includes('chúa') || lowerName.includes('vương') || lowerName.includes('boss')) {
+          this.body.moveTo(-10, -20);
+          this.body.lineTo(-14, -30);
+          this.body.lineTo(-5, -25);
+          this.body.lineTo(0, -36);
+          this.body.lineTo(5, -25);
+          this.body.lineTo(14, -30);
+          this.body.lineTo(10, -20);
+          this.body.closePath();
+          this.body.fill({ color: 0xeab308 });
+          this.body.stroke({ width: 1.5, color: 0x1e293b });
+
+          this.body.circle(-14, -31, 1.5);
+          this.body.circle(0, -37, 1.5);
+          this.body.circle(14, -31, 1.5);
+          this.body.fill({ color: 0xef4444 });
+        }
       }
     }
   }
@@ -297,7 +549,7 @@ export class Entity extends Container {
     const hpPercentage = Math.max(0, this.currentHp / this.maxHp);
     const width = 80 * hpPercentage;
     const color = this.isHero ? 0x10b981 : 0xef4444; // green vs red
-    
+
     if (width > 0) {
       this.healthBarFill.rect(-40, -60, width, 8);
       this.healthBarFill.fill({ color });
@@ -322,7 +574,7 @@ export class Entity extends Container {
     if (name) {
       const nameChanged = this.name !== name;
       this.name = name;
-      
+
       const { displayName, rankColor } = parseAndTranslateName(name, this.isHero, language);
 
       // Positioning of entities is handled in Engine.positionEntities; no local positioning needed here.

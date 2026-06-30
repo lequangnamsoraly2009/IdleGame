@@ -87,6 +87,14 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     }
   }, [saveData?.hero?.level, activeTab, setActiveTab]);
 
+  // Redirect to Home tab and close mobile overlay modal when dungeon battle begins
+  React.useEffect(() => {
+    if (battleMode === 'dungeon') {
+      setActiveTab('home');
+      setIsMobilePanelOpen(false);
+    }
+  }, [battleMode, setActiveTab, setIsMobilePanelOpen]);
+
   if (!saveData) return null;
 
   const { hero, activeStage, currentWave, autoAdvance } = saveData;
@@ -383,6 +391,10 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                     </>
                   )}
                 </>
+              ) : battleMode === 'dungeon' ? (
+                <span className="font-extrabold text-blue-400 animate-pulse uppercase tracking-wider">
+                  {language === 'vi' ? '🏰 THỬ THÁCH PHÓ BẢN' : '🏰 DUNGEON TRIAL'}
+                </span>
               ) : (
                 <span className="font-extrabold text-red-400 animate-pulse uppercase tracking-wider">
                   {language === 'vi' ? '🔥 BOSS BANG HỘI' : '🔥 GUILD RAID'}
@@ -403,6 +415,18 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                   className="bg-red-600/90 hover:bg-red-500 border border-red-500 text-white font-extrabold text-[9px] uppercase tracking-wider py-1.5 px-3.5 rounded-xl shadow-lg active:scale-95 transition cursor-pointer flex items-center gap-1"
                 >
                   ⚔️ {language === 'vi' ? 'THOÁT BOSS' : 'EXIT BOSS'}
+                </button>
+              </div>
+            )}
+
+            {/* Dungeon Trial Retreat Button */}
+            {battleMode === 'dungeon' && (
+              <div className="absolute top-2.5 left-2.5 z-20">
+                <button
+                  onClick={() => useGameStore.getState().onDungeonDefeat()}
+                  className="bg-red-600/90 hover:bg-red-500 border border-red-500 text-white font-extrabold text-[9px] uppercase tracking-wider py-1.5 px-3.5 rounded-xl shadow-lg active:scale-95 transition cursor-pointer flex items-center gap-1"
+                >
+                  🏳️ {language === 'vi' ? 'THOÁT PHÓ BẢN' : 'RETREAT'}
                 </button>
               </div>
             )}
@@ -470,7 +494,12 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                 {/* HP Row */}
                 <div className="flex items-center gap-2 text-xs">
                   <div className="w-[42px] sm:w-[70px] font-bold text-red-400 flex items-center gap-1 shrink-0">
-                    👹 <span className="hidden sm:inline">{battleMode === 'guild_boss' ? 'Raid Boss' : t('quest_target_defeat')}</span><span className="sm:hidden">{battleMode === 'guild_boss' ? 'BOSS' : 'MOB'}</span>
+                    👹 <span className="hidden sm:inline">
+                      {battleMode === 'guild_boss' ? 'Raid Boss' : battleMode === 'dungeon' ? (language === 'vi' ? 'Boss Phó Bản' : 'Dungeon Boss') : t('quest_target_defeat')}
+                    </span>
+                    <span className="sm:hidden">
+                      {battleMode === 'guild_boss' ? 'BOSS' : battleMode === 'dungeon' ? 'BOSS' : 'MOB'}
+                    </span>
                   </div>
                   <div className="flex-1 h-2 bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
                     <div
