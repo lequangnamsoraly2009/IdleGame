@@ -65,7 +65,7 @@ export const PixiGame: React.FC = () => {
         
         switch (event.type) {
           case 'BATTLE_TICK':
-            store.syncBattleStats(event.heroHp, event.monsterHp, event.maxHeroHp, event.maxMonsterHp, event.heroRage, event.monsterRage);
+            store.syncBattleStats(event.heroHp, event.monsterHp, event.maxHeroHp, event.maxMonsterHp, event.heroRage, event.monsterRage, event.potionCd);
             break;
           case 'MONSTER_DEFEATED':
             store.onMonsterDefeated(event.exp, event.gold, event.diamonds, event.itemsDropped, event.monsterId, event.isMutated, event.durationMs);
