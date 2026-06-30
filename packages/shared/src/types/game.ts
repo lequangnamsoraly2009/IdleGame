@@ -145,6 +145,8 @@ export interface QuestState {
   claimed: boolean;
   startDate?: number;
   endDate?: number;
+  completedAt?: number;
+  claimedAt?: number;
 }
 
 export interface ShopItem {

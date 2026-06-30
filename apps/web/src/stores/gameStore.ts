@@ -208,11 +208,15 @@ export const useGameStore = create<GameState>((set, get) => {
         newCount += amount;
       }
 
+      const wasCompleted = q.completed;
       const completed = newCount >= q.targetCount;
+      const completedAt = (completed && !wasCompleted) ? Date.now() : q.completedAt;
+
       return {
         ...q,
         currentCount: Math.min(q.targetCount, newCount),
-        completed
+        completed,
+        completedAt
       };
     });
   };
@@ -1331,7 +1335,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       const quests = saveData.quests.map(q => {
         if (q.id === questId) {
-          return { ...q, claimed: true };
+          return { ...q, claimed: true, claimedAt: Date.now() };
         }
         return q;
       });

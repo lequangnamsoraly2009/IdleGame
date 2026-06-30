@@ -67,6 +67,16 @@ export const QuestTab: React.FC = () => {
     );
   };
 
+  const formatTimestamp = (ts?: number) => {
+    if (!ts) return '';
+    const date = new Date(ts);
+    const time = date.toTimeString().split(' ')[0].substring(0, 5);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${time} ${day}/${month}/${year}`;
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 overflow-hidden">
       {/* Title */}
@@ -92,7 +102,7 @@ export const QuestTab: React.FC = () => {
             onClick={() => setActiveSubTab(tab.value)}
             className={`px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider rounded-lg transition whitespace-nowrap cursor-pointer border ${activeSubTab === tab.value
                 ? 'bg-indigo-600/15 border-indigo-500/30 text-indigo-300 shadow shadow-indigo-600/5'
-                : 'bg-slate-950/20 border-slate-850/60 hover:bg-slate-900/40 text-slate-400 hover:text-slate-300'
+                : 'bg-slate-950/20 border-slate-850/60 hover:bg-slate-900/40 text-slate-450 hover:text-slate-300'
               }`}
           >
             {language === 'vi' ? tab.vi : tab.en}
@@ -154,6 +164,27 @@ export const QuestTab: React.FC = () => {
                     <p className="text-xs text-slate-400">
                       {getTranslatedQuestDesc(t, quest.id, quest.description)}
                     </p>
+
+                    {/* Completion or Claim Date/Time */}
+                    {quest.claimed && quest.claimedAt ? (
+                      <div className="text-[9.5px] text-slate-500 font-bold flex items-center gap-1.5 mt-1 select-none">
+                        <span>✔️</span>
+                        <span>
+                          {language === 'vi' 
+                            ? `Đã nhận quà: ${formatTimestamp(quest.claimedAt)}` 
+                            : `Claimed: ${formatTimestamp(quest.claimedAt)}`}
+                        </span>
+                      </div>
+                    ) : quest.completed && quest.completedAt ? (
+                      <div className="text-[9.5px] text-emerald-400/90 font-bold flex items-center gap-1.5 mt-1 select-none">
+                        <span>🎉</span>
+                        <span>
+                          {language === 'vi' 
+                            ? `Hoàn thành: ${formatTimestamp(quest.completedAt)}` 
+                            : `Completed: ${formatTimestamp(quest.completedAt)}`}
+                        </span>
+                      </div>
+                    ) : null}
 
                     {/* Progress Bar */}
                     {!quest.claimed && (
