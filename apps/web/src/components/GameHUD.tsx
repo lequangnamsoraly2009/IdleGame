@@ -11,6 +11,7 @@ import { GuideTab } from './tabs/GuideTab';
 import { useTranslation, getTranslatedQuestTitle } from '../utils/i18n';
 import { useLanguageStore } from '../stores/languageStore';
 import { ItemInfoModal } from './ItemInfoModal';
+import { SummonResultOverlay } from './SummonResultOverlay';
 import { calculateHeroCP } from '@idle-rpg/shared';
 
 const LEVEL_LOCKS = {
@@ -830,6 +831,9 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
       {/* Item Inspect Popup Overlay */}
       {activeInspectItemId && <ItemInfoModal />}
+
+      {/* Gacha Summon Reveal Overlay */}
+      <SummonResultOverlay />
     </div>
   );
 };

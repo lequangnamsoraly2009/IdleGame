@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../../stores/gameStore';
-import { DEFAULT_ITEM_TEMPLATES, createItemInstance } from '@idle-rpg/shared';
 import { useTranslation, getTranslatedItemName } from '../../utils/i18n';
 import { ItemGraphic } from '../ItemGraphic';
 
@@ -12,135 +11,33 @@ interface PullResult {
 }
 
 export const SummonTab: React.FC = () => {
-  const { saveData, summonEquipment, addLogMessage } = useGameStore();
+  const { saveData, summonEquipment, summonTenEquipment, activeSummonResult } = useGameStore();
   const { t } = useTranslation();
-  const [isOpening, setIsOpening] = useState(false);
   const [recentPulls, setRecentPulls] = useState<PullResult[]>([]);
+
+  // Sync results to local history board whenever a pull finishes
+  useEffect(() => {
+    if (activeSummonResult && activeSummonResult.length > 0) {
+      setRecentPulls(activeSummonResult.map(item => ({
+        templateId: item.templateId,
+        name: item.name,
+        rarity: item.rarity,
+        slot: item.slot
+      })));
+    }
+  }, [activeSummonResult]);
 
   if (!saveData) return null;
 
-  const { hero, inventory } = saveData;
-
-  const rollRarity = (): 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' => {
-    const rand = Math.random();
-    if (rand < 0.012) return 'legendary'; // 1.2%
-    if (rand < 0.07) return 'epic';       // 5.8%
-    if (rand < 0.25) return 'rare';       // 18%
-    if (rand < 0.55) return 'uncommon';   // 30%
-    return 'common';                      // 45%
-  };
+  const { hero } = saveData;
 
   const executeSummonTen = () => {
-    if (hero.diamonds < 90) {
-      addLogMessage(t('insufficient_diamonds'), 'system');
-      return;
-    }
-
-    const spaceLeft = 50 - inventory.length;
-    if (spaceLeft < 10) {
-      addLogMessage(t('summon_inventory_10x', { space: spaceLeft }), 'system');
-      return;
-    }
-
-    setIsOpening(true);
-    setRecentPulls([]);
-
-    setTimeout(() => {
-      const results: PullResult[] = [];
-      const newItems: any[] = [];
-      
-      const counts = { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 };
-
-      for (let i = 0; i < 10; i++) {
-        const rarity = rollRarity();
-        counts[rarity]++;
-        const eligibleTemplates = DEFAULT_ITEM_TEMPLATES.filter(t => t.rarity === rarity);
-        const template = eligibleTemplates[Math.floor(Math.random() * eligibleTemplates.length)];
-        
-        const itemLvl = Math.max(1, Math.floor(saveData.activeStage / 6));
-        const newItem = createItemInstance(template, itemLvl);
-        
-        newItems.push(newItem);
-        results.push({ 
-          templateId: newItem.templateId, 
-          name: newItem.name, 
-          rarity: newItem.rarity,
-          slot: newItem.slot
-        });
-      }
-
-      // Deduct diamonds and append items
-      useGameStore.setState(state => {
-        if (state.saveData) {
-          return {
-            saveData: {
-              ...state.saveData,
-              hero: {
-                ...state.saveData.hero,
-                diamonds: state.saveData.hero.diamonds - 90
-              },
-              inventory: [...state.saveData.inventory, ...newItems]
-            }
-          };
-        }
-        return {};
-      });
-
-      setRecentPulls(results);
-      setIsOpening(false);
-      
-      const summary = t('log_summon_ten', {
-        legendary: counts.legendary,
-        epic: counts.epic,
-        rare: counts.rare,
-        uncommon: counts.uncommon,
-        common: counts.common
-      });
-      addLogMessage(summary, 'loot');
-
-    }, 1200); // 1.2 second shaker animation
+    summonTenEquipment();
   };
 
   const executeSummonSingle = () => {
-    if (hero.diamonds < 10) {
-      addLogMessage(t('insufficient_diamonds'), 'system');
-      return;
-    }
-
-    if (inventory.length >= 50) {
-      addLogMessage(t('summon_inventory_warning'), 'system');
-      return;
-    }
-
-    setIsOpening(true);
-    setRecentPulls([]);
-
-    setTimeout(() => {
-      // Execute the store summon action
-      summonEquipment();
-      
-      // Determine what they just pulled to show on screen
-      // (look at the last item added to the new inventory)
-      setTimeout(() => {
-        const currentStore = useGameStore.getState();
-        if (currentStore.saveData) {
-          const inv = currentStore.saveData.inventory;
-          const lastItem = inv[inv.length - 1];
-          if (lastItem) {
-            setRecentPulls([{ 
-              templateId: lastItem.templateId, 
-              name: lastItem.name, 
-              rarity: lastItem.rarity,
-              slot: lastItem.slot
-            }]);
-          }
-        }
-        setIsOpening(false);
-      }, 50);
-    }, 1000);
+    summonEquipment();
   };
-
-
 
   const getRarityUIStyles = (rarity: string) => {
     switch (rarity) {
@@ -230,16 +127,12 @@ export const SummonTab: React.FC = () => {
       {/* Gacha Portal View */}
       <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col items-center justify-center relative overflow-hidden min-h-[340px]">
         {/* Glow behind the chest */}
-        <div className="absolute w-[200px] h-[200px] bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none" />
+        <div className="absolute w-[200px] h-[200px] bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none animate-pulse" />
 
         {/* Chest Visual */}
-        <div className={`text-7xl mb-8 relative transition-transform duration-75 select-none ${
-          isOpening ? 'animate-bounce scale-110' : 'hover:scale-[1.05]'
-        }`}>
+        <div className="text-7xl mb-8 relative transition-transform duration-75 select-none hover:scale-[1.05] active:scale-95 cursor-pointer">
           🎁
-          {isOpening && (
-            <span className="absolute -top-3 -right-3 text-2xl animate-ping">✨</span>
-          )}
+          <span className="absolute -top-3 -right-3 text-3xl animate-bounce">✨</span>
         </div>
 
         <h3 className="text-lg font-extrabold text-white mb-1 font-display">
@@ -254,7 +147,7 @@ export const SummonTab: React.FC = () => {
           {/* Summon x1 */}
           <button
             onClick={executeSummonSingle}
-            disabled={isOpening || hero.diamonds < 10}
+            disabled={hero.diamonds < 10}
             className="flex-1 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-700 text-white text-xs font-extrabold py-3 px-3 rounded-xl transition active:scale-[0.98] disabled:opacity-40 cursor-pointer"
           >
             <span className="block">{t('summon_x1')}</span>
@@ -264,7 +157,7 @@ export const SummonTab: React.FC = () => {
           {/* Summon x10 */}
           <button
             onClick={executeSummonTen}
-            disabled={isOpening || hero.diamonds < 90}
+            disabled={hero.diamonds < 90}
             className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-extrabold py-3 px-3 rounded-xl border border-indigo-400/20 active:scale-[0.98] shadow shadow-indigo-500/10 transition disabled:opacity-40 cursor-pointer"
           >
             <span className="block">{t('summon_x10')}</span>

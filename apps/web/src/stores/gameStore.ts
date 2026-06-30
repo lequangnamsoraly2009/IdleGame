@@ -28,6 +28,7 @@ interface GameState {
   activeTab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide';
   isLoading: boolean;
   activeInspectItemId: string | null;
+  activeSummonResult: EquipmentItem[] | null;
   
   // Realtime Battle HUD healths (synced with Pixi tick updates)
   heroHp: number;
@@ -80,6 +81,8 @@ interface GameState {
   claimQuestReward: (questId: string) => void;
   buyGoldPack: () => void;
   summonEquipment: () => void;
+  summonTenEquipment: () => void;
+  setActiveSummonResult: (items: EquipmentItem[] | null) => void;
   triggerPrestige: () => void;
   changeHeroClass: (newClass: 'knight' | 'mage' | 'assassin') => void;
   renameHero: (newName: string) => void;
@@ -204,6 +207,7 @@ export const useGameStore = create<GameState>((set, get) => {
     activeTab: 'hero',
     isLoading: true,
     activeInspectItemId: null,
+    activeSummonResult: null,
 
     // Combat HUD state
     heroHp: 100,
@@ -951,6 +955,7 @@ export const useGameStore = create<GameState>((set, get) => {
       };
 
       autoSave(updatedSave);
+      set({ activeSummonResult: [item] });
     },
 
     buyAetherDiamonds: () => {
@@ -1122,6 +1127,8 @@ export const useGameStore = create<GameState>((set, get) => {
       );
     },
 
+    setActiveSummonResult: (items) => set({ activeSummonResult: items }),
+
     claimQuestReward: (questId) => {
       const { saveData } = get();
       if (!saveData) return;
@@ -1226,6 +1233,68 @@ export const useGameStore = create<GameState>((set, get) => {
       };
 
       autoSave(updatedSave);
+      set({ activeSummonResult: [newItem] });
+    },
+
+    summonTenEquipment: () => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      const cost = 90;
+
+      if (hero.diamonds < cost) {
+        get().addLogMessage(tStore('insufficient_diamonds'), 'system');
+        return;
+      }
+
+      const spaceLeft = 50 - saveData.inventory.length;
+      if (spaceLeft < 10) {
+        get().addLogMessage(useLanguageStore.getState().language === 'vi' ? `❌ Hành lý đầy! Cần ít nhất 10 ô trống để triệu hồi 10x (còn trống: ${spaceLeft} ô).` : `❌ Inventory full! Need at least 10 empty slots for 10x summon (empty: ${spaceLeft}).`, 'system');
+        return;
+      }
+
+      const rollRarity = (): 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' => {
+        const rand = Math.random();
+        if (rand < 0.012) return 'legendary';
+        if (rand < 0.07) return 'epic';
+        if (rand < 0.25) return 'rare';
+        if (rand < 0.55) return 'uncommon';
+        return 'common';
+      };
+
+      const newItems: EquipmentItem[] = [];
+      const counts = { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 };
+
+      for (let i = 0; i < 10; i++) {
+        const rarity = rollRarity();
+        counts[rarity]++;
+        const eligibleTemplates = DEFAULT_ITEM_TEMPLATES.filter(t => t.rarity === rarity);
+        const template = eligibleTemplates[Math.floor(Math.random() * eligibleTemplates.length)];
+        
+        const itemLvl = Math.max(1, Math.floor(saveData.activeStage / 6));
+        const newItem = createItemInstance(template, itemLvl);
+        newItems.push(newItem);
+      }
+
+      hero.diamonds -= cost;
+      const inventory = [...saveData.inventory, ...newItems];
+
+      const summary = useLanguageStore.getState().language === 'vi'
+        ? `🎁 TRIỆU HỒI 10X: Nhận thành công ${counts.legendary} Huyền Thoại, ${counts.epic} Sử Thi, ${counts.rare} Hiếm, ${counts.uncommon} Tốt, ${counts.common} Thường!`
+        : `🎁 10X SUMMON: Received ${counts.legendary} Legendary, ${counts.epic} Epic, ${counts.rare} Rare, ${counts.uncommon} Uncommon, ${counts.common} Common!`;
+        
+      get().addLogMessage(summary, 'loot');
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        inventory,
+        lastSavedAt: Date.now()
+      };
+
+      autoSave(updatedSave);
+      set({ activeSummonResult: newItems });
     },
 
     triggerPrestige: () => {
