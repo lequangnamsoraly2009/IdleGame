@@ -49,7 +49,7 @@ export const ShopTab: React.FC = () => {
       {/* Sub tabs selector */}
       <div className="flex gap-1 bg-slate-950/85 p-1.5 rounded-xl border border-slate-900 mb-4 select-none shrink-0 max-w-fit overflow-x-auto scrollbar-none">
         {([
-          { id: 'gold_shop', label: language === 'vi' ? '🪙 Shop Vàng' : '🪙 Gold Shop' },
+          { id: 'gold_shop', label: language === 'vi' ? '💰 Shop Vàng' : '💰 Gold Shop' },
           { id: 'diamond_shop', label: language === 'vi' ? '💎 Shop Kim Cương' : '💎 Diamond Shop' },
           { id: 'summon', label: language === 'vi' ? '🎁 Triệu Hồi' : '🎁 Summon' },
           { id: 'aether', label: language === 'vi' ? '🌀 Đền Aether' : '🌀 Aether Shrine' }
@@ -117,9 +117,12 @@ export const ShopTab: React.FC = () => {
                     <button
                       onClick={() => buyPotion(1, 'gold')}
                       disabled={hero.gold < 200}
-                      className="bg-blue-600/10 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-[10px] font-bold px-3 py-1.5 rounded transition disabled:opacity-30 cursor-pointer"
+                      className="bg-blue-600/10 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-[10px] font-bold px-3 py-1.5 rounded transition disabled:opacity-30 cursor-pointer flex items-center gap-1"
                     >
-                      200 🪙
+                      <span>200</span>
+                      <span className="w-3 h-3 rounded-full bg-gradient-to-b from-yellow-400 to-amber-500 border border-yellow-300 flex items-center justify-center text-[7.5px] text-slate-950 font-black select-none leading-none scale-90 shrink-0">
+                        G
+                      </span>
                     </button>
                   </div>
 
@@ -135,9 +138,12 @@ export const ShopTab: React.FC = () => {
                     <button
                       onClick={() => buyPotion(5, 'gold')}
                       disabled={hero.gold < 900}
-                      className="bg-amber-600/10 hover:bg-amber-600/30 border border-amber-500/30 text-amber-300 text-[10px] font-bold px-3 py-1.5 rounded transition disabled:opacity-30 cursor-pointer"
+                      className="bg-amber-600/10 hover:bg-amber-600/30 border border-amber-500/30 text-amber-300 text-[10px] font-bold px-3 py-1.5 rounded transition disabled:opacity-30 cursor-pointer flex items-center gap-1"
                     >
-                      900 🪙
+                      <span>900</span>
+                      <span className="w-3 h-3 rounded-full bg-gradient-to-b from-yellow-400 to-amber-500 border border-yellow-300 flex items-center justify-center text-[7.5px] text-slate-950 font-black select-none leading-none scale-90 shrink-0">
+                        G
+                      </span>
                     </button>
                   </div>
 
@@ -153,9 +159,12 @@ export const ShopTab: React.FC = () => {
                     <button
                       onClick={() => buyPotion(10, 'gold')}
                       disabled={hero.gold < 1700}
-                      className="bg-purple-650/10 hover:bg-purple-600/35 border border-purple-500/30 text-purple-300 text-[10px] font-bold px-3 py-1.5 rounded transition disabled:opacity-30 cursor-pointer"
+                      className="bg-purple-650/10 hover:bg-purple-600/35 border border-purple-500/30 text-purple-300 text-[10px] font-bold px-3 py-1.5 rounded transition disabled:opacity-30 cursor-pointer flex items-center gap-1"
                     >
-                      1,700 🪙
+                      <span>1,700</span>
+                      <span className="w-3 h-3 rounded-full bg-gradient-to-b from-yellow-400 to-amber-500 border border-yellow-300 flex items-center justify-center text-[7.5px] text-slate-950 font-black select-none leading-none scale-90 shrink-0">
+                        G
+                      </span>
                     </button>
                   </div>
                 </div>
