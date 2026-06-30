@@ -9,6 +9,7 @@ import {
 } from '@idle-rpg/shared';
 import { useTranslation, getTranslatedItemName, getTranslatedMonsterName } from '../utils/i18n';
 import { ItemGraphic } from './ItemGraphic';
+import { GemGraphic } from './GemGraphic';
 
 
 
@@ -927,36 +928,41 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
                 {
-                  nameVi: 'Hồng Ngọc (Ruby 🔴)',
-                  nameEn: 'Ruby (🔴)',
+                  type: 'ruby',
+                  nameVi: 'Hồng Ngọc (Ruby)',
+                  nameEn: 'Ruby',
                   stat: language === 'vi' ? 'Công Vật Lý (ATK)' : 'Physical Attack',
                   values: ['+15 ATK', '+35 ATK', '+80 ATK', '+180 ATK', '+400 ATK'],
                   color: 'border-red-500/20 bg-red-950/10 text-red-400'
                 },
                 {
-                  nameVi: 'Hoàng Ngọc (Topaz 🟡)',
-                  nameEn: 'Topaz (🟡)',
+                  type: 'topaz',
+                  nameVi: 'Hoàng Ngọc (Topaz)',
+                  nameEn: 'Topaz',
                   stat: language === 'vi' ? 'Công Phép Thuật (M.ATK)' : 'Magic Attack',
                   values: ['+15 M.ATK', '+35 M.ATK', '+80 M.ATK', '+180 M.ATK', '+400 M.ATK'],
                   color: 'border-yellow-500/20 bg-yellow-950/10 text-yellow-400'
                 },
                 {
-                  nameVi: 'Lục Bảo (Emerald 🟢)',
-                  nameEn: 'Emerald (🟢)',
+                  type: 'emerald',
+                  nameVi: 'Lục Bảo (Emerald)',
+                  nameEn: 'Emerald',
                   stat: language === 'vi' ? 'Máu Tối Đa (Max HP)' : 'Max HP',
                   values: ['+150 HP', '+350 HP', '+800 HP', '+1800 HP', '+4000 HP'],
                   color: 'border-emerald-500/20 bg-emerald-950/10 text-emerald-400'
                 },
                 {
-                  nameVi: 'Lam Bảo (Sapphire 🔵)',
-                  nameEn: 'Sapphire (🔵)',
+                  type: 'sapphire',
+                  nameVi: 'Lam Bảo (Sapphire)',
+                  nameEn: 'Sapphire',
                   stat: language === 'vi' ? 'Giáp Vật Lý (DEF)' : 'Defense',
                   values: ['+10 DEF', '+25 DEF', '+60 DEF', '+140 DEF', '+320 DEF'],
                   color: 'border-blue-500/20 bg-blue-950/10 text-blue-400'
                 },
                 {
-                  nameVi: 'Thạch Anh (Amethyst 🔮)',
-                  nameEn: 'Amethyst (🔮)',
+                  type: 'amethyst',
+                  nameVi: 'Thạch Anh (Amethyst)',
+                  nameEn: 'Amethyst',
                   stat: language === 'vi' ? 'Chí Mạng & Sát Thương CM' : 'Crit Rate & Crit DMG',
                   values: [
                     '+2% CRIT / +5% CDMG',
@@ -969,13 +975,18 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
                 }
               ].map((g, idx) => (
                 <div key={idx} className={`p-4 border rounded-2xl space-y-3 ${g.color}`}>
-                  <div className="border-b border-white/5 pb-2">
-                    <h4 className="text-xs font-black uppercase tracking-wider text-white">
-                      {language === 'vi' ? g.nameVi : g.nameEn}
-                    </h4>
-                    <span className="text-[10px] text-slate-400 font-bold block mt-0.5 uppercase tracking-wide">
-                      {g.stat}
-                    </span>
+                  <div className="border-b border-white/5 pb-2 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-slate-900/60 flex items-center justify-center p-1 border border-white/5 shadow-inner shrink-0">
+                      <GemGraphic type={g.type} tier={1} className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-white">
+                        {language === 'vi' ? g.nameVi : g.nameEn}
+                      </h4>
+                      <span className="text-[10px] text-slate-400 font-bold block mt-0.5 uppercase tracking-wide">
+                        {g.stat}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="space-y-1.5 font-mono text-[11px] text-slate-350">

@@ -4,6 +4,7 @@ import { getFinalItemStats, EquipmentItem, calculateItemCP, calculateDismantleRe
 import { useTranslation, getTranslatedItemName } from '../utils/i18n';
 import { useLanguageStore } from '../stores/languageStore';
 import { ItemGraphic } from './ItemGraphic';
+import { GemGraphic } from './GemGraphic';
 
 export const ItemInfoModal: React.FC = () => {
   const { 
@@ -332,7 +333,6 @@ export const ItemInfoModal: React.FC = () => {
 
                     let gemType = '';
                     let gemTier = 1;
-                    let emoji = '💎';
                     let gemName = '';
                     let statsDesc = '';
 
@@ -340,7 +340,6 @@ export const ItemInfoModal: React.FC = () => {
                       const [t, tierStr] = gem.split('_');
                       gemType = t;
                       gemTier = parseInt(tierStr) || 1;
-                      emoji = gemType === 'ruby' ? '🔴' : gemType === 'topaz' ? '🟡' : gemType === 'emerald' ? '🟢' : gemType === 'sapphire' ? '🔵' : '🔮';
                       gemName = gemType === 'ruby' ? 'Hồng Ngọc' : gemType === 'topaz' ? 'Hoàng Ngọc' : gemType === 'emerald' ? 'Lục Bảo' : gemType === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
 
                       if (gemType === 'ruby') {
@@ -369,8 +368,10 @@ export const ItemInfoModal: React.FC = () => {
                         </span>
                         {gem ? (
                           <div className="w-full flex items-center justify-between p-2 rounded-lg bg-slate-950/80 border border-slate-900 shadow-inner gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-base">{emoji}</span>
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded bg-slate-900 flex items-center justify-center p-1 border border-slate-850/60 shadow-inner">
+                                <GemGraphic type={gemType} tier={gemTier} className="w-6 h-6" />
+                              </div>
                               <div className="text-[10px]">
                                 <span className="font-extrabold text-slate-200 block leading-tight">
                                   {gemName} Cấp {gemTier}
@@ -405,10 +406,11 @@ export const ItemInfoModal: React.FC = () => {
                                     key={g.key}
                                     onClick={() => insertGem(item.id, g.key, idx)}
                                     disabled={hero.gold < 100}
-                                    className="flex justify-between items-center p-1.5 rounded-lg bg-slate-950/70 border border-slate-900 hover:bg-slate-900 hover:border-slate-800 transition text-[9px] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer text-left"
+                                    className="flex justify-between items-center p-1.5 rounded-lg bg-slate-950/70 border border-slate-900 hover:bg-slate-900 hover:border-slate-800 transition text-[9px] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer text-left gap-2"
                                   >
-                                    <span className="font-extrabold text-slate-200">
-                                      {g.emoji} {g.name} C. {g.tier}
+                                    <span className="font-extrabold text-slate-200 flex items-center gap-1.5">
+                                      <GemGraphic type={g.type} tier={g.tier} className="w-4 h-4 shrink-0" />
+                                      <span>{g.name} C.{g.tier}</span>
                                     </span>
                                     <span className="text-[8.5px] font-black text-slate-500 bg-slate-950 px-1 rounded border border-slate-900 ml-1">
                                       x{g.qty}

@@ -4,6 +4,7 @@ import { useLanguageStore } from '../../stores/languageStore';
 import { getTranslatedItemName, useTranslation } from '../../utils/i18n';
 import { getFinalItemStats, calculateUpgradeCost } from '@idle-rpg/shared';
 import { ItemGraphic } from '../ItemGraphic';
+import { GemGraphic } from '../GemGraphic';
 
 export const ForgeTab: React.FC = () => {
   const { saveData, combineGems, upgradeEquipment } = useGameStore();
@@ -105,8 +106,8 @@ export const ForgeTab: React.FC = () => {
               {gemTypes.map((gt) => (
                 <div key={gt.type} className="bg-slate-900/50 border border-slate-850 rounded-2xl p-4 space-y-3 shadow">
                   <div className="flex items-center gap-2 border-b border-slate-850 pb-2">
-                    <span className="text-xl">{gt.emoji}</span>
-                    <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                    <GemGraphic type={gt.type} tier={1} className="w-6 h-6" />
+                    <h4 className="text-xs font-black text-white uppercase tracking-wider ml-1">
                       {language === 'vi' ? gt.nameVi : gt.nameEn}
                     </h4>
                   </div>
@@ -118,14 +119,19 @@ export const ForgeTab: React.FC = () => {
                       const hasEnough = count >= 3;
 
                       return (
-                        <div key={tier} className="flex justify-between items-center p-2 rounded-xl bg-slate-950/30 border border-slate-950/65 text-xs">
-                          <div>
-                            <span className="font-bold text-slate-350 block">
-                              {language === 'vi' ? `Ngọc Cấp ${tier}` : `Tier ${tier} Gem`}
-                            </span>
-                            <span className="text-[10px] font-medium text-slate-500">
-                              {language === 'vi' ? `Sở hữu: ${count}` : `Owned: ${count}`}
-                            </span>
+                        <div key={tier} className="flex justify-between items-center p-2 rounded-xl bg-slate-950/30 border border-slate-950/65 text-xs gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center p-1 border border-slate-850/60 shadow-inner">
+                              <GemGraphic type={gt.type} tier={tier} className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <span className="font-bold text-slate-200 block">
+                                {language === 'vi' ? `Ngọc Cấp ${tier}` : `Tier ${tier} Gem`}
+                              </span>
+                              <span className="text-[9.5px] font-semibold text-slate-500 block mt-0.5">
+                                {language === 'vi' ? `Sở hữu: ${count}` : `Owned: ${count}`}
+                              </span>
+                            </div>
                           </div>
 
                           <button
@@ -134,7 +140,7 @@ export const ForgeTab: React.FC = () => {
                             className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition cursor-pointer ${
                               hasEnough && hero.gold >= 500
                                 ? 'bg-purple-600 hover:bg-purple-500 border border-purple-500/35 text-white active:scale-95 shadow'
-                                : 'bg-slate-950/60 border border-slate-900 text-slate-600 cursor-not-allowed'
+                                : 'bg-slate-950/60 border border-slate-900 text-slate-660 cursor-not-allowed'
                             }`}
                           >
                             {language === 'vi' ? 'Ghép (3 ➡️ 1)' : 'Fuse (3 ➡️ 1)'}
@@ -144,14 +150,19 @@ export const ForgeTab: React.FC = () => {
                     })}
 
                     {/* Tier 5 Gem count view */}
-                    <div className="flex justify-between items-center p-2 rounded-xl bg-slate-950/20 border border-slate-950/30 text-xs">
-                      <div>
-                        <span className="font-black text-amber-400 block">
-                          ⭐ {language === 'vi' ? 'Ngọc Cấp 5 (Tối đa)' : 'Tier 5 Gem (Max)'}
-                        </span>
-                        <span className="text-[10px] font-medium text-slate-500">
-                          {language === 'vi' ? `Sở hữu: ${gems[`${gt.type}_5`] || 0}` : `Owned: ${gems[`${gt.type}_5`] || 0}`}
-                        </span>
+                    <div className="flex justify-between items-center p-2 rounded-xl bg-slate-950/20 border border-slate-950/30 text-xs gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-slate-900/60 flex items-center justify-center p-1 border border-slate-850/40 shadow-inner">
+                          <GemGraphic type={gt.type} tier={5} className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <span className="font-black text-amber-400 block">
+                            {language === 'vi' ? 'Ngọc Cấp 5 (Tối đa)' : 'Tier 5 Gem (Max)'}
+                          </span>
+                          <span className="text-[9.5px] font-semibold text-slate-500 block mt-0.5">
+                            {language === 'vi' ? `Sở hữu: ${gems[`${gt.type}_5`] || 0}` : `Owned: ${gems[`${gt.type}_5`] || 0}`}
+                          </span>
+                        </div>
                       </div>
                       <span className="text-[9px] font-extrabold uppercase text-slate-550 tracking-wider">
                         MAX TIER
