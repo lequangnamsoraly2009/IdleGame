@@ -110,99 +110,115 @@ export const QuestTab: React.FC = () => {
             </span>
           </div>
         ) : (
-          filteredQuests.map((quest) => {
-            const percentage = Math.min(100, Math.floor((quest.currentCount / quest.targetCount) * 100));
+          (() => {
+            const sortedQuests = [...filteredQuests].sort((a, b) => {
+              const aClaimed = a.claimed ? 1 : 0;
+              const bClaimed = b.claimed ? 1 : 0;
+              if (aClaimed !== bClaimed) {
+                return aClaimed - bClaimed;
+              }
+              const aReady = a.completed ? 1 : 0;
+              const bReady = b.completed ? 1 : 0;
+              if (aReady !== bReady) {
+                return bReady - aReady;
+              }
+              return a.id.localeCompare(b.id);
+            });
 
-            return (
-              <div
-                key={quest.id}
-                className={`border rounded-xl p-4 transition-all flex flex-col sm:flex-row justify-between sm:items-center gap-4 ${quest.claimed
-                    ? 'border-slate-950 bg-slate-950/20 opacity-60'
-                    : quest.completed
-                      ? 'border-emerald-500/30 bg-emerald-500/5 shadow-md shadow-emerald-500/5'
-                      : 'border-slate-800 bg-slate-950/40'
-                  }`}
-              >
-                {/* Details */}
-                <div className="flex-1 space-y-1.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-extrabold text-white font-display">
-                      {getTranslatedQuestTitle(t, quest.id, quest.title)}
-                    </span>
-                    {renderTypeBadge(quest.type)}
-                    {quest.completed && !quest.claimed && (
-                      <span className="bg-emerald-500/20 text-emerald-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse font-display">
-                        {t('quest_ready')}
+            return sortedQuests.map((quest) => {
+              const percentage = Math.min(100, Math.floor((quest.currentCount / quest.targetCount) * 100));
+
+              return (
+                <div
+                  key={quest.id}
+                  className={`border rounded-xl p-4 transition-all flex flex-col sm:flex-row justify-between sm:items-center gap-4 ${quest.claimed
+                      ? 'border-slate-950 bg-slate-950/20 opacity-60'
+                      : quest.completed
+                        ? 'border-emerald-500/30 bg-emerald-500/5 shadow-md shadow-emerald-500/5'
+                        : 'border-slate-800 bg-slate-950/40'
+                    }`}
+                >
+                  {/* Details */}
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-extrabold text-white font-display">
+                        {getTranslatedQuestTitle(t, quest.id, quest.title)}
                       </span>
+                      {renderTypeBadge(quest.type)}
+                      {quest.completed && !quest.claimed && (
+                        <span className="bg-emerald-500/20 text-emerald-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse font-display">
+                          {t('quest_ready')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      {getTranslatedQuestDesc(t, quest.id, quest.description)}
+                    </p>
+
+                    {/* Progress Bar */}
+                    {!quest.claimed && (
+                      <div className="pt-2.5 w-full max-w-md">
+                        <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold mb-1">
+                          <span>{t('progress_label')}: {quest.currentCount} / {quest.targetCount}</span>
+                          <span>{percentage}%</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-900 border border-slate-850 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-300 ${quest.completed ? 'bg-emerald-500' : 'bg-blue-500'
+                              }`}
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Dates for events */}
+                    {quest.type === 'event' && quest.endDate && !quest.claimed && (
+                      <div className="text-[9px] text-slate-500 font-mono">
+                        ⏱️ {language === 'vi' ? 'Hạn cuối:' : 'Expires:'} {new Date(quest.endDate).toLocaleString()}
+                      </div>
                     )}
                   </div>
-                  <p className="text-xs text-slate-400">
-                    {getTranslatedQuestDesc(t, quest.id, quest.description)}
-                  </p>
 
-                  {/* Progress Bar */}
-                  {!quest.claimed && (
-                    <div className="pt-2.5 w-full max-w-md">
-                      <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold mb-1">
-                        <span>{t('progress_label')}: {quest.currentCount} / {quest.targetCount}</span>
-                        <span>{percentage}%</span>
+                  {/* Rewards & Action */}
+                  <div className="flex sm:flex-col items-end gap-3 justify-between sm:justify-center border-t sm:border-t-0 border-slate-900 pt-3 sm:pt-0">
+                    {/* Reward Tags */}
+                    {!quest.claimed && (
+                      <div className="flex gap-2">
+                        <div className="bg-slate-900 border border-slate-850 rounded px-2 py-1 text-[10px] font-extrabold text-yellow-400 flex items-center gap-1">
+                          <span>💰</span> {quest.rewardGold}
+                        </div>
+                        <div className="bg-slate-900 border border-slate-850 rounded px-2 py-1 text-[10px] font-extrabold text-blue-400 flex items-center gap-1">
+                          <span>💎</span> {quest.rewardDiamonds}
+                        </div>
                       </div>
-                      <div className="h-1.5 bg-slate-900 border border-slate-850 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${quest.completed ? 'bg-emerald-500' : 'bg-blue-500'
-                            }`}
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Dates for events */}
-                  {quest.type === 'event' && quest.endDate && !quest.claimed && (
-                    <div className="text-[9px] text-slate-500 font-mono">
-                      ⏱️ {language === 'vi' ? 'Hạn cuối:' : 'Expires:'} {new Date(quest.endDate).toLocaleString()}
-                    </div>
-                  )}
+                    {/* Button */}
+                    {quest.claimed ? (
+                      <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5 py-1 px-3 bg-slate-950 border border-slate-900 rounded-lg">
+                        ✔️ {t('quest_claimed')}
+                      </span>
+                    ) : quest.completed ? (
+                      <button
+                        onClick={() => claimQuestReward(quest.id)}
+                        className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold py-2 px-4 rounded-xl border border-emerald-400/20 shadow shadow-emerald-500/10 active:scale-[0.98] transition cursor-pointer font-display"
+                      >
+                        🎁 {t('claim_btn')}
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="bg-slate-950 border border-slate-900 text-slate-650 text-xs font-bold py-2 px-4 rounded-xl cursor-not-allowed font-display"
+                      >
+                        🔒 {t('quest_in_progress')}
+                      </button>
+                    )}
+                  </div>
                 </div>
-
-                {/* Rewards & Action */}
-                <div className="flex sm:flex-col items-end gap-3 justify-between sm:justify-center border-t sm:border-t-0 border-slate-900 pt-3 sm:pt-0">
-                  {/* Reward Tags */}
-                  {!quest.claimed && (
-                    <div className="flex gap-2">
-                      <div className="bg-slate-900 border border-slate-850 rounded px-2 py-1 text-[10px] font-extrabold text-yellow-400 flex items-center gap-1">
-                        <span>💰</span> {quest.rewardGold}
-                      </div>
-                      <div className="bg-slate-900 border border-slate-850 rounded px-2 py-1 text-[10px] font-extrabold text-blue-400 flex items-center gap-1">
-                        <span>💎</span> {quest.rewardDiamonds}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Button */}
-                  {quest.claimed ? (
-                    <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5 py-1 px-3 bg-slate-950 border border-slate-900 rounded-lg">
-                      ✔️ {t('quest_claimed')}
-                    </span>
-                  ) : quest.completed ? (
-                    <button
-                      onClick={() => claimQuestReward(quest.id)}
-                      className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold py-2 px-4 rounded-xl border border-emerald-400/20 shadow shadow-emerald-500/10 active:scale-[0.98] transition cursor-pointer font-display"
-                    >
-                      🎁 {t('claim_btn')}
-                    </button>
-                  ) : (
-                    <button
-                      disabled
-                      className="bg-slate-950 border border-slate-900 text-slate-600 text-xs font-bold py-2 px-4 rounded-xl cursor-not-allowed font-display"
-                    >
-                      🔒 {t('quest_in_progress')}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })
+              );
+            });
+          })()
         )}
       </div>
     </div>
