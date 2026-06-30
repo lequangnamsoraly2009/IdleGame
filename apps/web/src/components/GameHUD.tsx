@@ -10,6 +10,7 @@ import { SummonTab } from './tabs/SummonTab';
 import { GuideTab } from './tabs/GuideTab';
 import { DungeonTab } from './tabs/DungeonTab';
 import { ForgeTab } from './tabs/ForgeTab';
+import { DungeonBattleModal } from './DungeonBattleModal';
 import { useTranslation, getTranslatedQuestTitle } from '../utils/i18n';
 import { useLanguageStore } from '../stores/languageStore';
 import { ItemInfoModal } from './ItemInfoModal';
@@ -57,7 +58,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     toggleAutoDismantleUncommon,
     toggleAutoDismantleRare,
     toggleAutoBuyPotions,
-    toastMessage
+    toastMessage,
+    dungeonLoading
   } = useGameStore();
 
   const { t } = useTranslation();
@@ -949,6 +951,38 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
       {/* Gacha Summon Reveal Overlay */}
       <SummonResultOverlay />
+
+      {/* Dungeon Arena Battle Overlay */}
+      {battleMode === 'dungeon' && <DungeonBattleModal />}
+
+      {/* Dungeon Teleport Loading Screen */}
+      {dungeonLoading && (
+        <div className="fixed inset-0 bg-slate-950/95 z-[99] flex flex-col items-center justify-center select-none animate-fade-in">
+          <div className="absolute w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] animate-pulse pointer-events-none" />
+          
+          <div className="text-center relative z-10 space-y-6">
+            {/* Animated warp portal effect */}
+            <div className="inline-block p-6 bg-indigo-500/10 border-2 border-indigo-500/35 rounded-3xl animate-spin duration-[6s] relative">
+              <span className="text-5xl block">🌀</span>
+              <div className="absolute inset-0 border border-dashed border-indigo-400 rounded-3xl animate-ping opacity-35" />
+            </div>
+            
+            <div>
+              <h2 className="text-xl font-black tracking-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-400 to-purple-400 uppercase font-display drop-shadow-[0_0_8px_rgba(99,102,241,0.25)]">
+                {language === 'vi' ? 'ĐANG VÀO PHÓ BẢN...' : 'ENTERING DUNGEON...'}
+              </h2>
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black mt-2">
+                {language === 'vi' ? 'Đang dịch chuyển đến sảnh khiêu chiến...' : 'Teleporting to challenge chambers...'}
+              </p>
+            </div>
+
+            {/* Progress slider bar */}
+            <div className="w-56 h-1 bg-slate-900 border border-slate-850 rounded-full overflow-hidden mx-auto relative">
+              <div className="h-full bg-indigo-500 rounded-full animate-pulse w-full" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
