@@ -669,7 +669,7 @@ export const useGameStore = create<GameState>((set, get) => {
       autoSave(updatedSave);
 
       get().addLogMessage(
-        nextAuto ? "🔄 Tự động vượt ải: BẬT" : "⏹️ Tự động vượt ải: TẮT (Chế độ Farm)",
+        nextAuto ? "⚔️ Chế độ: CÀY ẢI (Tự động vượt ải)" : "🌾 Chế độ: TREO FARM (Lặp lại wave cày cấp & vàng)",
         'system'
       );
     },

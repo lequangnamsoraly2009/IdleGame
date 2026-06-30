@@ -290,31 +290,41 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                           </span>
                         );
                       }
-                      return (
-                        <span className="px-1.5 py-0.5 text-[8px] font-semibold uppercase bg-slate-900 border border-slate-800 text-slate-400 rounded">
-                          {language === 'vi' ? 'Farm' : 'Farming'}
-                        </span>
-                      );
+                      return null;
                     })()}
                   </div>
 
                   <div className="w-[1px] h-3.5 bg-slate-850" />
 
-                  {/* Auto Advance Toggle Button */}
-                  <button
-                    onClick={() => toggleAutoAdvance()}
-                    className={`px-2 py-0.8 text-[9px] font-extrabold uppercase rounded-lg border transition active:scale-95 cursor-pointer ${
-                      autoAdvance !== false
-                        ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400 hover:bg-emerald-950/60'
-                        : 'bg-slate-900/60 border-slate-800 text-slate-450 hover:bg-slate-900'
-                    }`}
-                    title={language === 'vi' ? 'Tự động vượt ải' : 'Auto Advance'}
-                  >
-                    {autoAdvance !== false 
-                      ? (language === 'vi' ? '🔄 Tự Động: BẬT' : '🔄 Auto: ON') 
-                      : (language === 'vi' ? '⏹️ Tự Động: TẮT' : '⏹️ Auto: OFF')
-                    }
-                  </button>
+                  {/* Mode Selector Segmented Controls */}
+                  <div className="flex gap-1 bg-slate-900/80 border border-slate-800 p-0.5 rounded-lg select-none shrink-0">
+                    <button
+                      onClick={() => {
+                        if (autoAdvance !== false) toggleAutoAdvance();
+                      }}
+                      className={`px-2 py-0.8 text-[9px] font-black uppercase rounded transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
+                        autoAdvance === false
+                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/10 shadow shadow-amber-500/5'
+                          : 'text-slate-500 hover:text-slate-350 border border-transparent'
+                      }`}
+                      title={language === 'vi' ? 'Chế độ Farm: lặp lại wave cày Vàng/EXP' : 'Farming mode'}
+                    >
+                      🌾 {language === 'vi' ? 'Farm' : 'Farm'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (autoAdvance === false) toggleAutoAdvance();
+                      }}
+                      className={`px-2 py-0.8 text-[9px] font-black uppercase rounded transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
+                        autoAdvance !== false
+                          ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow shadow-blue-500/5'
+                          : 'text-slate-500 hover:text-slate-350 border border-transparent'
+                      }`}
+                      title={language === 'vi' ? 'Chế độ Cày ải: tự động vượt sang ải tiếp theo' : 'Progression mode'}
+                    >
+                      ⚔️ {language === 'vi' ? 'Cày Ải' : 'Push'}
+                    </button>
+                  </div>
 
                   {/* Manual Challenge Boss Button (only when auto-advance is disabled/failed and wave is 19) */}
                   {autoAdvance === false && (currentWave || 1) === 19 && (
