@@ -595,10 +595,10 @@ export const ShopTab: React.FC = () => {
                     </div>
                     <button
                       onClick={buyAetherChest}
-                      disabled={(hero.aetherShards || 0) < 300}
+                      disabled={(hero.aetherShards || 0) < 300 || inventory.length >= 50}
                       className="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-slate-950 text-xs font-extrabold py-2.5 px-4 rounded-xl border border-amber-500/20 active:scale-[0.98] transition flex justify-between items-center disabled:opacity-40 cursor-pointer"
                     >
-                      <span>Mở Rương</span>
+                      <span>{inventory.length >= 50 ? 'Hành lý đầy' : 'Mở Rương'}</span>
                       <span className="bg-slate-950/40 text-amber-950 px-2 py-0.5 rounded border border-amber-500/10 font-bold">
                         300 🌀
                       </span>

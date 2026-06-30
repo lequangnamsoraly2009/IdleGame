@@ -29,7 +29,7 @@ export const SummonTab: React.FC = () => {
 
   if (!saveData) return null;
 
-  const { hero } = saveData;
+  const { hero, inventory } = saveData;
 
   const executeSummonTen = () => {
     summonTenEquipment();
@@ -124,6 +124,17 @@ export const SummonTab: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full overflow-y-auto pr-1">
+      {/* Inventory Full Warning Banner */}
+      {inventory.length >= 50 ? (
+        <div className="md:col-span-2 bg-red-950/30 border border-red-500/20 text-red-200 text-xs font-bold p-3.5 rounded-xl text-center flex items-center justify-center gap-2 select-none shrink-0 animate-pulse">
+          🎒 <span>Hành lý đã đầy (50/50)! Vui lòng phân rã trang bị rác tại Lò Phân Rã để tiếp tục triệu hồi.</span>
+        </div>
+      ) : inventory.length >= 42 ? (
+        <div className="md:col-span-2 bg-amber-950/20 border border-amber-500/10 text-amber-300 text-xs font-semibold p-2.5 rounded-xl text-center flex items-center justify-center gap-2 select-none shrink-0">
+          ⚠️ <span>Hành lý sắp đầy ({inventory.length}/50). Vui lòng dọn dẹp hòm đồ để quá trình triệu hồi diễn ra suôn sẻ.</span>
+        </div>
+      ) : null}
+
       {/* Gacha Portal View */}
       <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col items-center justify-center relative overflow-hidden min-h-[340px]">
         {/* Glow behind the chest */}
@@ -147,20 +158,20 @@ export const SummonTab: React.FC = () => {
           {/* Summon x1 */}
           <button
             onClick={executeSummonSingle}
-            disabled={hero.diamonds < 10}
+            disabled={hero.diamonds < 10 || inventory.length >= 50}
             className="flex-1 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-700 text-white text-xs font-extrabold py-3 px-3 rounded-xl transition active:scale-[0.98] disabled:opacity-40 cursor-pointer"
           >
-            <span className="block">{t('summon_x1')}</span>
+            <span className="block">{inventory.length >= 50 ? 'Hành lý đầy' : t('summon_x1')}</span>
             <span className="text-[10px] text-blue-400 font-bold">10 💎</span>
           </button>
 
           {/* Summon x10 */}
           <button
             onClick={executeSummonTen}
-            disabled={hero.diamonds < 90}
+            disabled={hero.diamonds < 90 || (50 - inventory.length) < 10}
             className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-extrabold py-3 px-3 rounded-xl border border-indigo-400/20 active:scale-[0.98] shadow shadow-indigo-500/10 transition disabled:opacity-40 cursor-pointer"
           >
-            <span className="block">{t('summon_x10')}</span>
+            <span className="block">{(50 - inventory.length) < 10 ? 'Yêu cầu 10 ô trống' : t('summon_x10')}</span>
             <span className="text-[10px] text-yellow-300 font-bold">90 💎 <span className="text-[9px] text-yellow-400 line-through">100</span></span>
           </button>
         </div>
