@@ -144,3 +144,11 @@
   animation: reveal-card 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+@keyframes toast-in {
+  0% { transform: translate(-50%, -30px); opacity: 0; }
+  100% { transform: translate(-50%, 0); opacity: 1; }
+}
+.animate-toast-in {
+  animation: toast-in 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+

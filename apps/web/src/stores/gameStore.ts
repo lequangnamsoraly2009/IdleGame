@@ -29,6 +29,7 @@ interface GameState {
   isLoading: boolean;
   activeInspectItemId: string | null;
   activeSummonResult: EquipmentItem[] | null;
+  toastMessage: string | null;
   
   // Realtime Battle HUD healths (synced with Pixi tick updates)
   heroHp: number;
@@ -102,6 +103,7 @@ interface GameState {
   toggleAutoDismantleRare: () => void;
   toggleAutoBuyPotions: () => void;
   clearLogs: () => void;
+  showToast: (msg: string) => void;
 }
 
 function migrateMonsterResearch(monsterResearch: any): any {
@@ -212,6 +214,7 @@ export const useGameStore = create<GameState>((set, get) => {
     isLoading: true,
     activeInspectItemId: null,
     activeSummonResult: null,
+    toastMessage: null,
 
     // Combat HUD state
     heroHp: 100,
@@ -926,6 +929,11 @@ export const useGameStore = create<GameState>((set, get) => {
 
       const statName = stat === 'attack' ? 'Công Vật Lý' : stat === 'magicAttack' ? 'Công Phép Thuật' : 'HP Tối Đa';
       get().addLogMessage(`🌟 NÂNG CẤP AETHER: Nâng cấp thành công ${statName} lên Cấp ${currentLvl + 1}!`, 'system');
+      get().showToast(
+        useLanguageStore.getState().language === 'vi'
+          ? `🎉 Nâng cấp thành công ${statName} lên Cấp ${currentLvl + 1}!`
+          : `🎉 Successfully upgraded ${statName === 'Công Vật Lý' ? 'Physical Attack' : statName === 'Công Phép Thuật' ? 'Magic Attack' : 'Max HP'} to Lv ${currentLvl + 1}!`
+      );
 
       // Update Pixi engine if running
       if (get().engineInstance) {
@@ -969,6 +977,11 @@ export const useGameStore = create<GameState>((set, get) => {
       const inventory = [...saveData.inventory, item];
 
       get().addLogMessage(`🎁 AETHER CHEST: Đổi rương thành công, nhận được [${item.name}] chưa giám định!`, 'loot');
+      get().showToast(
+        useLanguageStore.getState().language === 'vi'
+          ? `🎁 Đổi Rương Thần Khí thành công!`
+          : `🎁 Aether Chest exchanged successfully!`
+      );
 
       const updatedSave: GameSaveData = {
         ...saveData,
@@ -997,6 +1010,11 @@ export const useGameStore = create<GameState>((set, get) => {
       hero.diamonds += 200;
 
       get().addLogMessage(`💎 KIM CƯƠNG AETHER: Đổi thành công +200 Kim Cương!`, 'loot');
+      get().showToast(
+        useLanguageStore.getState().language === 'vi'
+          ? `💎 Đổi thành công +200 Kim Cương!`
+          : `💎 Exchanged +200 Diamonds successfully!`
+      );
 
       const updatedSave: GameSaveData = {
         ...saveData,
@@ -1141,6 +1159,11 @@ export const useGameStore = create<GameState>((set, get) => {
           : `🧪 Purchased +${quantity} Health Potions (-${cost} ${currency === 'gold' ? 'Gold' : 'Diamonds'})`,
         'system'
       );
+      state.showToast(
+        useLanguageStore.getState().language === 'vi'
+          ? `🎉 Đã mua thành công +${quantity} Bình HP!`
+          : `🎉 Purchased +${quantity} Health Potions!`
+      );
     },
 
     toggleAutoUsePotion: () => {
@@ -1273,6 +1296,15 @@ export const useGameStore = create<GameState>((set, get) => {
       );
     },
 
+    showToast: (msg) => {
+      set({ toastMessage: msg });
+      const currentTimeout = (window as any)._toastTimeout;
+      if (currentTimeout) clearTimeout(currentTimeout);
+      (window as any)._toastTimeout = setTimeout(() => {
+        set({ toastMessage: null });
+      }, 2500);
+    },
+
     setActiveSummonResult: (items) => set({ activeSummonResult: items }),
 
     claimQuestReward: (questId) => {
@@ -1321,6 +1353,11 @@ export const useGameStore = create<GameState>((set, get) => {
       hero.gold += goldGained;
 
       get().addLogMessage(tStore('log_bought_gold', { cost, gold: goldGained }), 'loot');
+      get().showToast(
+        useLanguageStore.getState().language === 'vi'
+          ? `🎉 Mua thành công +${goldGained.toLocaleString()} Vàng!`
+          : `🎉 Purchased +${goldGained.toLocaleString()} Gold!`
+      );
 
       // Audit gold quests
       const quests = checkQuests(saveData.quests, 'earn_gold', goldGained);
@@ -1370,6 +1407,11 @@ export const useGameStore = create<GameState>((set, get) => {
       const inventory = [...saveData.inventory, newItem];
 
       get().addLogMessage(tStore('log_summon_success', { name: newItem.name, rarity: newItem.rarity.toUpperCase() }), 'loot');
+      get().showToast(
+        useLanguageStore.getState().language === 'vi'
+          ? `🎁 Triệu hồi thành công [${newItem.name}]!`
+          : `🎁 Summoned [${newItem.name}]!`
+      );
 
       const updatedSave: GameSaveData = {
         ...saveData,
@@ -1441,6 +1483,11 @@ export const useGameStore = create<GameState>((set, get) => {
 
       autoSave(updatedSave);
       set({ activeSummonResult: newItems });
+      get().showToast(
+        useLanguageStore.getState().language === 'vi'
+          ? '🎁 Triệu hồi x10 thành công!'
+          : '🎁 Summoned 10x successfully!'
+      );
     },
 
     triggerPrestige: () => {

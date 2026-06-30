@@ -52,7 +52,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     toggleAutoDismantleCommon,
     toggleAutoDismantleUncommon,
     toggleAutoDismantleRare,
-    toggleAutoBuyPotions
+    toggleAutoBuyPotions,
+    toastMessage
   } = useGameStore();
 
   const { t } = useTranslation();
@@ -126,6 +127,15 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
   };
   return (
     <div className="h-screen w-screen flex flex-col justify-between bg-slate-950 text-slate-100 overflow-hidden select-none relative p-2 sm:p-3">
+      {/* Toast Notification Popup */}
+      {toastMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] bg-slate-900/95 backdrop-blur-md border border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.3)] px-5 py-2.5 rounded-2xl flex items-center justify-center pointer-events-none select-none animate-toast-in">
+          <span className="text-emerald-400 font-extrabold text-[11px] sm:text-xs tracking-wide text-center">
+            {toastMessage}
+          </span>
+        </div>
+      )}
+
       {/* Background glow overlay */}
       <div className="bg-radial-glow" />
 

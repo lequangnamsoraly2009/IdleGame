@@ -46,6 +46,37 @@ export const ShopTab: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* Shop Currency Header Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-slate-900/40 border border-slate-850/60 p-2.5 rounded-xl mb-4 shrink-0 select-none text-[11px] font-bold">
+        <div className="flex items-center gap-1">
+          <span className="text-slate-500 uppercase tracking-widest text-[9.5px]">
+            {language === 'vi' ? 'TÀI SẢN HIỆN CÓ:' : 'YOUR BALANCES:'}
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {/* Gold */}
+          <div className="flex items-center gap-1.5 bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-900 shadow-inner">
+            <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-b from-yellow-400 to-amber-500 border border-yellow-300 flex items-center justify-center text-[8px] text-slate-950 font-black leading-none shrink-0">
+              G
+            </span>
+            <span className="text-yellow-400 font-display text-xs">{hero.gold.toLocaleString()}</span>
+          </div>
+
+          {/* Diamonds */}
+          <div className="flex items-center gap-1.5 bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-900 shadow-inner">
+            <span>💎</span>
+            <span className="text-blue-400 font-display text-xs">{hero.diamonds}</span>
+          </div>
+
+          {/* Aether Shards */}
+          <div className="flex items-center gap-1.5 bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-900 shadow-inner">
+            <span className="text-purple-400 text-xs">🌀</span>
+            <span className="text-purple-400 font-display text-xs">{hero.aetherShards || 0}</span>
+          </div>
+        </div>
+      </div>
+
       {/* Sub tabs selector */}
       <div className="flex gap-1 bg-slate-950/85 p-1.5 rounded-xl border border-slate-900 mb-4 select-none shrink-0 max-w-fit overflow-x-auto scrollbar-none">
         {([
