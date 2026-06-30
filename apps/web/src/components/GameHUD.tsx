@@ -127,13 +127,37 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
   };
   return (
     <div className="h-screen w-screen flex flex-col justify-between bg-slate-950 text-slate-100 overflow-hidden select-none relative p-2 sm:p-3">
-      {/* Toast Notification Popup */}
+      {/* Toast Notification Popup (Centered Premium RPG Card) */}
       {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] bg-slate-900/95 backdrop-blur-md border border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.3)] px-5 py-2.5 rounded-2xl flex items-center justify-center pointer-events-none select-none animate-toast-in">
-          <span className="text-emerald-400 font-extrabold text-[11px] sm:text-xs tracking-wide text-center">
-            {toastMessage}
-          </span>
-        </div>
+        <>
+          {/* Subtle backdrop dim */}
+          <div className="fixed inset-0 bg-slate-950/40 z-[95] backdrop-blur-[1px] pointer-events-none" />
+          
+          <div className="fixed top-1/2 left-1/2 z-[100] bg-slate-950/90 backdrop-blur-md border-2 border-amber-500/50 shadow-[0_0_50px_rgba(245,158,11,0.25)] p-6 rounded-3xl flex flex-col items-center justify-center text-center w-[280px] sm:w-[340px] pointer-events-none select-none animate-success-pop">
+            {/* Spinning rays background glow */}
+            <div className="absolute inset-0 w-full h-full rounded-3xl overflow-hidden opacity-30 pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[radial-gradient(circle,rgba(245,158,11,0.2)_0%,transparent_70%)] animate-pulse" />
+            </div>
+
+            {/* Glowing Icon */}
+            <div className="relative z-10 w-14 h-14 rounded-full bg-gradient-to-b from-amber-400/20 to-yellow-600/10 border-2 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.35)] flex items-center justify-center text-2xl mb-3">
+              ✨
+            </div>
+
+            {/* Title */}
+            <h4 className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 font-black text-xs sm:text-sm tracking-[0.2em] uppercase mb-1 drop-shadow-[0_0_6px_rgba(245,158,11,0.25)]">
+              {language === 'vi' ? 'THÀNH CÔNG' : 'SUCCESS'}
+            </h4>
+
+            {/* Glowing decorative underline */}
+            <div className="relative z-10 w-20 h-0.5 bg-gradient-to-r from-transparent via-amber-500/60 to-transparent mb-3" />
+
+            {/* Message Description */}
+            <p className="relative z-10 text-slate-200 text-[11px] sm:text-xs font-semibold leading-relaxed max-w-[90%]">
+              {toastMessage}
+            </p>
+          </div>
+        </>
       )}
 
       {/* Background glow overlay */}
