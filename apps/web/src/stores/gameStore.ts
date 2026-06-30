@@ -25,7 +25,7 @@ interface CombatLogEntry {
 interface GameState {
   user: UserSession | null;
   saveData: GameSaveData | null;
-  activeTab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide' | 'dungeon';
+  activeTab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide' | 'dungeon' | 'forge';
   activeDungeonId: string | null;
   dungeonRewardGems: Record<string, number> | null;
   isLoading: boolean;
@@ -71,7 +71,7 @@ interface GameState {
   startNextBattle: () => void;
   
   // Gameplay Actions
-  setActiveTab: (tab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide' | 'dungeon') => void;
+  setActiveTab: (tab: 'home' | 'hero' | 'bag' | 'quest' | 'guild' | 'shop' | 'summon' | 'guide' | 'dungeon' | 'forge') => void;
   setActiveInspectItemId: (itemId: string | null) => void;
   upgradeEquipment: (itemId: string) => void;
   equipEquipment: (itemId: string) => void;

@@ -46,6 +46,7 @@ export const translations = {
     tab_summon: "🎁 Triệu hồi",
     tab_guide: "📖 Sổ tay",
     tab_dungeon: "🏰 Phó Bản",
+    tab_forge: "⚒️ Lò Rèn",
     hud_control_deck: "BẢNG ĐIỀU KHIỂN",
 
     // Hero Tab
@@ -399,6 +400,7 @@ export const translations = {
     tab_summon: "🎁 Summon",
     tab_guide: "📖 Bestiary",
     tab_dungeon: "🏰 Dungeon",
+    tab_forge: "⚒️ Forge",
     hud_control_deck: "HUD Control Deck",
 
     // Hero Tab
