@@ -5,7 +5,8 @@ import {
   calculateItemStats, 
   calculateUpgradeCost, 
   calculateLevelUpExp, 
-  generateMonsterForStage
+  generateMonsterForStage,
+  MONSTER_SPECIES_DATABASE
 } from '@idle-rpg/shared';
 import { useTranslation, getTranslatedItemName, getTranslatedMonsterName } from '../utils/i18n';
 import { ItemGraphic } from './ItemGraphic';
@@ -109,7 +110,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // General Tabs state
-  const [activeTab, setActiveTab] = useState<'monsters' | 'items' | 'exp' | 'classes' | 'gems'>('monsters');
+  const [activeTab, setActiveTab] = useState<'monsters' | 'items' | 'exp' | 'classes' | 'gems' | 'tiers'>('monsters');
 
   // Monster search/filters
   const [monsterSearchStage, setMonsterSearchStage] = useState<string>('');
@@ -363,6 +364,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
       <nav className="flex flex-wrap gap-2 mb-6 relative z-10">
         {[
           { id: 'monsters', icon: '👹', label: language === 'vi' ? 'Quái Vật & Boss' : 'Monsters & Bosses' },
+          { id: 'tiers', icon: '🏆', label: language === 'vi' ? 'Phân Cấp Quái' : 'Monster Tiers' },
           { id: 'items', icon: '🎒', label: language === 'vi' ? 'Vật Phẩm & Chỉ Số' : 'Gear & Item Stats' },
           { id: 'exp', icon: '⚡', label: language === 'vi' ? 'Ma Trận Kinh Nghiệm' : 'EXP Progression Matrix' },
           { id: 'classes', icon: '🛡️', label: language === 'vi' ? 'Hệ Phái & Nhiệm Vụ' : 'Classes & Quests' },
@@ -508,7 +510,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-between items-center bg-slate-950/20 p-3 border border-slate-900 rounded-xl select-none">
+              <div className="flex justify-between items-center bg-slate-950/20 p-3 border border-slate-900 rounded-xl select-none mb-4">
                 <button
                   disabled={stagePage <= 1}
                   onClick={() => setStagePage(p => p - 1)}
@@ -528,6 +530,113 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
                 </button>
               </div>
             )}
+
+            {/* Monster Species database table */}
+            <div className="space-y-3 pt-6 border-t border-slate-900">
+              <div>
+                <h4 className="text-xs font-extrabold text-indigo-400 uppercase tracking-widest">
+                  {language === 'vi' ? 'Bản Đồ Phân Bố Xuất Hiện Của Các Loài Quái Vật' : 'Monster Species Spawn Distribution Map'}
+                </h4>
+                <p className="text-[10px] text-slate-500">
+                  {language === 'vi' 
+                    ? 'Danh sách chi tiết tất cả các loài quái vật trong game, sắp xếp theo thứ tự ải bắt đầu xuất hiện.'
+                    : 'A comprehensive list of all monster species, sorted by their initial appearance stage.'}
+                </p>
+              </div>
+
+              <div className="overflow-x-auto border border-slate-900 rounded-2xl select-text">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-900 border-b border-slate-850 text-slate-400 font-extrabold uppercase text-[9px] tracking-wider">
+                      <th className="py-3 px-4">Tên Loài</th>
+                      <th className="py-3 px-4">Họ (Family)</th>
+                      <th className="py-3 px-4 text-center">Phân Loại</th>
+                      <th className="py-3 px-4 text-center">Ải Bắt Đầu</th>
+                      <th className="py-3 px-4 text-center">Ải Kết Thúc</th>
+                      <th className="py-3 px-4 text-right">Máu (HP)</th>
+                      <th className="py-3 px-4 text-right">Tấn Công</th>
+                      <th className="py-3 px-4 text-right">Phòng Thủ</th>
+                      <th className="py-3 px-4">Điểm Yếu</th>
+                      <th className="py-3 px-4">Kỹ Năng</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-900/60 font-medium">
+                    {[...MONSTER_SPECIES_DATABASE]
+                      .sort((a, b) => a.spawnMinStage - b.spawnMinStage)
+                      .map((species) => {
+                        const familyColors = {
+                          slime: 'text-emerald-400',
+                          greenskin: 'text-green-400',
+                          undead: 'text-slate-400',
+                          elemental: 'text-indigo-400',
+                          dragon: 'text-orange-400'
+                        }[species.family];
+
+                        const categoryColors = {
+                          normal: 'bg-slate-900 text-slate-400',
+                          boss: 'bg-red-500/10 text-red-400 border border-red-500/20',
+                          king: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+                          mystery: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20',
+                          extinct: 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                        }[species.category];
+
+                        const isSingleStage = species.spawnMinStage === species.spawnMaxStage;
+
+                        return (
+                          <tr key={species.id} className="hover:bg-slate-900/30 transition-colors">
+                            <td className="py-3 px-4">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-slate-200">
+                                  {language === 'vi' ? species.nameVi : species.nameEn}
+                                </span>
+                                <span className="text-[9px] font-mono text-slate-500">{species.id}</span>
+                              </div>
+                            </td>
+                            <td className={`py-3 px-4 font-bold uppercase text-[10px] ${familyColors}`}>
+                              {species.family}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase ${categoryColors}`}>
+                                {species.category}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center font-black text-indigo-400 font-display text-xs">
+                              Ải {species.spawnMinStage === 999 ? 'Bí Ẩn' : species.spawnMinStage}
+                            </td>
+                            <td className="py-3 px-4 text-center font-semibold text-slate-400">
+                              {species.spawnMinStage === 999 
+                                ? '-' 
+                                : (isSingleStage ? (language === 'vi' ? 'Chỉ định' : 'Specific') : `Ải ${species.spawnMaxStage}`)}
+                            </td>
+                            <td className="py-3 px-4 text-right font-bold text-red-400">{species.baseHpMult.toFixed(1)}x</td>
+                            <td className="py-3 px-4 text-right font-bold text-amber-400">{species.baseAtkMult.toFixed(1)}x</td>
+                            <td className="py-3 px-4 text-right font-bold text-emerald-400">{species.baseDefMult.toFixed(1)}x</td>
+                            <td className="py-3 px-4">
+                              <div className="flex flex-wrap gap-1">
+                                {species.weaknesses.map(w => (
+                                  <span key={w} className="bg-red-500/10 text-red-400 px-1 py-0.2 rounded text-[8px] font-bold uppercase font-mono">
+                                    {w}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex flex-col">
+                                <span className="text-slate-300 font-semibold text-[11px]">
+                                  {language === 'vi' ? species.skillVi : species.skillEn}
+                                </span>
+                                <span className="text-[10px] text-slate-500 line-clamp-1">
+                                  {language === 'vi' ? species.loreVi : species.loreEn}
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 
@@ -561,7 +670,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
                       >
                         <span>{getTranslatedItemName(t, item as any)}</span>
                         <span className="text-[9px] uppercase opacity-75 font-semibold">
-                          {item.slot === 'weapon' ? 'Vũ khí' : item.slot === 'armor' ? 'Giáp' : item.slot === 'helmet' ? 'Mũ' : item.slot === 'boots' ? 'Giày' : 'Nhẫn'}
+                          {t('slot_' + item.slot)}
                         </span>
                       </button>
                     );
@@ -633,19 +742,19 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
                         {stats.attack > 0 && (
                           <div className="flex justify-between font-semibold">
                             <span className="text-slate-500">{t('attack_power')}</span>
-                            <span className="text-amber-400 font-bold">+{stats.attack}</span>
+                            <span className="text-amber-400 font-bold">+{stats.attack}%</span>
                           </div>
                         )}
                         {stats.maxHp > 0 && (
                           <div className="flex justify-between font-semibold">
                             <span className="text-slate-500">{t('max_health')}</span>
-                            <span className="text-red-400 font-bold">+{stats.maxHp}</span>
+                            <span className="text-red-400 font-bold">+{stats.maxHp}%</span>
                           </div>
                         )}
                         {stats.defense > 0 && (
                           <div className="flex justify-between font-semibold">
                             <span className="text-slate-500">{t('defense_rating')}</span>
-                            <span className="text-emerald-400 font-bold">+{stats.defense}</span>
+                            <span className="text-emerald-400 font-bold">+{stats.defense}%</span>
                           </div>
                         )}
                         {stats.speed > 0 && (
@@ -690,9 +799,17 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
                 <div className="p-3 bg-slate-950/40 border border-slate-900 rounded-xl space-y-1.5 text-[10px] text-slate-400 leading-relaxed">
                   <p className="font-bold text-slate-300">💡 Công thức Tính chỉ số Trang Bị:</p>
                   <code className="block bg-slate-950 p-2 rounded-lg border border-slate-900 text-indigo-400 font-mono">
-                    Stat = BaseSlotStat * RarityMultiplier * (1 + (Level - 1) * 0.1)
+                    Stat = BaseSlotStat * RarityMultiplier * (1 + (Level - 1) * 0.1) * (Quality / 100)
                   </code>
                   <p>Mỗi cấp nâng cấp (+1) sẽ giúp trang bị gia tăng thêm **10% chỉ số thuộc tính gốc**.</p>
+                  <p className="font-bold text-slate-350 mt-1">🎲 Khoảng chất lượng đúc (Quality) ngẫu nhiên theo phẩm chất:</p>
+                  <ul className="list-disc pl-4 space-y-0.5 text-slate-400">
+                    <li><span className="text-slate-400">Thường (Common):</span> 80% - 100%</li>
+                    <li><span className="text-emerald-400">Đặc biệt (Uncommon):</span> 90% - 110%</li>
+                    <li><span className="text-blue-400">Hiếm (Rare):</span> 95% - 120%</li>
+                    <li><span className="text-purple-400">Sử thi (Epic):</span> 100% - 135%</li>
+                    <li><span className="text-amber-500 font-bold">Huyền thoại (Legendary):</span> 110% - 160%</li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -728,9 +845,9 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
                         return (
                           <tr key={lvl} className="hover:bg-slate-900/30 transition-colors">
                             <td className="py-3 px-4 text-center font-bold text-slate-400">+{lvl}</td>
-                            <td className={`py-3 px-4 text-right font-bold ${stats.maxHp > 0 ? 'text-red-400' : 'text-slate-600'}`}>{stats.maxHp > 0 ? `+${stats.maxHp}` : '-'}</td>
-                            <td className={`py-3 px-4 text-right font-bold ${stats.attack > 0 ? 'text-amber-400' : 'text-slate-600'}`}>{stats.attack > 0 ? `+${stats.attack}` : '-'}</td>
-                            <td className={`py-3 px-4 text-right font-bold ${stats.defense > 0 ? 'text-emerald-400' : 'text-slate-600'}`}>{stats.defense > 0 ? `+${stats.defense}` : '-'}</td>
+                            <td className={`py-3 px-4 text-right font-bold ${stats.maxHp > 0 ? 'text-red-400' : 'text-slate-600'}`}>{stats.maxHp > 0 ? `+${stats.maxHp}%` : '-'}</td>
+                            <td className={`py-3 px-4 text-right font-bold ${stats.attack > 0 ? 'text-amber-400' : 'text-slate-600'}`}>{stats.attack > 0 ? `+${stats.attack}%` : '-'}</td>
+                            <td className={`py-3 px-4 text-right font-bold ${stats.defense > 0 ? 'text-emerald-400' : 'text-slate-600'}`}>{stats.defense > 0 ? `+${stats.defense}%` : '-'}</td>
                             <td className={`py-3 px-4 text-right font-bold ${stats.speed > 0 ? 'text-sky-400' : 'text-slate-600'}`}>{stats.speed > 0 ? `+${Math.round(stats.speed * 100)}%` : '-'}</td>
                             <td className={`py-3 px-4 text-right font-bold ${stats.critRate > 0 ? 'text-indigo-400' : 'text-slate-600'}`}>{stats.critRate > 0 ? `+${Math.round(stats.critRate * 100)}%` : '-'}</td>
                             <td className={`py-3 px-4 text-right font-bold ${stats.critDamage > 0 ? 'text-purple-400' : 'text-slate-600'}`}>{stats.critDamage > 0 ? `${Math.round(stats.critDamage * 100)}%` : '-'}</td>
@@ -999,6 +1116,175 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 6: MONSTER TIERS */}
+        {activeTab === 'tiers' && (
+          <div className="space-y-6 flex flex-col">
+            <div className="bg-slate-950/40 p-4 border border-slate-900 rounded-2xl">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                {language === 'vi' ? 'Bản Đồ Phân Cấp Sức Mạnh Quái Vật (Monster Tiers)' : 'Monster Power Tiers & Scaling Matrix'}
+              </h3>
+              <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                {language === 'vi'
+                  ? 'Quái vật được phân loại thành 8 cấp bậc sức mạnh. Mỗi cấp bậc tăng thêm HP, Tấn Công, Giáp, EXP và cấp độ ảo.'
+                  : 'Monsters are classified into 8 power tiers. Each tier scales up HP, Attack, Defense, EXP, and grants level offsets.'}
+              </p>
+            </div>
+
+            <div className="overflow-x-auto border border-slate-900 rounded-2xl select-text">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-900 border-b border-slate-850 text-slate-400 font-extrabold uppercase text-[9px] tracking-wider">
+                    <th className="py-3 px-4">Tier / Rank</th>
+                    <th className="py-3 px-4 text-center">Hệ Số HP</th>
+                    <th className="py-3 px-4 text-center">Hệ Số Tấn Công</th>
+                    <th className="py-3 px-4 text-center">Hệ Số Giáp</th>
+                    <th className="py-3 px-4 text-center">Cộng Cấp Độ</th>
+                    <th className="py-3 px-4 text-center">Số Thuộc Tính (Affix)</th>
+                    <th className="py-3 px-4">Đặc Điểm & Xuất Hiện</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-900/60 font-medium">
+                  {[
+                    {
+                      rank: 'Normal',
+                      vi: 'Quái Thường',
+                      en: 'Normal Minion',
+                      hp: '3.0x',
+                      atk: '1.8x',
+                      def: '1.6x',
+                      lvl: '+0',
+                      affix: '0',
+                      descVi: 'Quái xuất hiện ở các Wave thường (1-4, 6-9, 11-14, 16-19). Lượng máu vừa phải để dọn dẹp wave nhanh.',
+                      descEn: 'Appears in normal waves. Moderate health for swift wave clearing.',
+                      color: 'text-slate-400'
+                    },
+                    {
+                      rank: 'Elite',
+                      vi: 'Tinh Anh',
+                      en: 'Elite Minion',
+                      hp: '3.5x',
+                      atk: '2.0x',
+                      def: '1.75x',
+                      lvl: '+3',
+                      affix: '1',
+                      descVi: 'Làm tay sai đi kèm Boss ở Wave 20, hoặc có 18% tỉ lệ xuất hiện ngẫu nhiên ở wave thường.',
+                      descEn: 'Spawns as Boss bodyguards in Wave 20, or 18% random spawn chance.',
+                      color: 'text-indigo-400'
+                    },
+                    {
+                      rank: 'Champion',
+                      vi: 'Quán Quân',
+                      en: 'Champion Boss',
+                      hp: '4.5x',
+                      atk: '2.4x',
+                      def: '2.05x',
+                      lvl: '+6',
+                      affix: '1',
+                      descVi: 'Xuất hiện ở Wave 5, Wave 10 hoặc có 8% tỉ lệ xuất hiện ngẫu nhiên.',
+                      descEn: 'Appears in Wave 5, Wave 10, or 8% random spawn chance.',
+                      color: 'text-emerald-400'
+                    },
+                    {
+                      rank: 'King',
+                      vi: 'Vua / Hoàng Gia',
+                      en: 'Royal King',
+                      hp: '6.0x',
+                      atk: '3.0x',
+                      def: '2.5x',
+                      lvl: '+10',
+                      affix: '2',
+                      descVi: 'Boss chính ở Wave 15, Wave 20 (ải thường lẻ) hoặc có 3% tỉ lệ xuất hiện ngẫu nhiên.',
+                      descEn: 'Main Boss at Wave 15, Wave 20 (regular stages), or 3% random chance.',
+                      color: 'text-amber-500 font-bold'
+                    },
+                    {
+                      rank: 'Legend',
+                      vi: 'Truyền Thuyết',
+                      en: 'Legendary Boss',
+                      hp: '8.0x',
+                      atk: '3.8x',
+                      def: '3.1x',
+                      lvl: '+15',
+                      affix: '2',
+                      descVi: 'Boss Ải chia hết cho 10 (ải 10, 30, 70...) hoặc có 0.8% tỉ lệ ngẫu nhiên.',
+                      descEn: 'Boss of stages ending in 10 (10, 30, 70...), or 0.8% random chance.',
+                      color: 'text-rose-500 font-bold font-display neon-text-red'
+                    },
+                    {
+                      rank: 'Mythic',
+                      vi: 'Thần Thoại',
+                      en: 'Mythic Boss',
+                      hp: '12.0x',
+                      atk: '5.4x',
+                      def: '4.3x',
+                      lvl: '+20',
+                      affix: '3',
+                      descVi: 'Boss Ải chia hết cho 20 (ải 20, 40, 60...) hoặc có 0.15% tỉ lệ ngẫu nhiên.',
+                      descEn: 'Boss of stages ending in 20 (20, 40, 60...), or 0.15% random chance.',
+                      color: 'text-purple-400 font-bold font-display'
+                    },
+                    {
+                      rank: 'Ancient',
+                      vi: 'Cổ Đại',
+                      en: 'Ancient Titan',
+                      hp: '16.0x',
+                      atk: '7.0x',
+                      def: '5.5x',
+                      lvl: '+30',
+                      affix: '3',
+                      descVi: 'Boss Ải chia hết cho 30 (ải 30, 90...) hoặc có 0.05% tỉ lệ ngẫu nhiên.',
+                      descEn: 'Boss of stages ending in 30 (30, 90...), or 0.05% random chance.',
+                      color: 'text-cyan-400 font-bold font-display'
+                    },
+                    {
+                      rank: 'World Boss',
+                      vi: 'Boss Thế Giới',
+                      en: 'World Titan Overlord',
+                      hp: '25.0x',
+                      atk: '10.6x',
+                      def: '8.2x',
+                      lvl: '+50',
+                      affix: '3',
+                      descVi: 'Siêu Boss tối cổ xuất hiện tại các Ải chia hết cho 50 (ải 50, 100, 150...).',
+                      descEn: 'Ultimate raid titan appearing at stages ending in 50 (50, 100, 150...).',
+                      color: 'text-yellow-400 font-black font-display animate-pulse'
+                    }
+                  ].map((tData, idx) => (
+                    <tr key={idx} className="hover:bg-slate-900/30 transition-colors">
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-col">
+                          <span className={`text-xs font-black uppercase font-display ${tData.color}`}>
+                            {tData.rank}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-semibold">
+                            {language === 'vi' ? tData.vi : tData.en}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-bold text-red-400 font-display">{tData.hp}</td>
+                      <td className="py-3.5 px-4 text-center font-bold text-amber-400 font-display">{tData.atk}</td>
+                      <td className="py-3.5 px-4 text-center font-bold text-emerald-400 font-display">{tData.def}</td>
+                      <td className="py-3.5 px-4 text-center font-bold text-indigo-400 font-display">{tData.lvl}</td>
+                      <td className="py-3.5 px-4 text-center font-bold text-purple-400 font-display">{tData.affix}</td>
+                      <td className="py-3.5 px-4 text-slate-350 leading-relaxed text-[11px]">
+                        {language === 'vi' ? tData.descVi : tData.descEn}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-4 bg-slate-950/40 border border-slate-900 rounded-xl space-y-2 text-[11px] text-slate-400 leading-relaxed">
+              <p className="font-bold text-slate-300">💡 Quy định về Sức mạnh của Boss:</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>Chỉ số cơ bản của Boss được điều chỉnh cân bằng để mang lại trải nghiệm chiến đấu giằng co (dạng Tanker).</li>
+                <li>Công thức tính giảm bớt chỉ số chênh lệch tấn công/giáp giúp người chơi có thể sinh tồn lâu dài nhờ Hút máu & Bình máu tự động.</li>
+              </ul>
             </div>
           </div>
         )}

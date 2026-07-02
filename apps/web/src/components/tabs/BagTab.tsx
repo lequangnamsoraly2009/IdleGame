@@ -129,7 +129,7 @@ export const BagTab: React.FC = () => {
   const getRaritySelectionState = (rarity: 'common' | 'uncommon' | 'rare' | 'epic') => {
     const targetItems = inventory.filter(i => i.rarity === rarity && !i.equipped);
     if (targetItems.length === 0) return 'empty';
-    
+
     const targetIds = targetItems.map(i => i.id);
     const allSelected = targetIds.every(id => selectedItemIds.includes(id));
     return allSelected ? 'all' : 'none';
@@ -138,10 +138,10 @@ export const BagTab: React.FC = () => {
   const selectAllByRarity = (rarity: 'common' | 'uncommon' | 'rare' | 'epic') => {
     const targetItems = inventory.filter(i => i.rarity === rarity && !i.equipped);
     if (targetItems.length === 0) return;
-    
+
     const targetIds = targetItems.map(i => i.id);
     const allSelected = targetIds.every(id => selectedItemIds.includes(id));
-    
+
     if (allSelected) {
       setSelectedItemIds(prev => prev.filter(id => !targetIds.includes(id)));
     } else {
@@ -175,8 +175,8 @@ export const BagTab: React.FC = () => {
                   setSelectedItemIds([]);
                 }}
                 className={`text-xs font-extrabold px-3 py-1.5 rounded-lg border transition active:scale-[0.98] cursor-pointer ${isBulkDismantleMode
-                    ? 'bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30'
-                    : 'bg-purple-650/25 border-purple-600/40 text-purple-300 hover:bg-purple-600/40'
+                  ? 'bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30'
+                  : 'bg-purple-650/25 border-purple-600/40 text-purple-300 hover:bg-purple-600/40'
                   }`}
               >
                 {isBulkDismantleMode ? '❌ Hủy Phân Rã' : '♻️ Phân Rã Hàng Loạt'}
@@ -192,8 +192,8 @@ export const BagTab: React.FC = () => {
             <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1 select-none shrink-0 scrollbar-none">
               {(() => {
                 const state = getRaritySelectionState('common');
-                const activeClass = state === 'all' 
-                  ? 'bg-slate-700 border-slate-400 text-white ring-1 ring-slate-400/50' 
+                const activeClass = state === 'all'
+                  ? 'bg-slate-700 border-slate-400 text-white ring-1 ring-slate-400/50'
                   : 'bg-slate-850 hover:bg-slate-800 text-slate-350 border-slate-750';
                 return (
                   <button
@@ -207,8 +207,8 @@ export const BagTab: React.FC = () => {
               })()}
               {(() => {
                 const state = getRaritySelectionState('uncommon');
-                const activeClass = state === 'all' 
-                  ? 'bg-emerald-600/40 border-emerald-450 text-emerald-250 ring-1 ring-emerald-450/40' 
+                const activeClass = state === 'all'
+                  ? 'bg-emerald-600/40 border-emerald-450 text-emerald-250 ring-1 ring-emerald-450/40'
                   : 'bg-emerald-950/30 hover:bg-emerald-900/40 text-emerald-400 border-emerald-500/20';
                 return (
                   <button
@@ -222,8 +222,8 @@ export const BagTab: React.FC = () => {
               })()}
               {(() => {
                 const state = getRaritySelectionState('rare');
-                const activeClass = state === 'all' 
-                  ? 'bg-blue-600/40 border-blue-450 text-blue-200 ring-1 ring-blue-450/40' 
+                const activeClass = state === 'all'
+                  ? 'bg-blue-600/40 border-blue-450 text-blue-200 ring-1 ring-blue-450/40'
                   : 'bg-blue-950/30 hover:bg-blue-900/40 text-blue-450 border-blue-500/20';
                 return (
                   <button
@@ -237,8 +237,8 @@ export const BagTab: React.FC = () => {
               })()}
               {(() => {
                 const state = getRaritySelectionState('epic');
-                const activeClass = state === 'all' 
-                  ? 'bg-purple-600/40 border-purple-450 text-purple-200 ring-1 ring-purple-450/40' 
+                const activeClass = state === 'all'
+                  ? 'bg-purple-600/40 border-purple-450 text-purple-200 ring-1 ring-purple-450/40'
                   : 'bg-purple-950/30 hover:bg-purple-900/40 text-purple-400 border-purple-500/20';
                 return (
                   <button
@@ -285,8 +285,8 @@ export const BagTab: React.FC = () => {
                     onClick={handleItemClick}
                     disabled={isBulkDismantleMode && item.equipped}
                     className={`w-full h-full relative flex flex-col items-center justify-center border rounded-xl overflow-hidden transition-all cursor-pointer select-none ${isSelected
-                        ? 'ring-2 ring-purple-500 scale-[0.96] border-transparent shadow-[0_0_10px_rgba(168,85,247,0.5)]'
-                        : ui.border
+                      ? 'ring-2 ring-purple-500 scale-[0.96] border-transparent shadow-[0_0_10px_rgba(168,85,247,0.5)]'
+                      : ui.border
                       } ${ui.bg} ${ui.glow} ${isSelected
                         ? ''
                         : (isBulkDismantleMode && item.equipped ? 'opacity-30 pointer-events-none' : 'hover:scale-[1.03] hover:bg-slate-800/20')
@@ -317,8 +317,14 @@ export const BagTab: React.FC = () => {
                       </span>
                     )}
 
+                    {!isBulkDismantleMode && item.isIdentified !== false && item.allowedClass && (
+                      <span className="absolute top-0.5 right-0.5 text-[8px] pointer-events-none z-20 select-none">
+                        {item.allowedClass === 'knight' ? '🛡️' : item.allowedClass === 'mage' ? '🔮' : '🗡️'}
+                      </span>
+                    )}
+
                     <ItemGraphic templateId={item.templateId} isCorrupted={item.isCorrupted} isCursed={item.isCursed} isIdentified={item.isIdentified} className="w-10 h-10 mb-1 relative z-10" />
-                    <span className="absolute bottom-1 right-1 text-[9px] font-extrabold text-slate-400 bg-slate-950/60 px-1 py-0.2 rounded z-10">
+                    <span className="absolute bottom-1 right-1 text-[9px] font-extrabold text-slate-400 bg-slate-950/60 px-1 py-0.2 rounded z-20">
                       +{item.level}
                     </span>
                   </button>

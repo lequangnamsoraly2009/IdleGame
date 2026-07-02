@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { useLanguageStore } from '../../stores/languageStore';
+import { GAME_ICONS } from '@idle-rpg/shared';
 
 export const DungeonTab: React.FC = () => {
-  const { 
-    saveData, 
-    enterDungeon, 
-    buyDungeonTicket, 
-    battleMode: battleModeRaw, 
+  const {
+    saveData,
+    enterDungeon,
+    battleMode: battleModeRaw,
     activeDungeonId,
     heroHp,
     heroMaxHp,
@@ -80,8 +80,8 @@ export const DungeonTab: React.FC = () => {
         bossEn: 'Goblin Chieftain (Lv.10)',
         descVi: 'Nơi cư ngụ của lũ tay sai Goblin. Tiêu diệt chúng để cướp lấy kho tiền đồng cất giấu.',
         descEn: 'Infiltrate the local goblin hideout. Plunder their copper stash for quick wealth.',
-        rewardsVi: '+10,000 Vàng 💰',
-        rewardsEn: '+10,000 Gold 💰',
+        rewardsVi: `+10,000 Vàng ${GAME_ICONS.GOLD}`,
+        rewardsEn: `+10,000 Gold ${GAME_ICONS.GOLD}`,
         bgClass: 'from-slate-900 via-slate-850 to-amber-950/30 border-amber-500/20 shadow-amber-500/5',
         icon: '🪙'
       },
@@ -94,8 +94,8 @@ export const DungeonTab: React.FC = () => {
         bossEn: 'Goblin King (Lv.25)',
         descVi: 'Ngân khố hoàng gia bị tước đoạt bởi Vua Goblin. Đoạt lại số tiền vàng tích trữ khổng lồ.',
         descEn: 'Venture into the vaults occupied by the Goblin King. Retrieve the royal gold reserves.',
-        rewardsVi: '+35,000 Vàng 💰',
-        rewardsEn: '+35,000 Gold 💰',
+        rewardsVi: `+35,000 Vàng ${GAME_ICONS.GOLD}`,
+        rewardsEn: `+35,000 Gold ${GAME_ICONS.GOLD}`,
         bgClass: 'from-slate-900 via-slate-850 to-yellow-950/30 border-yellow-500/20 shadow-yellow-500/5',
         icon: '👑'
       },
@@ -108,10 +108,10 @@ export const DungeonTab: React.FC = () => {
         bossEn: 'Golden Dragon (Lv.45)',
         descVi: 'Ngủ sâu dưới lòng đất là kho báu khổng lồ được canh giữ bởi Rồng Vàng. Phần thưởng là cực kỳ xứng đáng.',
         descEn: 'Deep underground lies a mountain of ancient gold guarded by a Golden Dragon.',
-        rewardsVi: '+120,000 Vàng 💰',
-        rewardsEn: '+120,000 Gold 💰',
+        rewardsVi: `+120,000 Vàng ${GAME_ICONS.GOLD}`,
+        rewardsEn: `+120,000 Gold ${GAME_ICONS.GOLD}`,
         bgClass: 'from-slate-900 via-slate-850 to-yellow-800/20 border-yellow-400/20 shadow-yellow-400/5',
-        icon: '💰'
+        icon: GAME_ICONS.GOLD
       }
     ],
     diamonds: [
@@ -124,10 +124,10 @@ export const DungeonTab: React.FC = () => {
         bossEn: 'Crystal Spider (Lv.15)',
         descVi: 'Khai thác các quặng pha lê thô quý hiếm. Đồ sát Nhện Tinh Thể để lấy Kim Cương.',
         descEn: 'Harvest raw gemstone clusters. Slay the Crystal Spider to claim precious diamonds.',
-        rewardsVi: '+100 Kim Cương 💎',
-        rewardsEn: '+100 Diamonds 💎',
+        rewardsVi: `+100 Kim Cương ${GAME_ICONS.DIAMOND}`,
+        rewardsEn: `+100 Diamonds ${GAME_ICONS.DIAMOND}`,
         bgClass: 'from-slate-900 via-slate-850 to-cyan-950/30 border-cyan-500/20 shadow-cyan-500/5',
-        icon: '💎'
+        icon: GAME_ICONS.DIAMOND
       },
       {
         id: 'diamond_2',
@@ -138,8 +138,8 @@ export const DungeonTab: React.FC = () => {
         bossEn: 'Gemstone Golem (Lv.30)',
         descVi: 'Thế giới pha lê đầy màu sắc rực rỡ. Đập tan Golem Pha Lê để thu về nguồn năng lượng kim cương dồi dào.',
         descEn: 'Enter the colorful crystal caves. Shatter the Golem to mine crystal diamonds.',
-        rewardsVi: '+300 Kim Cương 💎',
-        rewardsEn: '+300 Diamonds 💎',
+        rewardsVi: `+300 Kim Cương ${GAME_ICONS.DIAMOND}`,
+        rewardsEn: `+300 Diamonds ${GAME_ICONS.DIAMOND}`,
         bgClass: 'from-slate-900 via-slate-850 to-teal-950/30 border-teal-500/20 shadow-teal-500/5',
         icon: '🔮'
       },
@@ -152,8 +152,8 @@ export const DungeonTab: React.FC = () => {
         bossEn: 'Diamond Chimera (Lv.50)',
         descVi: 'Vương quốc của những quặng kim cương thuần khiết nhất. Đánh bại Chimera Tinh Thể để giành lấy kho báu tối thượng.',
         descEn: 'Venture into the heart of the crystal sanctuary. Defeat the Chimera for major diamond rewards.',
-        rewardsVi: '+1,000 Kim Cương 💎',
-        rewardsEn: '+1,000 Diamonds 💎',
+        rewardsVi: `+1,000 Kim Cương ${GAME_ICONS.DIAMOND}`,
+        rewardsEn: `+1,000 Diamonds ${GAME_ICONS.DIAMOND}`,
         bgClass: 'from-slate-900 via-slate-850 to-emerald-950/30 border-emerald-500/20 shadow-emerald-500/5',
         icon: '✨'
       }
@@ -208,52 +208,21 @@ export const DungeonTab: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden text-slate-350">
-      {/* Header bar */}
-      <div className="flex justify-between items-center bg-slate-950/40 border-b border-slate-900/60 p-3 shrink-0 flex-wrap gap-2">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🎫</span>
-            <div>
-              <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider leading-none">
-                {language === 'vi' ? 'VÉ KHIÊU CHIẾN' : 'DUNGEON TICKETS'}
-              </span>
-              <span className="text-sm font-black text-white font-mono mt-0.5 block">
-                {tickets}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs font-bold">
-            <span>💰</span>
-            <span className="text-yellow-400 font-mono">{hero.gold.toLocaleString()}</span>
-          </div>
-        </div>
-
-        <button
-          onClick={() => buyDungeonTicket()}
-          disabled={hero.gold < 1000}
-          className="px-3 py-1.5 bg-yellow-600/15 hover:bg-yellow-600/25 border border-yellow-500/30 disabled:opacity-40 disabled:pointer-events-none text-yellow-400 text-[10px] font-black uppercase tracking-wider rounded-xl transition active:scale-95 cursor-pointer flex items-center gap-1.5"
-        >
-          <span>🛒</span>
-          <span>{language === 'vi' ? 'Mua vé (+1 🎫 = 1,000 💰)' : 'Buy Ticket (+1 🎫 = 1K 💰)'}</span>
-        </button>
-      </div>
-
       {/* Category selector tabs */}
       <div className="flex bg-slate-950/20 border-b border-slate-900 p-2 shrink-0 gap-2 overflow-x-auto scrollbar-none">
         {([
-          { key: 'gems', vi: '💎 Ngọc Thuộc Tính', en: '💎 Gems' },
-          { key: 'gold', vi: '💰 Phó Bản Vàng', en: '💰 Gold' },
-          { key: 'diamonds', vi: '💎 Phó Bản Kim Cương', en: '💎 Diamonds' },
-          { key: 'gear', vi: '⚔️ Phó Bản Trang Bị', en: '⚔️ Gear' }
+          { key: 'gems', vi: `${GAME_ICONS.DIAMOND} Ngọc Thuộc Tính`, en: `${GAME_ICONS.DIAMOND} Gems` },
+          { key: 'gold', vi: `${GAME_ICONS.GOLD} Phó Bản Vàng`, en: `${GAME_ICONS.GOLD} Gold` },
+          { key: 'diamonds', vi: `${GAME_ICONS.DIAMOND} Phó Bản Kim Cương`, en: `${GAME_ICONS.DIAMOND} Diamonds` },
+          { key: 'gear', vi: `${GAME_ICONS.CP} Phó Bản Trang Bị`, en: `${GAME_ICONS.CP} Gear` }
         ] as const).map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveCategory(tab.key)}
-            className={`flex-1 min-w-[125px] py-2 text-[10px] font-black uppercase tracking-wider rounded-xl border transition cursor-pointer select-none whitespace-nowrap ${
-              activeCategory === tab.key
-                ? 'bg-blue-600/15 border-blue-500/30 text-blue-300 shadow shadow-blue-500/5'
-                : 'bg-slate-950/45 border-slate-850 hover:bg-slate-900/40 text-slate-450 hover:text-slate-300'
-            }`}
+            className={`flex-1 min-w-[125px] py-2 text-[10px] font-black uppercase tracking-wider rounded-xl border transition cursor-pointer select-none whitespace-nowrap ${activeCategory === tab.key
+              ? 'bg-blue-600/15 border-blue-500/30 text-blue-300 shadow shadow-blue-500/5'
+              : 'bg-slate-950/45 border-slate-850 hover:bg-slate-900/40 text-slate-450 hover:text-slate-300'
+              }`}
           >
             {language === 'vi' ? tab.vi : tab.en}
           </button>
@@ -272,7 +241,7 @@ export const DungeonTab: React.FC = () => {
           const activeDungeon = allDungeons.find(d => d.id === activeDungeonId);
           const dungeonName = activeDungeon ? activeDungeon.nameVi : 'Hầm Ngục';
           const dungeonNameEn = activeDungeon ? activeDungeon.nameEn : 'Dungeon';
-          
+
           if (battleMode === 'dungeon') {
             const dungeonLogs = combatLogs
               .filter(log => log.category === 'combat' || log.category === 'system')
@@ -284,15 +253,15 @@ export const DungeonTab: React.FC = () => {
                 {/* Active Dungeon Header Card */}
                 <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-2xl">
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
-                  
+
                   <span className="text-4xl filter drop-shadow mb-3 animate-bounce">
                     {activeDungeon?.icon || '🏰'}
                   </span>
-                  
+
                   <h3 className="text-xs font-black text-blue-400 uppercase tracking-widest mb-1.5">
                     {language === 'vi' ? 'ĐANG KHIÊU CHIẾN PHÓ BẢN' : 'DUNGEON CHALLENGE ACTIVE'}
                   </h3>
-                  
+
                   <span className="text-xs text-white font-extrabold px-3 py-1 bg-slate-950 border border-slate-850 rounded-xl">
                     {language === 'vi' ? dungeonName : dungeonNameEn}
                   </span>
@@ -310,9 +279,9 @@ export const DungeonTab: React.FC = () => {
                       <span className="text-[10px] text-slate-500 font-extrabold font-mono">/ {heroMaxHp} HP</span>
                     </div>
                     <div className="w-full h-2 bg-slate-950 border border-slate-850 rounded-full overflow-hidden mt-1 shadow-inner">
-                      <div 
-                        className="h-full bg-emerald-500 transition-all duration-105" 
-                        style={{ width: `${Math.min(100, Math.max(0, Math.floor((heroHp / heroMaxHp) * 100)))}%` }} 
+                      <div
+                        className="h-full bg-emerald-500 transition-all duration-105"
+                        style={{ width: `${Math.min(100, Math.max(0, Math.floor((heroHp / heroMaxHp) * 100)))}%` }}
                       />
                     </div>
                   </div>
@@ -327,9 +296,9 @@ export const DungeonTab: React.FC = () => {
                       <span className="text-[10px] text-slate-500 font-extrabold font-mono">/ {monsterMaxHp} HP</span>
                     </div>
                     <div className="w-full h-2 bg-slate-950 border border-slate-850 rounded-full overflow-hidden mt-1 shadow-inner">
-                      <div 
-                        className="h-full bg-red-500 transition-all duration-105" 
-                        style={{ width: `${Math.min(100, Math.max(0, Math.floor((monsterHp / monsterMaxHp) * 100)))}%` }} 
+                      <div
+                        className="h-full bg-red-500 transition-all duration-105"
+                        style={{ width: `${Math.min(100, Math.max(0, Math.floor((monsterHp / monsterMaxHp) * 100)))}%` }}
                       />
                     </div>
                   </div>
@@ -375,13 +344,12 @@ export const DungeonTab: React.FC = () => {
                 let levelReq = dungeon.levelReq;
                 const locked = hero.level < levelReq;
                 const isActive = battleMode === 'dungeon' && activeDungeonId === dungeon.id;
-                
+
                 return (
                   <div
                     key={dungeon.id}
-                    className={`bg-gradient-to-b ${dungeon.bgClass} border rounded-2xl p-4 flex flex-col justify-between gap-4 transition duration-200 relative overflow-hidden group shadow-lg ${
-                      isActive ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-950' : ''
-                    }`}
+                    className={`bg-gradient-to-b ${dungeon.bgClass} border rounded-2xl p-4 flex flex-col justify-between gap-4 transition duration-200 relative overflow-hidden group shadow-lg ${isActive ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-950' : ''
+                      }`}
                   >
                     <div className="space-y-2">
                       <div className="flex justify-between items-start">
@@ -423,23 +391,22 @@ export const DungeonTab: React.FC = () => {
                     <button
                       onClick={() => enterDungeon(dungeon.id)}
                       disabled={locked || tickets <= 0 || battleMode === 'dungeon'}
-                      className={`w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition cursor-pointer ${
-                        locked
-                          ? 'bg-slate-950/60 border border-slate-900 text-slate-600 cursor-not-allowed'
-                          : tickets <= 0
+                      className={`w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition cursor-pointer ${locked
+                        ? 'bg-slate-950/60 border border-slate-900 text-slate-600 cursor-not-allowed'
+                        : tickets <= 0
                           ? 'bg-slate-950/60 border border-slate-900 text-slate-600 cursor-not-allowed'
                           : battleMode === 'dungeon'
-                          ? 'bg-slate-950/60 border border-slate-900 text-slate-500 cursor-not-allowed'
-                          : 'bg-blue-600 hover:bg-blue-500 border border-blue-500/30 text-white shadow-md active:scale-[0.98]'
-                      }`}
+                            ? 'bg-slate-950/60 border border-slate-900 text-slate-500 cursor-not-allowed'
+                            : 'bg-blue-600 hover:bg-blue-500 border border-blue-500/30 text-white shadow-md active:scale-[0.98]'
+                        }`}
                     >
                       {locked
                         ? (language === 'vi' ? `Khóa (Y/C Cấp ${levelReq})` : `Locked (Req Lv.${levelReq})`)
                         : tickets <= 0
-                        ? (language === 'vi' ? 'Hết vé vào' : 'No Tickets')
-                        : battleMode === 'dungeon'
-                        ? (language === 'vi' ? 'Đang chiến đấu...' : 'In Combat...')
-                        : (language === 'vi' ? 'VÀO THỬ THÁCH' : 'CHALLENGE')}
+                          ? (language === 'vi' ? 'Hết vé vào' : 'No Tickets')
+                          : battleMode === 'dungeon'
+                            ? (language === 'vi' ? 'Đang chiến đấu...' : 'In Combat...')
+                            : (language === 'vi' ? 'VÀO THỬ THÁCH' : 'CHALLENGE')}
                     </button>
                   </div>
                 );

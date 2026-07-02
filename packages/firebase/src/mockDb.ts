@@ -59,6 +59,7 @@ export function generateStarterSave(
     prestigeCount: 0,
     aetherShards: 0,
     shardUpgrades: { attack: 0, magicAttack: 0, maxHp: 0 },
+    goldUpgrades: { attack: 0, hp: 0, hpRecovery: 0, critDamage: 0 },
     potions: 5,
     autoUsePotion: false,
     autoDismantleCommon: false,
@@ -290,6 +291,7 @@ export const mockDb = {
         if (!parsed.hero.baseStats) parsed.hero.baseStats = starter.hero.baseStats;
         if (!parsed.hero.currentStats) parsed.hero.currentStats = starter.hero.currentStats;
         if (!parsed.hero.heroClass) parsed.hero.heroClass = 'knight';
+        if (!parsed.hero.goldUpgrades) parsed.hero.goldUpgrades = starter.hero.goldUpgrades || { attack: 0, hp: 0, hpRecovery: 0, critDamage: 0 };
       }
       if (!parsed.inventory) parsed.inventory = starter.inventory;
       if (!parsed.quests) parsed.quests = starter.quests;

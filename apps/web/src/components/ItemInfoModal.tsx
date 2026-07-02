@@ -1,21 +1,21 @@
 import React from 'react';
 import { useGameStore } from '../stores/gameStore';
-import { getFinalItemStats, EquipmentItem, calculateItemCP, calculateDismantleRewards } from '@idle-rpg/shared';
+import { getFinalItemStats, EquipmentItem, calculateItemCP, calculateDismantleRewards, GAME_ICONS } from '@idle-rpg/shared';
 import { useTranslation, getTranslatedItemName } from '../utils/i18n';
 import { useLanguageStore } from '../stores/languageStore';
 import { ItemGraphic } from './ItemGraphic';
 import { GemGraphic } from './GemGraphic';
 
 export const ItemInfoModal: React.FC = () => {
-  const { 
-    saveData, 
-    activeInspectItemId, 
+  const {
+    saveData,
+    activeInspectItemId,
     setActiveInspectItemId,
-    equipEquipment, 
-    unequipEquipment, 
-    upgradeEquipment, 
+    equipEquipment,
+    unequipEquipment,
+    upgradeEquipment,
     dismantleEquipment,
-    identifyEquipment, 
+    identifyEquipment,
     insertGem,
     removeGem
   } = useGameStore();
@@ -118,8 +118,8 @@ export const ItemInfoModal: React.FC = () => {
           text: 'text-amber-500 font-extrabold neon-text-gold',
           extraElements: (
             <>
-              <div 
-                className="absolute w-[180%] h-[180%] bg-[conic-gradient(from_0deg,transparent_10%,#f59e0b_45%,#fbbf24_55%,transparent_90%)] animate-spin pointer-events-none rounded-full" 
+              <div
+                className="absolute w-[180%] h-[180%] bg-[conic-gradient(from_0deg,transparent_10%,#f59e0b_45%,#fbbf24_55%,transparent_90%)] animate-spin pointer-events-none rounded-full"
                 style={{ animationDuration: '2.5s' }}
               />
               <div className="absolute inset-[1px] bg-slate-950 rounded-[11px] pointer-events-none" />
@@ -141,7 +141,7 @@ export const ItemInfoModal: React.FC = () => {
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       {/* Modal Card container */}
       <div className="bg-slate-900/95 border border-slate-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col max-h-[85vh] overflow-hidden animate-fade-in relative">
-        
+
         {/* Header Block */}
         <div className="flex justify-between items-start border-b border-slate-850 pb-3 mb-4 shrink-0 pr-6">
           <div className="space-y-1">
@@ -152,8 +152,8 @@ export const ItemInfoModal: React.FC = () => {
               Slot: {t('slot_' + item.slot)}
             </span>
           </div>
-          
-          <button 
+
+          <button
             onClick={() => setActiveInspectItemId(null)}
             className="absolute top-4 right-4 w-7 h-7 rounded-full bg-slate-950 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white font-extrabold text-xs active:scale-95 cursor-pointer z-10"
           >
@@ -163,7 +163,7 @@ export const ItemInfoModal: React.FC = () => {
 
         {/* Scrollable Content wrapper - Hidden scrollbar, still scrollable! */}
         <div className="flex-1 overflow-y-auto scrollbar-none space-y-4 pr-1 pb-4">
-          
+
           {/* Visual card */}
           <div className={`p-4 rounded-xl border relative flex flex-col items-center justify-center select-none ${ui.border} ${ui.bg} ${ui.glow}`}>
             {ui.extraElements}
@@ -172,7 +172,7 @@ export const ItemInfoModal: React.FC = () => {
                 {language === 'vi' ? 'ĐANG DÙNG' : 'EQUIPPED'}
               </span>
             )}
-            
+
             <ItemGraphic templateId={item.templateId} isCorrupted={item.isCorrupted} isCursed={item.isCursed} isIdentified={item.isIdentified} className="w-14 h-14 mb-2 relative z-10" />
             <h4 className={`text-base font-extrabold flex items-center gap-1.5 font-display ${ui.text}`}>
               <span>{item.isIdentified === false ? `??? [${t('slot_' + item.slot)}]` : getTranslatedItemName(t, item)}</span>
@@ -202,7 +202,7 @@ export const ItemInfoModal: React.FC = () => {
               <span className="text-red-400 font-extrabold uppercase tracking-wide">👿 {language === 'vi' ? 'Vật Phẩm Hư Hỏng: Không thể nâng cấp. Sát thương x2, nhưng rút 0.5% máu tối đa mỗi giây trong chiến đấu.' : 'Corrupted Item: Cannot upgrade. x2 Dmg, but drains 0.5% max HP per second in battle.'}</span>
             ) : item.isCursed ? (
               <span className="text-purple-400 font-extrabold uppercase tracking-wide">💀 {language === 'vi' ? 'Vật Phẩm Bị Nguyền Rủa: Tăng 150 Công nhưng trừ 80 Thủ, giảm 20% HP tối đa.' : 'Cursed Item: +150 Atk but -80 Def, -20% max HP.'}</span>
-            ) : item.rarity === 'legendary' 
+            ) : item.rarity === 'legendary'
               ? t('item_desc_legendary')
               : t('item_desc_standard', { slot: t('slot_' + item.slot).toLowerCase() })
             }
@@ -215,6 +215,81 @@ export const ItemInfoModal: React.FC = () => {
               <span className="px-1.5 py-0.2 rounded bg-slate-950/80 text-slate-300 border border-slate-800 text-[8px] font-extrabold uppercase font-mono">
                 {language === 'vi' ? 'BẬC: ' : 'TIER: '}{item.kills >= 100000 ? 'Ancient 🔥' : item.kills >= 10000 ? 'Veteran ⚡' : 'Standard'}
               </span>
+            </div>
+          )}
+
+          {/* Quality Indicator */}
+          {item.isIdentified !== false && (
+            <div className="bg-slate-950/60 border border-slate-900 rounded-xl p-3 space-y-1.5">
+              <div className="flex justify-between items-center text-[10px] font-bold">
+                <span className="text-slate-450">{language === 'vi' ? 'Chất lượng đúc (Quality):' : 'Forge Quality:'}</span>
+                <span className={`font-black font-display px-2 py-0.5 rounded text-[10px] tracking-wide ${(item.quality || 100) >= 140
+                    ? 'text-amber-400 bg-amber-950/20 border border-amber-900/30'
+                    : (item.quality || 100) >= 120
+                      ? 'text-purple-400 bg-purple-950/20 border border-purple-900/30'
+                      : (item.quality || 100) >= 100
+                        ? 'text-blue-400 bg-blue-950/20 border border-blue-900/30'
+                        : (item.quality || 100) >= 90
+                          ? 'text-emerald-400 bg-emerald-950/20 border border-emerald-900/30'
+                          : 'text-slate-400 bg-slate-950 border border-slate-800'
+                  }`}>
+                  {(item.quality || 100)}%
+                  {language === 'vi' ? ' (' + (
+                    (item.quality || 100) >= 140 ? 'Huyền Thoại' : (item.quality || 100) >= 120 ? 'Hoàn Mỹ' : (item.quality || 100) >= 100 ? 'Tinh Xảo' : (item.quality || 100) >= 90 ? 'Bình Thường' : 'Thô Sơ'
+                  ) + ')' : ' (' + (
+                    (item.quality || 100) >= 140 ? 'Mythic' : (item.quality || 100) >= 120 ? 'Perfect' : (item.quality || 100) >= 100 ? 'Fine' : (item.quality || 100) >= 90 ? 'Normal' : 'Crude'
+                  ) + ')'}
+                </span>
+              </div>
+              <div className="relative w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-900">
+                {(() => {
+                  const q = item.quality || 100;
+                  // Quality range bounds based on rarity
+                  let min = 80;
+                  let max = 160;
+                  switch (item.rarity) {
+                    case 'common': min = 80; max = 100; break;
+                    case 'uncommon': min = 90; max = 110; break;
+                    case 'rare': min = 95; max = 120; break;
+                    case 'epic': min = 100; max = 135; break;
+                    case 'legendary': min = 110; max = 160; break;
+                  }
+                  const pct = Math.max(0, Math.min(100, ((q - min) / (max - min)) * 100));
+
+                  let barColor = 'bg-slate-500';
+                  if (q >= 140) barColor = 'bg-gradient-to-r from-amber-600 to-yellow-400';
+                  else if (q >= 120) barColor = 'bg-gradient-to-r from-purple-600 to-fuchsia-400';
+                  else if (q >= 100) barColor = 'bg-gradient-to-r from-blue-600 to-cyan-400';
+                  else if (q >= 90) barColor = 'bg-gradient-to-r from-emerald-600 to-teal-400';
+
+                  return (
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  );
+                })()}
+              </div>
+              <div className="flex justify-between text-[8px] text-slate-500 font-semibold font-mono">
+                {(() => {
+                  let min = 80;
+                  let max = 100;
+                  switch (item.rarity) {
+                    case 'common': min = 80; max = 100; break;
+                    case 'uncommon': min = 90; max = 110; break;
+                    case 'rare': min = 95; max = 120; break;
+                    case 'epic': min = 100; max = 135; break;
+                    case 'legendary': min = 110; max = 160; break;
+                  }
+                  return (
+                    <>
+                      <span>Min: {min}%</span>
+                      <span className="text-slate-550">{language === 'vi' ? 'Khoảng chỉ số của phẩm chất này' : 'Stat range for this rarity'}</span>
+                      <span>Max: {max}%</span>
+                    </>
+                  );
+                })()}
+              </div>
             </div>
           )}
 
@@ -233,26 +308,26 @@ export const ItemInfoModal: React.FC = () => {
                 {stats && stats.attack > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-450">{t('attack_power')}</span>
-                    <span className="text-blue-400">+{stats.attack}</span>
+                    <span className="text-blue-400">+{stats.attack}%</span>
                   </div>
                 )}
                 {stats && stats.magicAttack !== undefined && stats.magicAttack > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-450">{t('magic_attack')}</span>
-                    <span className="text-violet-400">+{stats.magicAttack}</span>
+                    <span className="text-violet-400">+{stats.magicAttack}%</span>
                   </div>
                 )}
                 {stats && stats.maxHp > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('max_health')}</span>
-                    <span className="text-emerald-400">+{stats.maxHp}</span>
+                    <span className="text-emerald-400">+{stats.maxHp}%</span>
                   </div>
                 )}
                 {stats && stats.defense !== 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('defense_rating')}</span>
                     <span className={stats.defense > 0 ? "text-indigo-400" : "text-purple-400"}>
-                      {stats.defense > 0 ? `+${stats.defense}` : stats.defense}
+                      {stats.defense > 0 ? `+${stats.defense}%` : `${stats.defense}%`}
                     </span>
                   </div>
                 )}
@@ -260,7 +335,7 @@ export const ItemInfoModal: React.FC = () => {
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('magic_resist')}</span>
                     <span className={stats.magicResist > 0 ? "text-fuchsia-400" : "text-purple-400"}>
-                      {stats.magicResist > 0 ? `+${stats.magicResist}` : stats.magicResist}
+                      {stats.magicResist > 0 ? `+${stats.magicResist}%` : `${stats.magicResist}%`}
                     </span>
                   </div>
                 )}
@@ -343,17 +418,17 @@ export const ItemInfoModal: React.FC = () => {
                       gemName = gemType === 'ruby' ? 'Hồng Ngọc' : gemType === 'topaz' ? 'Hoàng Ngọc' : gemType === 'emerald' ? 'Lục Bảo' : gemType === 'sapphire' ? 'Lam Bảo' : 'Thạch Anh';
 
                       if (gemType === 'ruby') {
-                        const vals = [15, 35, 80, 180, 400];
-                        statsDesc = `+${vals[gemTier - 1] || 15} ATK`;
+                        const vals = [5, 10, 15, 20, 25];
+                        statsDesc = `+${vals[gemTier - 1] || 5}% ATK`;
                       } else if (gemType === 'topaz') {
-                        const vals = [15, 35, 80, 180, 400];
-                        statsDesc = `+${vals[gemTier - 1] || 15} M.ATK`;
+                        const vals = [5, 10, 15, 20, 25];
+                        statsDesc = `+${vals[gemTier - 1] || 5}% M.ATK`;
                       } else if (gemType === 'emerald') {
-                        const vals = [150, 350, 800, 1800, 4000];
-                        statsDesc = `+${vals[gemTier - 1] || 150} HP`;
+                        const vals = [10, 20, 30, 40, 50];
+                        statsDesc = `+${vals[gemTier - 1] || 10}% HP`;
                       } else if (gemType === 'sapphire') {
-                        const vals = [10, 25, 60, 140, 320];
-                        statsDesc = `+${vals[gemTier - 1] || 10} DEF`;
+                        const vals = [5, 10, 15, 20, 25];
+                        statsDesc = `+${vals[gemTier - 1] || 5}% DEF`;
                       } else if (gemType === 'amethyst') {
                         const rates = [2, 4, 6, 8, 10];
                         const dmgs = [5, 10, 15, 20, 25];
@@ -386,15 +461,15 @@ export const ItemInfoModal: React.FC = () => {
                               disabled={hero.gold < 50}
                               className="px-2.5 py-1 bg-red-950/20 hover:bg-red-900/35 border border-red-500/20 hover:border-red-500/50 disabled:opacity-40 disabled:pointer-events-none text-[8.5px] font-black text-red-400 rounded-lg transition active:scale-95 cursor-pointer shrink-0"
                             >
-                              {language === 'vi' ? 'Tháo (50 💰)' : 'Remove (50 💰)'}
+                              {language === 'vi' ? `Tháo (50 ${GAME_ICONS.GOLD})` : `Remove (50 ${GAME_ICONS.GOLD})`}
                             </button>
                           </div>
                         ) : (
                           <div className="flex flex-col gap-1.5 w-full bg-slate-900/20 p-2.5 rounded-xl border border-slate-950">
                             <span className="text-[8.5px] text-slate-400 font-black uppercase tracking-wider block">
-                              {language === 'vi' ? 'Khảm ngọc (Phí: 100 Vàng 💰):' : 'Slot Gem (Fee: 100 Gold 💰):'}
+                              {language === 'vi' ? `Khảm ngọc (Phí: 100 Vàng ${GAME_ICONS.GOLD}):` : `Slot Gem (Fee: 100 Gold ${GAME_ICONS.GOLD}):`}
                             </span>
-                            
+
                             {ownedGemsList.length === 0 ? (
                               <div className="text-center py-2 text-[8.5px] text-slate-550 font-bold italic select-none">
                                 {language === 'vi' ? '⚠️ Không có ngọc sẵn có trong kho!' : '⚠️ No gems available in inventory!'}
@@ -435,7 +510,7 @@ export const ItemInfoModal: React.FC = () => {
           <div className="flex justify-between items-center px-1 text-[10px] text-slate-400 font-extrabold uppercase mb-1">
             <span>{language === 'vi' ? 'Vàng hiện có:' : 'Current Gold:'}</span>
             <span className="text-yellow-450 font-black font-mono">
-              {hero.gold.toLocaleString()} 💰
+              {hero.gold.toLocaleString()} {GAME_ICONS.GOLD}
             </span>
           </div>
           {item.isIdentified === false ? (
@@ -446,7 +521,7 @@ export const ItemInfoModal: React.FC = () => {
             >
               <span>✨ {language === 'vi' ? 'GIÁM ĐỊNH VẬT PHẨM' : 'IDENTIFY EQUIPMENT'}</span>
               <span className="bg-slate-950/40 text-amber-950 px-2 py-0.5 rounded border border-amber-500/10 font-bold font-mono">
-                200 💰
+                200 {GAME_ICONS.GOLD}
               </span>
             </button>
           ) : (
@@ -470,11 +545,10 @@ export const ItemInfoModal: React.FC = () => {
                           equipEquipment(item.id);
                         }}
                         disabled={!!isClassIncompatible}
-                        className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition active:scale-[0.98] cursor-pointer ${
-                          isClassIncompatible 
-                            ? 'bg-slate-800 text-slate-500 border border-slate-900/60 cursor-not-allowed opacity-50' 
+                        className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition active:scale-[0.98] cursor-pointer ${isClassIncompatible
+                            ? 'bg-slate-800 text-slate-500 border border-slate-900/60 cursor-not-allowed opacity-50'
                             : 'bg-blue-600 hover:bg-blue-500 text-white border border-blue-500/20'
-                        }`}
+                          }`}
                       >
                         {isClassIncompatible ? (language === 'vi' ? 'Sai Class 🔒' : 'Class Locked 🔒') : t('equip_btn')}
                       </button>
@@ -482,21 +556,21 @@ export const ItemInfoModal: React.FC = () => {
                   })()
                 )}
 
-                </div>
+              </div>
 
-                {!item.equipped && (
-                  <button
-                    onClick={() => {
-                      dismantleEquipment(item.id);
-                    }}
-                    className="w-full bg-purple-650/15 hover:bg-purple-650/25 border border-purple-500/30 text-purple-300 text-xs font-extrabold py-2.5 rounded-xl transition cursor-pointer active:scale-95 flex justify-between items-center px-4"
-                  >
-                    <span>♻️ {language === 'vi' ? 'PHÂN RÃ TRANG BỊ' : 'SALVAGE EQUIPMENT'}</span>
-                    <span className="bg-slate-950/40 text-purple-300 px-2 py-0.5 rounded border border-purple-500/10 font-bold font-mono">
-                      +{calculateDismantleRewards(item)} 🌀
-                    </span>
-                  </button>
-                )}
+              {!item.equipped && (
+                <button
+                  onClick={() => {
+                    dismantleEquipment(item.id);
+                  }}
+                  className="w-full bg-purple-650/15 hover:bg-purple-650/25 border border-purple-500/30 text-purple-300 text-xs font-extrabold py-2.5 rounded-xl transition cursor-pointer active:scale-95 flex justify-between items-center px-4"
+                >
+                  <span>♻️ {language === 'vi' ? 'PHÂN RÃ TRANG BỊ' : 'SALVAGE EQUIPMENT'}</span>
+                  <span className="bg-slate-950/40 text-purple-300 px-2 py-0.5 rounded border border-purple-500/10 font-bold font-mono">
+                    +{calculateDismantleRewards(item)} {GAME_ICONS.AETHER}
+                  </span>
+                </button>
+              )}
 
               <button
                 onClick={() => upgradeEquipment(item.id)}
@@ -505,7 +579,7 @@ export const ItemInfoModal: React.FC = () => {
               >
                 <span>🚀 {t('upgrade_btn')}</span>
                 <span className="bg-slate-950/40 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/10 font-bold font-mono">
-                  {item.upgradeCost} 💰
+                  {item.upgradeCost} {GAME_ICONS.GOLD}
                 </span>
               </button>
             </>

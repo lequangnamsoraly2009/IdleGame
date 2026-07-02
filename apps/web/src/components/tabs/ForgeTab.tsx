@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { useLanguageStore } from '../../stores/languageStore';
 import { getTranslatedItemName, useTranslation } from '../../utils/i18n';
-import { getFinalItemStats, calculateUpgradeCost } from '@idle-rpg/shared';
+import { getFinalItemStats, calculateUpgradeCost, GAME_ICONS } from '@idle-rpg/shared';
 import { ItemGraphic } from '../ItemGraphic';
 import { GemGraphic } from '../GemGraphic';
 
@@ -40,27 +40,6 @@ export const ForgeTab: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden text-slate-350">
-      {/* Header Stat Info */}
-      <div className="flex justify-between items-center bg-slate-950/40 border-b border-slate-900/60 p-3 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-xs font-bold">
-            <span>💰</span>
-            <span className="text-yellow-400 font-mono">{hero.gold.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs font-bold">
-            <span>💎</span>
-            <span className="text-blue-400 font-mono">{hero.diamonds.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs font-bold">
-            <span>♻️</span>
-            <span className="text-emerald-400 font-mono">{(hero as any).aetherShards ?? 0}</span>
-          </div>
-        </div>
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-          {language === 'vi' ? '⚒️ LÒ RÈN CỔ ĐẠI' : '⚒️ ANCIENT FORGE'}
-        </span>
-      </div>
-
       {/* Sub tabs selector */}
       <div className="flex bg-slate-950/20 border-b border-slate-900 p-2 shrink-0 gap-2">
         <button
@@ -71,7 +50,7 @@ export const ForgeTab: React.FC = () => {
               : 'bg-slate-950/45 border-slate-850 hover:bg-slate-900/40 text-slate-450 hover:text-slate-300'
           }`}
         >
-          💎 {language === 'vi' ? 'Lò Ghép Ngọc' : 'Gem Crafting'}
+          {GAME_ICONS.DIAMOND} {language === 'vi' ? 'Lò Ghép Ngọc' : 'Gem Crafting'}
         </button>
         <button
           onClick={() => setSubTab('upgrade')}
@@ -236,19 +215,22 @@ export const ForgeTab: React.FC = () => {
                           {/* Display main stat comparison */}
                           <div className="text-[10px] text-slate-400 font-semibold mt-1">
                             {item.slot === 'weapon' && (
-                              <span>⚔️ {language === 'vi' ? 'Tấn công' : 'Attack'}: {finalStats.attack}</span>
+                              <span>⚔️ {language === 'vi' ? 'Tấn công' : 'Attack'}: {finalStats.attack}%</span>
                             )}
                             {item.slot === 'armor' && (
-                              <span>🛡️ {language === 'vi' ? 'Phòng thủ' : 'Defense'}: {finalStats.defense}</span>
+                              <span>🛡️ {language === 'vi' ? 'Phòng thủ' : 'Defense'}: {finalStats.defense}%</span>
                             )}
                             {item.slot === 'helmet' && (
-                              <span>💖 HP: {finalStats.maxHp}</span>
+                              <span>💖 HP: {finalStats.maxHp}%</span>
                             )}
                             {item.slot === 'boots' && (
                               <span>⚡ {language === 'vi' ? 'Tốc độ' : 'Speed'}: {finalStats.speed}</span>
                             )}
                             {item.slot === 'ring' && (
                               <span>🎯 Crit: {Math.round(finalStats.critRate * 100)}%</span>
+                            )}
+                            {item.slot === 'gloves' && (
+                              <span>⚔️ {language === 'vi' ? 'Tấn công' : 'Attack'}: {finalStats.attack}%</span>
                             )}
                           </div>
                         </div>
@@ -260,7 +242,7 @@ export const ForgeTab: React.FC = () => {
                             {language === 'vi' ? 'PHÍ NÂNG' : 'REFINE COST'}
                           </span>
                           <span className={`text-[11px] font-bold font-mono mt-0.5 block ${hasGold ? 'text-yellow-450' : 'text-rose-500'}`}>
-                            {cost.toLocaleString()} 💰
+                            {cost.toLocaleString()} {GAME_ICONS.GOLD}
                           </span>
                         </div>
 

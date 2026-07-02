@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { useLanguageStore } from '../../stores/languageStore';
-import { calculatePrestigePoints, calculateHeroCP } from '@idle-rpg/shared';
+import { calculatePrestigePoints, calculateHeroCP, GAME_ICONS } from '@idle-rpg/shared';
 import { useTranslation, getTranslatedItemName } from '../../utils/i18n';
 import { ItemGraphic } from '../ItemGraphic';
-import { BagTab } from './BagTab';
-import { GuideTab } from './GuideTab';
 
 export const HeroTab: React.FC = () => {
   const { saveData, triggerPrestige, setActiveInspectItemId } = useGameStore();
-  const { language } = useLanguageStore();
   const { t } = useTranslation();
-  const [subTab, setSubTab] = useState<'stats' | 'bag' | 'guide'>('stats');
+  const { language } = useLanguageStore();
+  const subTab = 'stats';
 
   if (!saveData) return null;
 
@@ -153,15 +151,15 @@ export const HeroTab: React.FC = () => {
   };
 
   const leftSlots = [
-    { slot: 'helmet', label: language === 'vi' ? 'Mũ' : 'Helmet', icon: '🪖' },
-    { slot: 'weapon', label: language === 'vi' ? 'Vũ Khí' : 'Weapon', icon: '⚔️' },
-    { slot: 'gloves', label: language === 'vi' ? 'Găng Tay' : 'Gloves', icon: '🧤' }
+    { slot: 'helmet', label: language === 'vi' ? 'Mũ' : 'Helmet', icon: GAME_ICONS.SLOT_HELMET },
+    { slot: 'weapon', label: language === 'vi' ? 'Vũ Khí' : 'Weapon', icon: GAME_ICONS.SLOT_WEAPON },
+    { slot: 'gloves', label: language === 'vi' ? 'Găng Tay' : 'Gloves', icon: GAME_ICONS.SLOT_GLOVES }
   ];
 
   const rightSlots = [
-    { slot: 'ring', label: language === 'vi' ? 'Nhẫn' : 'Ring', icon: '💍' },
-    { slot: 'armor', label: language === 'vi' ? 'Giáp' : 'Armor', icon: '👕' },
-    { slot: 'boots', label: language === 'vi' ? 'Giày' : 'Boots', icon: '🥾' }
+    { slot: 'ring', label: language === 'vi' ? 'Nhẫn' : 'Ring', icon: GAME_ICONS.SLOT_RING },
+    { slot: 'armor', label: language === 'vi' ? 'Giáp' : 'Armor', icon: GAME_ICONS.SLOT_ARMOR },
+    { slot: 'boots', label: language === 'vi' ? 'Giày' : 'Boots', icon: GAME_ICONS.SLOT_BOOTS }
   ];
 
 
@@ -183,7 +181,12 @@ export const HeroTab: React.FC = () => {
             isIdentified={item.isIdentified}
             className="w-10 h-10 mb-1 relative z-10"
           />
-          <span className="absolute bottom-0.5 right-1 text-[8px] bg-slate-950/90 border border-slate-800 text-amber-400 font-extrabold px-1 rounded">
+          {item.allowedClass && (
+            <span className="absolute top-0.5 right-0.5 text-[8px] pointer-events-none z-20 select-none">
+              {item.allowedClass === 'knight' ? '🛡️' : item.allowedClass === 'mage' ? '🔮' : '🗡️'}
+            </span>
+          )}
+          <span className="absolute bottom-0.5 right-1 text-[8px] bg-slate-950/90 border border-slate-800 text-amber-400 font-extrabold px-1 rounded z-20">
             +{item.level}
           </span>
           {/* Tooltip Hover card */}
@@ -215,7 +218,7 @@ export const HeroTab: React.FC = () => {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Sub tabs selector */}
-      <div className="flex gap-1 bg-slate-950/85 p-1.5 rounded-xl border border-slate-900 mb-4 select-none shrink-0 max-w-fit">
+      {/* <div className="flex gap-1 bg-slate-950/85 p-1.5 rounded-xl border border-slate-900 mb-4 select-none shrink-0 max-w-fit">
         {([
           { id: 'stats', label: language === 'vi' ? '🛡️ Chỉ Số' : '🛡️ Stats' },
           { id: 'bag', label: language === 'vi' ? '🎒 Kho Đồ' : '🎒 Bag' },
@@ -232,7 +235,7 @@ export const HeroTab: React.FC = () => {
             {tab.label}
           </button>
         ))}
-      </div>
+      </div> */}
 
       {/* Sub tab content */}
       <div className="flex-1 overflow-hidden relative">
@@ -260,7 +263,7 @@ export const HeroTab: React.FC = () => {
                     {hero.name || 'Hero'}
                   </span>
                   <span className="text-[9px] bg-slate-950/90 border border-slate-850 text-amber-450 font-black px-2 py-0.5 rounded-full mt-1.5 relative z-10 font-mono shadow flex items-center gap-0.5">
-                    ⚔️ {calculateHeroCP(hero.level, hero.prestigePoints, inventory.filter(item => item.equipped), hero.heroClass).toLocaleString()}
+                    ⚔️ {calculateHeroCP(hero.level, hero.prestigePoints, inventory.filter(item => item.equipped), hero.heroClass, hero.shardUpgrades, hero.goldUpgrades).toLocaleString()}
                   </span>
                 </div>
 
@@ -359,8 +362,7 @@ export const HeroTab: React.FC = () => {
             </div>
           </div>
         )}
-        {subTab === 'bag' && <BagTab />}
-        {subTab === 'guide' && <GuideTab />}
+
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { useTranslation } from '../../utils/i18n';
 import { useLanguageStore } from '../../stores/languageStore';
 import { SummonTab } from './SummonTab';
 import { ItemGraphic } from '../ItemGraphic';
-import { calculateDismantleRewards } from '@idle-rpg/shared';
+import { calculateDismantleRewards, GAME_ICONS } from '@idle-rpg/shared';
 
 export const ShopTab: React.FC = () => {
   const { saveData, buyGoldPack, buyShardUpgrade, buyAetherChest, buyAetherDiamonds, dismantleMultipleEquipment, addLogMessage, buyPotion } = useGameStore();
@@ -46,37 +46,6 @@ export const ShopTab: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Shop Currency Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-slate-900/40 border border-slate-850/60 p-2.5 rounded-xl mb-4 shrink-0 select-none text-[11px] font-bold">
-        <div className="flex items-center gap-1">
-          <span className="text-slate-500 uppercase tracking-widest text-[9.5px]">
-            {language === 'vi' ? 'TÀI SẢN HIỆN CÓ:' : 'YOUR BALANCES:'}
-          </span>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {/* Gold */}
-          <div className="flex items-center gap-1.5 bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-900 shadow-inner">
-            <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-b from-yellow-400 to-amber-500 border border-yellow-300 flex items-center justify-center text-[8px] text-slate-950 font-black leading-none shrink-0">
-              G
-            </span>
-            <span className="text-yellow-400 font-display text-xs">{hero.gold.toLocaleString()}</span>
-          </div>
-
-          {/* Diamonds */}
-          <div className="flex items-center gap-1.5 bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-900 shadow-inner">
-            <span>💎</span>
-            <span className="text-blue-400 font-display text-xs">{hero.diamonds}</span>
-          </div>
-
-          {/* Aether Shards */}
-          <div className="flex items-center gap-1.5 bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-900 shadow-inner">
-            <span className="text-purple-400 text-xs">🌀</span>
-            <span className="text-purple-400 font-display text-xs">{hero.aetherShards || 0}</span>
-          </div>
-        </div>
-      </div>
-
       {/* Sub tabs selector */}
       <div className="flex gap-1 bg-slate-950/85 p-1.5 rounded-xl border border-slate-900 mb-4 select-none shrink-0 max-w-fit overflow-x-auto scrollbar-none">
         {([
@@ -243,7 +212,7 @@ export const ShopTab: React.FC = () => {
                 </p>
 
                 <div className="bg-slate-950/60 border border-slate-900 rounded-xl p-4 text-center mb-4">
-                  <span className="text-3xl block mb-2">💰</span>
+                  <span className="text-3xl block mb-2">{GAME_ICONS.GOLD}</span>
                   <span className="text-sm font-extrabold text-white block">
                     {t('gold_pack_title')}
                   </span>
@@ -258,7 +227,7 @@ export const ShopTab: React.FC = () => {
                   >
                     <span>{t('buy_btn')}</span>
                     <span className="bg-slate-950/40 text-blue-300 px-2 py-0.5 rounded font-bold border border-blue-500/20">
-                      15 💎
+                      15 {GAME_ICONS.DIAMOND}
                     </span>
                   </button>
                 </div>
@@ -274,7 +243,7 @@ export const ShopTab: React.FC = () => {
                   >
                     <span>Mua 30 Bình Máu</span>
                     <span className="bg-slate-950/40 text-purple-300 px-2 py-0.5 rounded border border-purple-500/20 font-bold">
-                      40 💎
+                      40 {GAME_ICONS.DIAMOND}
                     </span>
                   </button>
                 </div>
@@ -321,7 +290,7 @@ export const ShopTab: React.FC = () => {
                       disabled={hero.diamonds < 10}
                       className="bg-blue-900/50 hover:bg-blue-900 border border-blue-800 text-blue-400 text-[10px] font-bold px-2 py-1.5 rounded transition disabled:opacity-30 cursor-pointer"
                     >
-                      10 💎
+                      10 {GAME_ICONS.DIAMOND}
                     </button>
                   </div>
 
@@ -350,7 +319,7 @@ export const ShopTab: React.FC = () => {
                       disabled={hero.diamonds < 10}
                       className="bg-blue-900/50 hover:bg-blue-900 border border-blue-800 text-blue-400 text-[10px] font-bold px-2 py-1.5 rounded transition disabled:opacity-30 cursor-pointer"
                     >
-                      10 💎
+                      10 {GAME_ICONS.DIAMOND}
                     </button>
                   </div>
                 </div>
@@ -510,7 +479,7 @@ export const ShopTab: React.FC = () => {
                                 </span>
                               )}
                               <ItemGraphic templateId={item.templateId} isCorrupted={item.isCorrupted} isCursed={item.isCursed} isIdentified={item.isIdentified} className="w-8 h-8 pointer-events-none" />
-                              <span className="absolute bottom-0.5 right-0.5 text-[7px] font-black text-slate-400 bg-slate-950/50 px-0.5 rounded leading-none">
+                              <span className="absolute bottom-0.5 right-0.5 text-[7px] font-black text-slate-400 bg-slate-950/50 px-0.5 rounded leading-none z-20">
                                 +{item.level}
                               </span>
                             </button>
@@ -640,7 +609,7 @@ export const ShopTab: React.FC = () => {
                     >
                       <span>{inventory.length >= 50 ? 'Hành lý đầy' : 'Mở Rương'}</span>
                       <span className="bg-slate-950/40 text-amber-950 px-2 py-0.5 rounded border border-amber-500/10 font-bold">
-                        300 🌀
+                        300 {GAME_ICONS.AETHER}
                       </span>
                     </button>
                   </div>
@@ -649,7 +618,7 @@ export const ShopTab: React.FC = () => {
                   <div className="p-4 bg-slate-950/60 border border-slate-900 hover:border-slate-850 rounded-xl transition-all duration-200">
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <span className="text-xs font-extrabold text-blue-400 block">💎 ĐỔI KIM CƯƠNG (Diamonds)</span>
+                        <span className="text-xs font-extrabold text-blue-400 block">{GAME_ICONS.DIAMOND} ĐỔI KIM CƯƠNG (Diamonds)</span>
                         <span className="text-[10px] text-slate-500 block mt-0.5">Đổi 100 Mảnh Aether lấy +200 Kim Cương phục vụ các giao dịch khác.</span>
                       </div>
                     </div>
@@ -658,9 +627,9 @@ export const ShopTab: React.FC = () => {
                       disabled={(hero.aetherShards || 0) < 100}
                       className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold py-2.5 px-4 rounded-xl border border-blue-400/20 active:scale-[0.98] transition flex justify-between items-center disabled:opacity-40 cursor-pointer"
                     >
-                      <span>Đổi +200 💎</span>
+                      <span>Đổi +200 {GAME_ICONS.DIAMOND}</span>
                       <span className="bg-slate-950/40 text-blue-300 px-2 py-0.5 rounded border border-blue-500/10 font-bold">
-                        100 🌀
+                        100 {GAME_ICONS.AETHER}
                       </span>
                     </button>
                   </div>

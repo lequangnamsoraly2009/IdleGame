@@ -1,9 +1,11 @@
-import { Application, Container, Graphics } from 'pixi.js';
+import { Application, Container, Graphics, Sprite, Assets } from 'pixi.js';
 import { BaseStats, MonsterTemplate, EquipmentItem, calculateMonsterCP, calculateHeroCP } from '@idle-rpg/shared';
-import { recalculateHeroStats, DEFAULT_ITEM_TEMPLATES, createItemInstance } from '@idle-rpg/shared';
+import { recalculateHeroStats, DEFAULT_ITEM_TEMPLATES, createItemInstance, generateMonsterForStage } from '@idle-rpg/shared';
 import { Entity } from './entities/Entity';
 import { DamageText } from './effects/DamageText';
 import { VisualEffect } from './effects/VisualEffect';
+import { LootParticle } from './effects/LootParticle';
+import { SystemAnnouncement } from './effects/SystemAnnouncement';
 import {
   AetherStrikeEffect,
   MeteorStormEffect,
@@ -44,6 +46,10 @@ export interface ActiveMonster {
   entity: Entity;
   rage: number;
   attackCooldown: number;
+  goldReward?: number;
+  diamondReward?: number;
+  itemsDropped?: any[];
+  deathTriggered?: boolean;
 }
 
 export interface ActiveAlly {
@@ -75,6 +81,23 @@ export class GameEngine {
   // Effects
   private damageTexts: DamageText[] = [];
   private activeEffects: VisualEffect[] = [];
+  private lootParticles: LootParticle[] = [];
+  private announcements: SystemAnnouncement[] = [];
+
+  // Transition & Background Scroll
+  private isTransitioning: boolean = false;
+  private transitionTimer: number = 0;
+  private backgroundSprite1: Sprite | null = null;
+  private backgroundSprite2: Sprite | null = null;
+  private currentBackgroundUrl: string = '';
+  private regenAccumulator: number = 0;
+  private goldUpgrades?: { attack?: number; hp?: number; hpRecovery?: number; critDamage?: number };
+
+  // Pre-rolled Wave Rewards
+  private accumulatedExp: number = 0;
+  private accumulatedGold: number = 0;
+  private accumulatedDiamonds: number = 0;
+  private accumulatedItems: any[] = [];
 
   // Configured states passed from React Store
   private heroLevel: number = 1;
@@ -85,6 +108,7 @@ export class GameEngine {
   private heroClass: 'knight' | 'mage' | 'assassin' = 'knight';
 
   private currentStage: number = 1;
+  private lastStage: number = 0;
   private monsterTemplate: MonsterTemplate | null = null;
   private heroRage: number = 0;
   private language: 'vi' | 'en' = 'vi';
@@ -102,6 +126,7 @@ export class GameEngine {
   private respawnTimer: number = 0;
   private respawnTimeout: any = null;
   private isDestroyed: boolean = false;
+  private resizeObserver: ResizeObserver | null = null;
 
   // Callback to communicate with React
   private onEvent: (event: EngineEvent) => void;
@@ -177,6 +202,19 @@ export class GameEngine {
     // Watch resize events
     window.addEventListener('resize', this.handleResize);
 
+    // Watch container resize events using ResizeObserver
+    if (typeof ResizeObserver !== 'undefined' && this.container) {
+      this.resizeObserver = new ResizeObserver(() => {
+        this.handleResize();
+      });
+      this.resizeObserver.observe(this.container);
+    }
+
+    // Trigger an initial delayed resize to guarantee DOM layout settles
+    setTimeout(() => {
+      this.handleResize();
+    }, 150);
+
     this.onEvent({
       type: 'LOG_MESSAGE',
       text: 'Game engine initialized. Auto battle is ready.',
@@ -185,7 +223,8 @@ export class GameEngine {
   }
 
   private handleResize = () => {
-    if (this.app) {
+    if (this.app && this.container) {
+      this.app.renderer.resize(this.container.clientWidth, this.container.clientHeight);
       this.drawBackground();
       this.positionEntities();
     }
@@ -201,18 +240,110 @@ export class GameEngine {
     // Draw a subtle dark overlay to enhance contrast for characters and damage text
     this.backgroundLayer.rect(0, 0, width, height);
     this.backgroundLayer.fill({ color: 0x090c15, alpha: 0.15 }); // 15% opacity overlay
+
+    this.updateBackground();
   }
 
-  private positionEntities() {
+  private getBackgroundUrl(): string {
+    if (this.battleMode === 'dungeon') {
+      const dungeonId = this.activeMonsters[0]?.template.id || 'gem_1';
+      if (dungeonId.startsWith('gem')) return '/dungeon_cave.png';
+      if (dungeonId.startsWith('gold')) return '/dungeon_vault.png';
+      if (dungeonId.startsWith('diamond')) return '/dungeon_sky.png';
+      if (dungeonId.startsWith('gear')) return '/dungeon_ruins.png';
+      return '/dungeon_ruins.png';
+    }
+    const blockIndex = Math.floor((this.currentStage - 1) / 5);
+    const cycle = blockIndex % 6;
+    
+    switch (cycle) {
+      case 0: return '/battle_forest.png';
+      case 1: return '/battle_cave.png';
+      case 2: return '/battle_garden.png';
+      case 3: return '/battle_volcano.png';
+      case 4: return '/battle_sky.png';
+      case 5: return '/battle_ruins.png';
+      default: return '/battle_forest.png';
+    }
+  }
+
+  private updateBackground() {
+    if (!this.app) return;
+    const url = this.getBackgroundUrl();
+    if (this.currentBackgroundUrl === url && this.backgroundSprite1) {
+      this.resizeBackgrounds();
+      return;
+    }
+    this.currentBackgroundUrl = url;
+
+    Assets.load(url).then((texture) => {
+      if (this.isDestroyed || !this.app || this.currentBackgroundUrl !== url) return;
+
+      if (!this.backgroundSprite1 || !this.backgroundSprite2) {
+        this.backgroundSprite1 = new Sprite(texture);
+        this.backgroundSprite2 = new Sprite(texture);
+        this.backgroundLayer.addChild(this.backgroundSprite1);
+        this.backgroundLayer.addChild(this.backgroundSprite2);
+      } else {
+        this.backgroundSprite1.texture = texture;
+        this.backgroundSprite2.texture = texture;
+      }
+
+      this.resizeBackgrounds();
+      this.positionEntities();
+    }).catch((err) => {
+      console.warn("Failed to load background texture:", url, err);
+    });
+  }
+
+  private resizeBackgrounds() {
+    if (!this.app || !this.backgroundSprite1 || !this.backgroundSprite2) return;
+    const width = this.app.screen.width;
+    const height = this.app.screen.height;
+
+    const textureWidth = this.backgroundSprite1.texture.source?.width || this.backgroundSprite1.texture.width || 1920;
+    const textureHeight = this.backgroundSprite1.texture.source?.height || this.backgroundSprite1.texture.height || 1080;
+
+    const scale = Math.max(height / textureHeight, width / textureWidth);
+    const finalWidth = textureWidth * scale;
+    const finalHeight = textureHeight * scale;
+
+    this.backgroundSprite1.width = finalWidth;
+    this.backgroundSprite1.height = finalHeight;
+    this.backgroundSprite2.width = finalWidth;
+    this.backgroundSprite2.height = finalHeight;
+
+    const bgY = (height - finalHeight) / 2;
+    this.backgroundSprite1.y = bgY;
+    this.backgroundSprite2.y = bgY;
+
+    if (!this.isTransitioning) {
+      this.backgroundSprite1.x = 0;
+      this.backgroundSprite2.x = finalWidth;
+    }
+  }
+
+  private positionEntities(isSpawn: boolean = false) {
     if (!this.app) return;
     const width = this.app.screen.width;
     const height = this.app.screen.height;
-    const floorY = height * 0.65;
+
+    let floorY = height * 0.65; // fallback default when background is not yet loaded
+
+    if (this.backgroundSprite1 && this.backgroundSprite1.texture) {
+      const textureHeight = this.backgroundSprite1.texture.source?.height || this.backgroundSprite1.texture.height || 1080;
+      const textureWidth = this.backgroundSprite1.texture.source?.width || this.backgroundSprite1.texture.width || 1920;
+      const scale = Math.max(height / textureHeight, width / textureWidth);
+      const finalHeight = textureHeight * scale;
+      const bgY = (height - finalHeight) / 2;
+
+      floorY = bgY + finalHeight * 0.68;
+    }
 
     if (this.battleMode === 'guild_boss') {
       // 4 Heroes: Staggered 2D Formation Layout with mobile-safe fixed pixel offsets
       const baseX = Math.max(160, width * 0.32);
-      const baseY = floorY - 20;
+      const baseY = floorY - 10;
 
       this.allyEntities.forEach((ally, idx) => {
         let x = baseX;
@@ -224,16 +355,16 @@ export class GameEngine {
           y = baseY;
         } else if (idx === 1) {
           // Ally Knight: Back-top
-          x = baseX - 85;
-          y = baseY - 45;
+          x = baseX - 70;
+          y = baseY - 30;
         } else if (idx === 2) {
           // Ally Mage: Back-center
-          x = baseX - 110;
+          x = baseX - 90;
           y = baseY;
         } else if (idx === 3) {
           // Ally Assassin: Back-bottom
-          x = baseX - 70;
-          y = baseY + 45;
+          x = baseX - 60;
+          y = baseY + 30;
         }
 
         ally.entity.setBasePosition(x, y);
@@ -260,56 +391,64 @@ export class GameEngine {
       const isDungeonBoss = this.battleMode === 'dungeon';
       const isStageBoss = this.currentStage % 5 === 0;
 
-      let scale = 1.0;
+      let monsterScale = 1.0;
       if (isRaidBoss) {
-        scale = 2.2; // giant raid boss
+        monsterScale = 2.0; // giant raid boss
       } else if (isDungeonBoss) {
-        scale = 3.0; // dungeon boss is 3.0 times larger (twice the visual size of character)
+        monsterScale = 2.4; // dungeon boss is 2.4 times larger
       } else if (isStageBoss) {
-        scale = 1.6; // stage boss
+        monsterScale = 1.4; // stage boss
       }
 
       if (this.battleMode === 'guild_boss' || this.battleMode === 'dungeon') {
         // Guild Boss / Dungeon Boss: centered
         x = width * 0.72;
-        y = floorY - 32 * (scale - 1);
+        y = floorY - 24 * (monsterScale - 1);
       } else {
         // Normal wave: Staggered columns
         if (count === 1) {
           x = width * 0.70;
-          y = floorY - 32 * (scale - 1);
+          y = floorY - 24 * (monsterScale - 1);
         } else if (count === 2) {
           if (idx === 0) {
             x = width * 0.76;
-            y = floorY - 60 - 32 * (scale - 1); // Top-Right Back
+            y = floorY - 35 - 24 * (monsterScale - 1); // Top-Right Back
           } else {
             x = width * 0.65;
-            y = floorY + 60 - 32 * (scale - 1); // Bottom-Right Front
+            y = floorY + 35 - 24 * (monsterScale - 1); // Bottom-Right Front
           }
         } else if (count === 3) {
           if (idx === 0) {
             x = width * 0.77;
-            y = floorY - 75 - 32 * (scale - 1); // Top-Right Back
+            y = floorY - 45 - 24 * (monsterScale - 1); // Top-Right Back
           } else if (idx === 1) {
             x = width * 0.64;
-            y = floorY - 32 * (scale - 1);      // Middle-Right Front
+            y = floorY - 24 * (monsterScale - 1);      // Middle-Right Front
           } else {
             x = width * 0.77;
-            y = floorY + 75 - 32 * (scale - 1); // Bottom-Right Back
+            y = floorY + 45 - 24 * (monsterScale - 1); // Bottom-Right Back
           }
         } else {
           // For 4+ monsters, space them evenly with larger vertical gaps
-          const spacing = 90; // vertical spacing between monsters
+          const spacing = 50; // vertical spacing between monsters
           x = width * 0.70;
-          y = floorY + (idx - Math.floor(count / 2)) * spacing - 32 * (scale - 1);
+          y = floorY + (idx - Math.floor(count / 2)) * spacing - 24 * (monsterScale - 1);
         }
       }
 
-      m.entity.setBasePosition(x, y);
-      m.entity.resetVisuals();
-      m.entity.scale.set(scale);
-
-      m.entity.updateStats(m.currentHp, m.maxHp, undefined, m.rage, undefined, this.language);
+      if (isSpawn) {
+        m.entity.x = width * 1.25;
+        m.entity.y = y;
+        m.entity.setTargetPosition(x, y);
+        m.entity.resetVisuals();
+        m.entity.scale.set(monsterScale);
+        m.entity.updateStats(m.currentHp, m.maxHp, undefined, m.rage, undefined, this.language);
+      } else {
+        m.entity.setBasePosition(x, y);
+        m.entity.resetVisuals();
+        m.entity.scale.set(monsterScale);
+        m.entity.updateStats(m.currentHp, m.maxHp, undefined, m.rage, undefined, this.language);
+      }
     });
   }
 
@@ -325,7 +464,8 @@ export class GameEngine {
     potionsCount?: number,
     autoUsePotion?: boolean,
     autoBuyPotions?: boolean,
-    gold?: number
+    gold?: number,
+    goldUpgrades?: { attack?: number; hp?: number; hpRecovery?: number; critDamage?: number }
   ) {
     this.heroLevel = level;
     this.prestigePoints = prestigePoints;
@@ -352,11 +492,14 @@ export class GameEngine {
     if (gold !== undefined) {
       this.gold = gold;
     }
+    if (goldUpgrades) {
+      this.goldUpgrades = goldUpgrades;
+    }
     this.recalculateStats();
 
     if (this.heroEntity) {
       // Keep hero health capped to new max HP if it increased
-      const heroCP = calculateHeroCP(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass);
+      const heroCP = calculateHeroCP(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass, this.shardUpgrades, this.goldUpgrades);
       const displayName = heroName
         ? `Lv.${this.heroLevel} ${heroName} (⚔️${formatCP(heroCP)})`
         : `Lv.${this.heroLevel} Hero (⚔️${formatCP(heroCP)})`;
@@ -395,15 +538,37 @@ export class GameEngine {
     return this.potionCooldownRemaining;
   }
 
+  public triggerAnnouncement(text: string) {
+    const width = this.app?.renderer?.width || 800;
+    const height = this.app?.renderer?.height || 640;
+    const ann = new SystemAnnouncement(text, width, height);
+    this.effectLayer.addChild(ann);
+    this.announcements.push(ann);
+  }
+
   private recalculateStats() {
-    this.heroStats = recalculateHeroStats(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass, this.shardUpgrades);
+    this.heroStats = recalculateHeroStats(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass, this.shardUpgrades, this.goldUpgrades);
   }
 
   // Load a new battle scene
-  public startBattle(monster: MonsterTemplate) {
+  public startBattle(monster: MonsterTemplate, wave: number = 1) {
     this.monsterTemplate = monster;
     this.battleMode = 'stage';
     this.battleStartTime = Date.now();
+
+    // Reset Transition states
+    this.isTransitioning = false;
+    this.transitionTimer = 0;
+    if (this.heroEntity) {
+      this.heroEntity.setRunning(false);
+    }
+    this.allyEntities.forEach(a => a.entity.setRunning(false));
+
+    // Reset accumulated rewards
+    this.accumulatedExp = 0;
+    this.accumulatedGold = 0;
+    this.accumulatedDiamonds = 0;
+    this.accumulatedItems = [];
 
     // Clear previous monster entities
     this.activeMonsters.forEach(m => {
@@ -412,29 +577,148 @@ export class GameEngine {
     });
     this.activeMonsters = [];
 
-    // Decide count: Boss stage (multiples of 5) = 1 boss. Otherwise:
-    // Stage 1-2: 1 monster
-    // Stage 3-4: 1-2 monsters
-    // Stage 5+: 1-3 monsters
-    let count = 1;
-    const lowerName = monster.name.toLowerCase();
-    const isBoss = this.currentStage % 5 === 0 || lowerName.includes('king') || lowerName.includes('chúa') || lowerName.includes('vương');
+    // Check if it is the stage boss (wave 20)
+    const isStageBoss = wave === 20;
 
-    if (!isBoss) {
-      if (this.currentStage >= 5) {
-        count = Math.floor(Math.random() * 3) + 1; // 1 to 3
-      } else if (this.currentStage >= 3) {
-        count = Math.random() < 0.5 ? 1 : 2; // 1 to 2
+    // Decide count and spawn templates based on the specific wave rules
+    let count = 1;
+    const templatesToSpawn: MonsterTemplate[] = [];
+
+    if (isStageBoss) {
+      // Wave 20: 1 Boss and 4 Elite minions
+      templatesToSpawn.push({
+        ...monster,
+        id: `${monster.id}_boss`,
+      });
+      // 4 Elite minions
+      for (let i = 0; i < 4; i++) {
+        const minion = generateMonsterForStage(this.currentStage, this.heroLevel, undefined, 1);
+        minion.id = `${minion.id}_minion_${i}`;
+        minion.name = this.language === 'vi' 
+          ? `${minion.name} ${String.fromCharCode(65 + i)} (Tinh Anh)`
+          : `${minion.name} ${String.fromCharCode(65 + i)} (Elite)`;
+        minion.rank = 'elite';
+        // Elite multiplier is 3.5x vs normal multiplier 3.0x
+        minion.baseStats.maxHp = Math.round(minion.baseStats.maxHp * (3.5 / 3.0));
+        minion.baseStats.attack = Math.round(minion.baseStats.attack * (1.1 / 1.0));
+        templatesToSpawn.push(minion);
+      }
+      count = 5;
+    } else {
+      // Wave 1-19 rules
+      if (wave >= 1 && wave <= 5) {
+        // Wave 1-5: always 1 monster
+        count = 1;
+        templatesToSpawn.push({
+          ...monster,
+          id: `${monster.id}_0`
+        });
+      } else if (wave >= 6 && wave <= 10) {
+        // Wave 6-10: always 2 monsters
+        count = 2;
+        if (wave === 10) {
+          // Wave 10: 1 small and 1 big (which is the champion/king returned in monster)
+          templatesToSpawn.push({
+            ...monster,
+            id: `${monster.id}_boss`
+          });
+          const minion = generateMonsterForStage(this.currentStage, this.heroLevel, undefined, 1);
+          minion.id = `${minion.id}_minion_0`;
+          templatesToSpawn.push(minion);
+        } else {
+          for (let i = 0; i < count; i++) {
+            templatesToSpawn.push({
+              ...monster,
+              id: `${monster.id}_${i}`,
+              name: `${monster.name} ${String.fromCharCode(65 + i)}`
+            });
+          }
+        }
+      } else if (wave >= 11 && wave <= 15) {
+        // Wave 11-15: always 3 monsters
+        count = 3;
+        if (wave === 15) {
+          // Wave 15: 2 small and 1 big (which is the king returned in monster)
+          templatesToSpawn.push({
+            ...monster,
+            id: `${monster.id}_boss`
+          });
+          for (let i = 0; i < 2; i++) {
+            const minion = generateMonsterForStage(this.currentStage, this.heroLevel, undefined, 1);
+            minion.id = `${minion.id}_minion_${i}`;
+            minion.name = `${minion.name} ${String.fromCharCode(65 + i)}`;
+            templatesToSpawn.push(minion);
+          }
+        } else {
+          for (let i = 0; i < count; i++) {
+            templatesToSpawn.push({
+              ...monster,
+              id: `${monster.id}_${i}`,
+              name: `${monster.name} ${String.fromCharCode(65 + i)}`
+            });
+          }
+        }
+      } else if (wave >= 16 && wave <= 19) {
+        // Wave 16-19: always 4 monsters
+        count = 4;
+        for (let i = 0; i < count; i++) {
+          templatesToSpawn.push({
+            ...monster,
+            id: `${monster.id}_${i}`,
+            name: `${monster.name} ${String.fromCharCode(65 + i)}`
+          });
+        }
+      } else {
+        count = 1;
+        templatesToSpawn.push({
+          ...monster,
+          id: `${monster.id}_0`
+        });
       }
     }
 
+    // Apply strength increase by wave: +2% HP/ATK/DEF per wave level
+    // wave 2 will always be stronger than wave 1
+    const waveStatMultiplier = 1 + (wave - 1) * 0.02;
+    templatesToSpawn.forEach(t => {
+      t.baseStats.maxHp = Math.round(t.baseStats.maxHp * waveStatMultiplier);
+      t.baseStats.attack = Math.round(t.baseStats.attack * waveStatMultiplier);
+      t.baseStats.defense = Math.round(t.baseStats.defense * waveStatMultiplier);
+    });
+
+    if (isStageBoss) {
+      this.triggerAnnouncement(
+        this.language === 'vi'
+          ? `BOSS XUẤT HIỆN: ${monster.name.toUpperCase()}`
+          : `BOSS APPEARED: ${monster.name.toUpperCase()}`
+      );
+    } else if (this.currentStage !== this.lastStage) {
+      this.triggerAnnouncement(
+        this.language === 'vi'
+          ? `ẢI MỚI: ẢI ${this.currentStage}`
+          : `NEW STAGE: STAGE ${this.currentStage}`
+      );
+      this.lastStage = this.currentStage;
+    }
+
     // Spawn monsters
-    for (let i = 0; i < count; i++) {
-      const template: MonsterTemplate = {
-        ...monster,
-        id: `${monster.id}_${i}`,
-        name: count > 1 ? `${monster.name} ${String.fromCharCode(65 + i)}` : monster.name
-      };
+    templatesToSpawn.forEach((template, i) => {
+      // Pre-roll rewards for this specific monster
+      const goldMin = template.goldRewardRange[0];
+      const goldMax = template.goldRewardRange[1];
+      const goldReward = Math.floor(Math.random() * (goldMax - goldMin + 1)) + goldMin;
+      const diamondReward = Math.random() < 0.1 ? Math.floor(Math.random() * 3) + 1 : 0;
+      
+      const itemsDropped: any[] = [];
+      if (Math.random() < template.dropChance && template.dropPool.length > 0) {
+        const rolledId = template.dropPool[Math.floor(Math.random() * template.dropPool.length)];
+        const itemTemplate = DEFAULT_ITEM_TEMPLATES.find(t => t.id === rolledId);
+        if (itemTemplate) {
+          const itemLvl = Math.max(1, Math.floor(this.currentStage / 8));
+          const newItem = createItemInstance(itemTemplate, itemLvl);
+          itemsDropped.push(newItem);
+        }
+      }
 
       const monsterCP = calculateMonsterCP(template);
       const entity = new Entity(`${template.name} (Lv.${template.level}) (⚔️${formatCP(monsterCP)})`, false, template.baseStats.maxHp, this.language);
@@ -446,18 +730,27 @@ export class GameEngine {
         maxHp: template.baseStats.maxHp,
         entity,
         rage: 0,
-        attackCooldown: 0.4 * i // stagger starting attacks
+        attackCooldown: 0.4 * i, // stagger starting attacks
+        goldReward,
+        diamondReward,
+        itemsDropped
       });
-    }
+    });
 
-    this.positionEntities();
+    this.positionEntities(true);
 
     this.respawnTimer = 0;
     this.isBattleActive = true;
 
+    const logText = isStageBoss
+      ? (this.language === 'vi' 
+          ? `Stage ${this.currentStage}: Boss ${monster.name} cùng 4 tay sai Tinh Anh xuất hiện!`
+          : `Stage ${this.currentStage}: Boss ${monster.name} appeared with 4 Elite minions!`)
+      : `Stage ${this.currentStage}: A wave of ${count} ${monster.name}(s) appeared!`;
+
     this.onEvent({
       type: 'LOG_MESSAGE',
-      text: `Stage ${this.currentStage}: A wave of ${count} ${monster.name}(s) appeared!`,
+      text: logText,
       category: 'system'
     });
   }
@@ -472,7 +765,7 @@ export class GameEngine {
     this.entityLayer.removeChildren();
 
     // 1. Re-spawn user hero as first ally
-    const heroCP = calculateHeroCP(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass);
+    const heroCP = calculateHeroCP(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass, this.shardUpgrades, this.goldUpgrades);
     this.heroEntity = new Entity(`Lv.${this.heroLevel} ${guildMembers[0].name} (⚔️${formatCP(heroCP)})`, true, this.heroStats.maxHp, this.language);
     this.entityLayer.addChild(this.heroEntity);
 
@@ -572,7 +865,7 @@ export class GameEngine {
 
     // Start progressive stage battle again
     if (this.monsterTemplate) {
-      this.startBattle(this.monsterTemplate);
+      this.startBattle(this.monsterTemplate, 1);
     }
   }
 
@@ -584,7 +877,7 @@ export class GameEngine {
     this.entityLayer.removeChildren();
 
     // Spawn single player Hero
-    const heroCP = calculateHeroCP(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass);
+    const heroCP = calculateHeroCP(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass, this.shardUpgrades, this.goldUpgrades);
     const displayName = this.language === 'vi'
       ? `Lv.${this.heroLevel} Anh Hùng (⚔️${formatCP(heroCP)})`
       : `Lv.${this.heroLevel} Hero (⚔️${formatCP(heroCP)})`;
@@ -661,7 +954,7 @@ export class GameEngine {
 
     // Start progressive stage battle again
     if (this.monsterTemplate) {
-      this.startBattle(this.monsterTemplate);
+      this.startBattle(this.monsterTemplate, 1);
     }
   }
 
@@ -670,6 +963,64 @@ export class GameEngine {
 
     // Sort entities by Y coordinate to handle 2.5D depth layering
     this.entityLayer.children.sort((a, b) => a.y - b.y);
+
+    // Passive HP Regeneration
+    if (this.isBattleActive && this.heroStats.hpRecovery && this.heroStats.hpRecovery > 0) {
+      this.regenAccumulator += dt;
+      if (this.regenAccumulator >= 1.0) {
+        this.regenAccumulator -= 1.0;
+        const regenAmount = this.heroStats.hpRecovery;
+        if (this.allyEntities[0] && this.allyEntities[0].currentHp > 0) {
+          const ally = this.allyEntities[0];
+          const newHp = Math.min(ally.maxHp, ally.currentHp + regenAmount);
+          const diff = newHp - ally.currentHp;
+          if (diff > 0) {
+            ally.currentHp = newHp;
+            this.heroCurrentHp = newHp;
+            const regenText = new DamageText(`+${diff}`, ally.entity.x, ally.entity.y - 15, false, 0x10b981);
+            this.effectLayer.addChild(regenText);
+            this.damageTexts.push(regenText);
+          }
+        }
+      }
+    }
+
+    // Scroll backgrounds if transitioning
+    if (this.isTransitioning && this.backgroundSprite1 && this.backgroundSprite2) {
+      const scrollSpeed = 350 * dt; // 350 pixels per second
+      this.backgroundSprite1.x -= scrollSpeed;
+      this.backgroundSprite2.x -= scrollSpeed;
+
+      const bgWidth = this.backgroundSprite1.width;
+
+      if (this.backgroundSprite1.x + bgWidth <= 0) {
+        this.backgroundSprite1.x = this.backgroundSprite2.x + bgWidth;
+      }
+      if (this.backgroundSprite2.x + bgWidth <= 0) {
+        this.backgroundSprite2.x = this.backgroundSprite1.x + bgWidth;
+      }
+
+      // Tick transition timer down
+      this.transitionTimer -= dt;
+      if (this.transitionTimer <= 0) {
+        this.isTransitioning = false;
+        if (this.heroEntity) {
+          this.heroEntity.setRunning(false);
+        }
+        this.allyEntities.forEach(a => a.entity.setRunning(false));
+      }
+    }
+
+    // Tick Loot particles
+    for (let i = this.lootParticles.length - 1; i >= 0; i--) {
+      const particle = this.lootParticles[i];
+      const done = particle.update(dt * 60);
+      if (done) {
+        this.effectLayer.removeChild(particle);
+        this.lootParticles.splice(i, 1);
+        particle.destroy();
+      }
+    }
 
     // Corrupted HP drain (0.5% max HP per second per corrupted item)
     if (this.isBattleActive && this.equippedItems.length > 0) {
@@ -725,6 +1076,17 @@ export class GameEngine {
         this.effectLayer.removeChild(text);
         this.damageTexts.splice(i, 1);
         text.destroy();
+      }
+    }
+
+    // Update system announcements
+    for (let i = this.announcements.length - 1; i >= 0; i--) {
+      const ann = this.announcements[i];
+      ann.update(dt * 60);
+      if (ann.isDead()) {
+        this.effectLayer.removeChild(ann);
+        this.announcements.splice(i, 1);
+        ann.destroy();
       }
     }
 
@@ -1128,34 +1490,45 @@ export class GameEngine {
     }
 
     // Check monster deaths & animate
-    const anyMonsterDied = this.activeMonsters.some(m => m.currentHp <= 0 && m.entity.visible);
-    if (anyMonsterDied) {
-      this.activeMonsters.forEach(m => {
-        if (m.currentHp <= 0 && m.entity.visible) {
-          // Explosive affix check
-          if (m.template.affixes?.includes('explosive') && this.allyEntities[0] && this.allyEntities[0].currentHp > 0) {
-            const explosionDmg = Math.round(m.maxHp * 0.15);
-            this.allyEntities[0].currentHp = Math.max(0, this.allyEntities[0].currentHp - explosionDmg);
-            this.allyEntities[0].entity.takeDamage(explosionDmg);
+    this.activeMonsters.forEach(m => {
+      if (m.currentHp <= 0 && !m.deathTriggered) {
+        m.deathTriggered = true;
 
-            const dmgText = new DamageText(`💥 ${explosionDmg}`, this.allyEntities[0].entity.x, this.allyEntities[0].entity.y - 15, true);
-            this.effectLayer.addChild(dmgText);
-            this.damageTexts.push(dmgText);
+        // Spawn Loot particles
+        this.spawnLootParticles(m.entity.x, m.entity.y, m.goldReward || 0, m.itemsDropped || []);
 
-            this.onEvent({
-              type: 'LOG_MESSAGE',
-              text: `💥 [Explosive] ${m.template.name} explodes on death, dealing ${explosionDmg} fire damage to Hero!`,
-              category: 'combat'
-            });
-          }
+        // Accumulate wave rewards
+        this.accumulatedExp += m.template.expReward;
+        this.accumulatedGold += m.goldReward || 0;
+        this.accumulatedDiamonds += m.diamondReward || 0;
+        this.accumulatedItems.push(...(m.itemsDropped || []));
 
-          // Play death and hide
-          m.entity.playDeathAnimation(() => {
-            m.entity.visible = false;
+        // Explosive affix check
+        if (m.template.affixes?.includes('explosive') && this.allyEntities[0] && this.allyEntities[0].currentHp > 0) {
+          const explosionDmg = Math.round(m.maxHp * 0.15);
+          this.allyEntities[0].currentHp = Math.max(0, this.allyEntities[0].currentHp - explosionDmg);
+          this.allyEntities[0].entity.takeDamage(explosionDmg);
+
+          const dmgText = new DamageText(`💥 ${explosionDmg}`, this.allyEntities[0].entity.x, this.allyEntities[0].entity.y - 15, true);
+          this.effectLayer.addChild(dmgText);
+          this.damageTexts.push(dmgText);
+
+          this.onEvent({
+            type: 'LOG_MESSAGE',
+            text: `💥 [Explosive] ${m.template.name} explodes on death, dealing ${explosionDmg} fire damage to Hero!`,
+            category: 'combat'
           });
         }
-      });
 
+        // Play death and hide
+        m.entity.playDeathAnimation(() => {
+          m.entity.visible = false;
+        });
+      }
+    });
+
+    const anyMonsterDied = this.activeMonsters.some(m => m.currentHp <= 0 && m.entity.visible);
+    if (anyMonsterDied) {
       // Check if hero died from explosion before continuing
       const heroAlive = this.allyEntities.some(a => a.currentHp > 0);
       if (!heroAlive) {
@@ -1503,29 +1876,10 @@ export class GameEngine {
       return;
     }
 
-    let totalExp = 0;
-    let totalGold = 0;
-    let totalDiamonds = 0;
-    let itemsDropped: any[] = [];
-
-    this.activeMonsters.forEach(m => {
-      totalExp += m.template.expReward;
-      const goldMin = m.template.goldRewardRange[0];
-      const goldMax = m.template.goldRewardRange[1];
-      totalGold += Math.floor(Math.random() * (goldMax - goldMin + 1)) + goldMin;
-      totalDiamonds += Math.random() < 0.1 ? Math.floor(Math.random() * 3) + 1 : 0;
-
-      // Drop roll
-      if (Math.random() < m.template.dropChance && m.template.dropPool.length > 0) {
-        const rolledId = m.template.dropPool[Math.floor(Math.random() * m.template.dropPool.length)];
-        const template = DEFAULT_ITEM_TEMPLATES.find(t => t.id === rolledId);
-        if (template) {
-          const itemLvl = Math.max(1, Math.floor(this.currentStage / 8));
-          const newItem = createItemInstance(template, itemLvl);
-          itemsDropped.push(newItem);
-        }
-      }
-    });
+    let totalExp = this.accumulatedExp;
+    let totalGold = this.accumulatedGold;
+    let totalDiamonds = this.accumulatedDiamonds;
+    let itemsDropped = this.accumulatedItems;
 
     if (this.battleMode === 'guild_boss') {
       // Double rewards for guild boss!
@@ -1565,7 +1919,13 @@ export class GameEngine {
       });
     }
 
-    this.respawnTimer = 1.2;
+    // Trigger transition state: hero plays running bounce while background scrolls
+    this.isTransitioning = true;
+    this.transitionTimer = 1.2;
+    if (this.heroEntity) {
+      this.heroEntity.setRunning(true);
+    }
+    this.allyEntities.forEach(a => a.entity.setRunning(true));
   }
 
   private handleHeroDefeated() {
@@ -1629,7 +1989,7 @@ export class GameEngine {
 
     // No stage penalty: always revive on the same stage, return to Wave 1
     if (this.monsterTemplate) {
-      this.startBattle(this.monsterTemplate);
+      this.startBattle(this.monsterTemplate, 1);
     }
 
     this.isBattleActive = true;
@@ -1642,14 +2002,52 @@ export class GameEngine {
     }
   }
 
+  private spawnLootParticles(startX: number, startY: number, goldAmount: number, items: any[]) {
+    // Spawn 6 coins normally
+    const coinCount = Math.min(8, Math.max(3, Math.floor(goldAmount / 8) || 3));
+    for (let i = 0; i < coinCount; i++) {
+      const coin = new LootParticle(startX, startY, true);
+      this.effectLayer.addChild(coin);
+      this.lootParticles.push(coin);
+    }
+
+    // Spawn items if any
+    items.forEach(item => {
+      let color = 0xcbd5e1; // common
+      if (item.rarity === 'uncommon') color = 0x10b981;
+      else if (item.rarity === 'rare') color = 0x3b82f6;
+      else if (item.rarity === 'epic') color = 0xa855f7;
+      else if (item.rarity === 'legendary') color = 0xf59e0b;
+
+      const itemOrb = new LootParticle(startX, startY, false, color);
+      this.effectLayer.addChild(itemOrb);
+      this.lootParticles.push(itemOrb);
+    });
+  }
+
   public destroy() {
     this.isDestroyed = true;
     window.removeEventListener('resize', this.handleResize);
+
+    if (this.resizeObserver && this.container) {
+      this.resizeObserver.unobserve(this.container);
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
 
     if (this.respawnTimeout) {
       clearTimeout(this.respawnTimeout);
       this.respawnTimeout = null;
     }
+
+    // Cleanup loot particles
+    this.lootParticles.forEach(p => {
+      try {
+        this.effectLayer.removeChild(p);
+        p.destroy();
+      } catch (e) {}
+    });
+    this.lootParticles = [];
 
     // Destroy Pixi app safely
     if (this.app) {

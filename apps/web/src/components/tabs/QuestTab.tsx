@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { useTranslation, getTranslatedQuestTitle, getTranslatedQuestDesc } from '../../utils/i18n';
+import { GAME_ICONS } from '@idle-rpg/shared';
 
 export const QuestTab: React.FC = () => {
   const { saveData, claimQuestReward } = useGameStore();
@@ -78,16 +79,16 @@ export const QuestTab: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-900/60  overflow-hidden">
       {/* Title */}
-      <div className="flex justify-between items-center mb-4 border-b border-slate-850 pb-2 flex-wrap gap-2">
+      {/* <div className="flex justify-between items-center mb-4 border-b border-slate-850 pb-2 flex-wrap gap-2">
         <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
           {t('active_bounties')}
         </h3>
         <span className="text-xs font-semibold px-2.5 py-1 bg-slate-950/80 border border-slate-800 rounded-lg text-slate-400">
           {language === 'vi' ? 'Chưa nhận' : 'Unclaimed'}: {quests.filter(q => !q.claimed).length}
         </span>
-      </div>
+      </div> */}
 
       {/* Tabs */}
       <div className="flex gap-1 overflow-x-auto scrollbar-none mb-4 pb-1 border-b border-slate-850/40">
@@ -101,8 +102,8 @@ export const QuestTab: React.FC = () => {
             key={tab.value}
             onClick={() => setActiveSubTab(tab.value)}
             className={`px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider rounded-lg transition whitespace-nowrap cursor-pointer border ${activeSubTab === tab.value
-                ? 'bg-indigo-600/15 border-indigo-500/30 text-indigo-300 shadow shadow-indigo-600/5'
-                : 'bg-slate-950/20 border-slate-850/60 hover:bg-slate-900/40 text-slate-450 hover:text-slate-300'
+              ? 'bg-indigo-600/15 border-indigo-500/30 text-indigo-300 shadow shadow-indigo-600/5'
+              : 'bg-slate-950/20 border-slate-850/60 hover:bg-slate-900/40 text-slate-450 hover:text-slate-300'
               }`}
           >
             {language === 'vi' ? tab.vi : tab.en}
@@ -142,10 +143,10 @@ export const QuestTab: React.FC = () => {
                 <div
                   key={quest.id}
                   className={`border rounded-xl p-4 transition-all flex flex-col sm:flex-row justify-between sm:items-center gap-4 ${quest.claimed
-                      ? 'border-slate-950 bg-slate-950/20 opacity-60'
-                      : quest.completed
-                        ? 'border-emerald-500/30 bg-emerald-500/5 shadow-md shadow-emerald-500/5'
-                        : 'border-slate-800 bg-slate-950/40'
+                    ? 'border-slate-950 bg-slate-950/20 opacity-60'
+                    : quest.completed
+                      ? 'border-emerald-500/30 bg-emerald-500/5 shadow-md shadow-emerald-500/5'
+                      : 'border-slate-800 bg-slate-950/40'
                     }`}
                 >
                   {/* Details */}
@@ -170,8 +171,8 @@ export const QuestTab: React.FC = () => {
                       <div className="text-[9.5px] text-slate-500 font-bold flex items-center gap-1.5 mt-1 select-none">
                         <span>✔️</span>
                         <span>
-                          {language === 'vi' 
-                            ? `Đã nhận quà: ${formatTimestamp(quest.claimedAt)}` 
+                          {language === 'vi'
+                            ? `Đã nhận quà: ${formatTimestamp(quest.claimedAt)}`
                             : `Claimed: ${formatTimestamp(quest.claimedAt)}`}
                         </span>
                       </div>
@@ -179,8 +180,8 @@ export const QuestTab: React.FC = () => {
                       <div className="text-[9.5px] text-emerald-400/90 font-bold flex items-center gap-1.5 mt-1 select-none">
                         <span>🎉</span>
                         <span>
-                          {language === 'vi' 
-                            ? `Hoàn thành: ${formatTimestamp(quest.completedAt)}` 
+                          {language === 'vi'
+                            ? `Hoàn thành: ${formatTimestamp(quest.completedAt)}`
                             : `Completed: ${formatTimestamp(quest.completedAt)}`}
                         </span>
                       </div>
@@ -217,10 +218,10 @@ export const QuestTab: React.FC = () => {
                     {!quest.claimed && (
                       <div className="flex gap-2">
                         <div className="bg-slate-900 border border-slate-850 rounded px-2 py-1 text-[10px] font-extrabold text-yellow-400 flex items-center gap-1">
-                          <span>💰</span> {quest.rewardGold}
+                          <span>{GAME_ICONS.GOLD}</span> {quest.rewardGold}
                         </div>
                         <div className="bg-slate-900 border border-slate-850 rounded px-2 py-1 text-[10px] font-extrabold text-blue-400 flex items-center gap-1">
-                          <span>💎</span> {quest.rewardDiamonds}
+                          <span>{GAME_ICONS.DIAMOND}</span> {quest.rewardDiamonds}
                         </div>
                       </div>
                     )}

@@ -10,7 +10,9 @@ import {
   DEFAULT_ITEM_TEMPLATES, 
   calculatePrestigePoints,
   generateMonsterForStage,
-  calculateDismantleRewards
+  calculateDismantleRewards,
+  calculateGoldUpgradeCost,
+  scaleStatsByQuality
 } from '@idle-rpg/shared';
 import { authService, dbService, UserSession, generateStarterSave } from '@idle-rpg/firebase';
 import { useLanguageStore } from './languageStore';
@@ -84,6 +86,7 @@ interface GameState {
   dismantleEquipment: (itemId: string) => void;
   dismantleMultipleEquipment: (itemIds: string[]) => void;
   buyShardUpgrade: (stat: 'attack' | 'magicAttack' | 'maxHp') => void;
+  buyGoldUpgrade: (stat: 'attack' | 'hp' | 'hpRecovery' | 'critDamage') => void;
   buyAetherChest: () => void;
   buyAetherDiamonds: () => void;
   claimQuestReward: (questId: string) => void;
@@ -599,7 +602,7 @@ export const useGameStore = create<GameState>((set, get) => {
         get().addLogMessage(tStore('log_level_up', { level: hero.level }), 'system');
         // Recalculate stats
         const equippedNow = newInventory.filter(i => i.equipped);
-        hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equippedNow, hero.heroClass, hero.shardUpgrades);
+        hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equippedNow, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
         hero.currentHp = hero.currentStats.maxHp;
         
         // Audit Level Up quests
@@ -640,15 +643,10 @@ export const useGameStore = create<GameState>((set, get) => {
       let nextWave = saveData.currentWave || 1;
 
       if (!isGuildBoss) {
-        const autoAdvance = saveData.autoAdvance !== false;
         if (nextWave < 19) {
           nextWave += 1;
         } else if (nextWave === 19) {
-          if (autoAdvance) {
-            nextWave = 20; // Stage Boss Wave
-          } else {
-            nextWave = 1; // Loop back to wave 1 of current stage in farming mode
-          }
+          nextWave = 20; // Stage Boss Wave reached automatically
         } else if (nextWave === 20) {
           // Stage Boss wave cleared -> Advance stage!
           nextStage = saveData.activeStage + 1;
@@ -663,7 +661,7 @@ export const useGameStore = create<GameState>((set, get) => {
         ...saveData,
         activeStage: nextStage,
         currentWave: nextWave,
-        autoAdvance: nextWave === 1 && nextStage !== saveData.activeStage ? true : saveData.autoAdvance,
+        autoAdvance: true,
         stagesCleared,
         hero,
         inventory: newInventory,
@@ -722,7 +720,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       const hero = updatedSave.hero;
       const monster = generateMonsterForStage(updatedSave.activeStage, hero.level, updatedSave.monsterResearch, 20);
-      engineInstance.startBattle(monster);
+      engineInstance.startBattle(monster, 20);
 
       get().addLogMessage(`⚔️ KHIÊU CHIẾN: Đang khiêu chiến Boss Ải ${updatedSave.activeStage}!`, 'system');
     },
@@ -733,7 +731,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       const hero = saveData.hero;
       const monster = generateMonsterForStage(saveData.activeStage, hero.level, saveData.monsterResearch, saveData.currentWave || 1);
-      engineInstance.startBattle(monster);
+      engineInstance.startBattle(monster, saveData.currentWave || 1);
     },
 
     upgradeEquipment: (itemId) => {
@@ -761,7 +759,8 @@ export const useGameStore = create<GameState>((set, get) => {
         // Deduct gold in state
         saveData.hero.gold = deductedGold;
 
-        const updatedStats = calculateItemStats(item.slot, item.rarity, nextLevel);
+        const standardStats = calculateItemStats(item.slot, item.rarity, nextLevel);
+        const updatedStats = scaleStatsByQuality(standardStats, item.quality || 100);
         const nextUpgradeCost = calculateUpgradeCost(item.slot, item.rarity, nextLevel);
 
         get().addLogMessage(tStore('log_upgraded_item', { name: item.name, level: nextLevel }), 'system');
@@ -777,7 +776,7 @@ export const useGameStore = create<GameState>((set, get) => {
       // Recalculate Hero stats in case item is equipped
       const equipped = inventory.filter(i => i.equipped);
       const hero = { ...saveData.hero };
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
       hero.currentHp = get().battleMode === 'guild_boss' ? hero.currentHp : Math.min(hero.currentStats.maxHp, get().heroHp);
 
       // Audit upgrade equipment quests
@@ -829,7 +828,7 @@ export const useGameStore = create<GameState>((set, get) => {
       // Recalculate stats
       const equipped = inventory.filter(i => i.equipped);
       const hero = { ...saveData.hero };
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
       hero.currentHp = hero.currentStats.maxHp; // Refill HP on equip change
 
       get().addLogMessage(tStore('log_equipped_item', { name: itemToEquip.name }), 'system');
@@ -858,7 +857,7 @@ export const useGameStore = create<GameState>((set, get) => {
       // Recalculate stats
       const equipped = inventory.filter(i => i.equipped);
       const hero = { ...saveData.hero };
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
       hero.currentHp = Math.min(hero.currentHp, hero.currentStats.maxHp);
 
       const item = saveData.inventory.find(i => i.id === itemId);
@@ -953,7 +952,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Recalculate stats
       const equipped = saveData.inventory.filter(i => i.equipped);
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
       hero.currentHp = hero.currentStats.maxHp; // Heal to full
 
       const statName = stat === 'attack' ? 'Công Vật Lý' : stat === 'magicAttack' ? 'Công Phép Thuật' : 'HP Tối Đa';
@@ -966,7 +965,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Update Pixi engine if running
       if (get().engineInstance) {
-        get().engineInstance.updateState(hero.level, hero.prestigePoints, equipped, saveData.activeStage, hero.heroClass, hero.name || 'Hero', useLanguageStore.getState().language, hero.shardUpgrades);
+        get().engineInstance.updateState(hero.level, hero.prestigePoints, equipped, saveData.activeStage, hero.heroClass, hero.name || 'Hero', useLanguageStore.getState().language, hero.shardUpgrades, hero.potions, hero.autoUsePotion, hero.autoBuyPotions, hero.gold, hero.goldUpgrades);
       }
 
       const updatedSave: GameSaveData = {
@@ -975,6 +974,84 @@ export const useGameStore = create<GameState>((set, get) => {
         lastSavedAt: Date.now()
       };
 
+      autoSave(updatedSave);
+    },
+
+    buyGoldUpgrade: (stat) => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      if (!hero.goldUpgrades) {
+        hero.goldUpgrades = { attack: 0, hp: 0, hpRecovery: 0, critDamage: 0 };
+      }
+
+      const currentLvl = hero.goldUpgrades[stat] || 0;
+
+      if (currentLvl >= hero.level) {
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? `❌ GIỚI HẠN CẤP ĐỘ: Cấp cường hóa không được vượt quá cấp anh hùng (Cấp ${hero.level})!`
+            : `❌ LEVEL LIMIT: Enhancement level cannot exceed hero level (Lv.${hero.level})!`,
+          'system'
+        );
+        return;
+      }
+
+      const cost = calculateGoldUpgradeCost(stat, currentLvl);
+
+      if (hero.gold < cost) {
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? `❌ KHÔNG ĐỦ VÀNG: Cần ${cost} Vàng để nâng cấp!`
+            : `❌ INSUFFICIENT GOLD: Need ${cost} Gold to upgrade!`,
+          'system'
+        );
+        return;
+      }
+
+      hero.gold -= cost;
+      hero.goldUpgrades[stat] = currentLvl + 1;
+
+      // Recalculate stats
+      const equipped = saveData.inventory.filter(i => i.equipped);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
+      hero.currentHp = Math.min(hero.currentStats.maxHp, get().heroHp); // don't exceed new max hp
+
+      const statName = stat === 'attack' ? 'Tấn Công' : stat === 'hp' ? 'HP' : stat === 'hpRecovery' ? 'Hồi Phục HP' : 'Sát Thương Chí Mạng';
+      get().addLogMessage(
+        useLanguageStore.getState().language === 'vi'
+          ? `🌟 NÂNG CẤP VÀNG: Nâng cấp thành công ${statName} lên Cấp ${currentLvl + 1}!`
+          : `🌟 GOLD UPGRADE: Upgraded ${stat} to Level ${currentLvl + 1}!`,
+        'system'
+      );
+
+      // Update Pixi engine if running
+      if (get().engineInstance) {
+        get().engineInstance.updateState(
+          hero.level,
+          hero.prestigePoints,
+          equipped,
+          saveData.activeStage,
+          hero.heroClass,
+          hero.name || 'Hero',
+          useLanguageStore.getState().language,
+          hero.shardUpgrades,
+          hero.potions,
+          hero.autoUsePotion,
+          hero.autoBuyPotions,
+          hero.gold,
+          hero.goldUpgrades
+        );
+      }
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        lastSavedAt: Date.now()
+      };
+
+      set({ saveData: updatedSave, heroHp: hero.currentHp });
       autoSave(updatedSave);
     },
 
@@ -1548,7 +1625,7 @@ export const useGameStore = create<GameState>((set, get) => {
       }));
 
       // Recalculate stats with prestige points, no items equipped
-      hero.currentStats = recalculateHeroStats(1, hero.prestigePoints, [], hero.heroClass, hero.shardUpgrades);
+      hero.currentStats = recalculateHeroStats(1, hero.prestigePoints, [], hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
       hero.currentHp = hero.currentStats.maxHp;
 
       // Reset Quests to starter set
@@ -1587,7 +1664,7 @@ export const useGameStore = create<GameState>((set, get) => {
       });
 
       const equipped = inventory.filter(i => i.equipped);
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, newClass, hero.shardUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, newClass, hero.shardUpgrades, hero.goldUpgrades);
       hero.currentHp = Math.min(hero.currentStats.maxHp, hero.currentHp);
 
       get().addLogMessage(
@@ -1725,7 +1802,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Recalculate stats
       const equipped = inventory.filter(i => i.equipped);
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
       hero.currentHp = Math.min(hero.currentHp, hero.currentStats.maxHp);
 
       const [type, tier] = gemKey.split('_');
@@ -1796,7 +1873,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Recalculate stats
       const equipped = inventory.filter(i => i.equipped);
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
       hero.currentHp = Math.min(hero.currentHp, hero.currentStats.maxHp);
 
       const [type, tier] = oldGem.split('_');
@@ -2363,14 +2440,12 @@ export const useGameStore = create<GameState>((set, get) => {
       // Restore health
       hero.currentHp = hero.currentStats.maxHp;
 
-      const wasBossDeath = saveData.currentWave === 20;
-
       const updatedSave: GameSaveData = {
         ...saveData,
         hero,
         activeStage: saveData.activeStage,
         currentWave: 1,
-        autoAdvance: wasBossDeath ? false : (saveData.autoAdvance !== false),
+        autoAdvance: true,
         lastSavedAt: Date.now()
       };
 

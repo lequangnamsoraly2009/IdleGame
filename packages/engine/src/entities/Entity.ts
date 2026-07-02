@@ -615,6 +615,21 @@ export class Entity extends Container {
     }
   }
 
+  public isRunning: boolean = false;
+
+  public setRunning(running: boolean) {
+    this.isRunning = running;
+    if (!running) {
+      this.body.y = 0;
+      this.rotation = 0;
+    }
+  }
+
+  public setTargetPosition(x: number, y: number) {
+    this.targetX = x;
+    this.targetY = y;
+  }
+
   public setBasePosition(x: number, y: number) {
     this.x = x;
     this.y = y;
@@ -645,6 +660,12 @@ export class Entity extends Container {
     // Breathing glow animation for full rage
     if (this.currentRage >= 100) {
       this.drawRageBar(this.currentRage);
+    }
+
+    // Running bobbing & tilt micro-animations
+    if (this.isRunning) {
+      this.body.y = Math.abs(Math.sin(Date.now() * 0.015)) * -8;
+      this.rotation = 0.06 * Math.sin(Date.now() * 0.015);
     }
   }
 

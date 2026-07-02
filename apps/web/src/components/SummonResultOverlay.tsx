@@ -260,7 +260,7 @@ export const SummonResultOverlay: React.FC = () => {
                   className={`aspect-square rounded-xl border p-2 flex flex-col items-center justify-center relative overflow-hidden select-none hover:scale-105 transition ${border} ${glow}`}
                 >
                   <ItemGraphic templateId={item.templateId} className="w-10 h-10 pointer-events-none z-10" />
-                  <span className="absolute bottom-1 right-1 text-[7px] font-mono font-bold text-slate-500">
+                  <span className="absolute bottom-1 right-1 text-[7px] font-mono font-bold text-slate-500 z-20">
                     +{item.level}
                   </span>
                 </div>

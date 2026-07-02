@@ -31,49 +31,14 @@ export const PixiGame: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
-  const battleMode = useGameStore(state => state.battleMode);
-  
-  const activeStage = useGameStore(state => state.saveData?.activeStage || 1);
-  const activeDungeonId = useGameStore(state => state.activeDungeonId);
-  const { isDead, reviveCostGold, reviveCostDiamonds, reviveHero, saveData } = useGameStore();
-
-  const getDungeonBackgroundUrl = (dungeonId: string | null) => {
-    if (!dungeonId) return '/dungeon_ruins.png';
-    if (dungeonId.startsWith('gem')) return '/dungeon_cave.png';
-    if (dungeonId.startsWith('gold')) return '/dungeon_vault.png';
-    if (dungeonId.startsWith('diamond')) return '/dungeon_sky.png';
-    if (dungeonId.startsWith('gear')) return '/dungeon_ruins.png';
-    return '/dungeon_ruins.png';
-  };
-
-  const getBackgroundUrl = (stage: number) => {
-    const blockIndex = Math.floor((stage - 1) / 5);
-    const cycle = blockIndex % 6;
-    
-    switch (cycle) {
-      case 0:
-        return '/battle_forest.png';  // Block 1: Stages 1-5 (Forest)
-      case 1:
-        return '/battle_cave.png';    // Block 2: Stages 6-10 (Crystal Cave)
-      case 2:
-        return '/battle_garden.png';  // Block 3: Stages 11-15 (Mythical Garden)
-      case 3:
-        return '/battle_volcano.png'; // Block 4: Stages 16-20 (Volcano Lava)
-      case 4:
-        return '/battle_sky.png';     // Block 5: Stages 21-25 (Sky Castle)
-      case 5:
-        return '/battle_ruins.png';   // Block 6: Stages 26-30 (Dark Ruins)
-      default:
-        return '/battle_forest.png';
-    }
-  };
+  const { isDead, reviveHero, saveData } = useGameStore();
 
   const { t } = useTranslation();
-  const [reviveCountdown, setReviveCountdown] = useState(30);
+  const [reviveCountdown, setReviveCountdown] = useState(3);
 
   useEffect(() => {
     if (!isDead) return;
-    setReviveCountdown(30);
+    setReviveCountdown(3);
     const timer = setInterval(() => {
       setReviveCountdown(prev => {
         if (prev <= 1) {
@@ -162,13 +127,14 @@ export const PixiGame: React.FC = () => {
             hero.potions,
             hero.autoUsePotion,
             hero.autoBuyPotions,
-            hero.gold
+            hero.gold,
+            hero.goldUpgrades
           );
         }
         
         // Generate monster for stage and boot combat
         const monster = generateMonsterForStage(activeStage, hero?.level || 1, state.saveData.monsterResearch, state.saveData.currentWave || 1);
-        engine.startBattle(monster);
+        engine.startBattle(monster, state.saveData.currentWave || 1);
       }
     }).catch((err) => {
       console.error("PixiJS Engine initialization failed:", err);
@@ -188,6 +154,8 @@ export const PixiGame: React.FC = () => {
        .map(i => `${i.id}_${i.level}`)
        .join(',');
      let lastEquippedIds = lastEquippedIdsVal;
+     let lastGoldUpgrades = JSON.stringify(initialStoreState.saveData?.hero?.goldUpgrades || {});
+     let lastShardUpgrades = JSON.stringify(initialStoreState.saveData?.hero?.shardUpgrades || {});
 
      // Subscribe to Zustand store modifications
      const unsubscribe = useGameStore.subscribe((state) => {
@@ -199,6 +167,9 @@ export const PixiGame: React.FC = () => {
            .map(i => `${i.id}_${i.level}`)
            .join(',');
 
+         const currentGoldUpgrades = JSON.stringify(state.saveData.hero?.goldUpgrades || {});
+         const currentShardUpgrades = JSON.stringify(state.saveData.hero?.shardUpgrades || {});
+
          const equippedChanged = currentEquippedIds !== lastEquippedIds;
          const levelChanged = state.saveData.hero?.level !== lastLevel;
          const prestigeChanged = state.saveData.hero?.prestigePoints !== lastPrestige;
@@ -206,8 +177,10 @@ export const PixiGame: React.FC = () => {
          const classChanged = state.saveData.hero?.heroClass !== lastClass;
          const nameChanged = state.saveData.hero?.name !== lastName;
          const battleModeChanged = state.battleMode !== lastBattleMode;
+         const goldUpgradesChanged = currentGoldUpgrades !== lastGoldUpgrades;
+         const shardUpgradesChanged = currentShardUpgrades !== lastShardUpgrades;
 
-         if (equippedChanged || levelChanged || prestigeChanged || stageChanged || classChanged || nameChanged || battleModeChanged) {
+         if (equippedChanged || levelChanged || prestigeChanged || stageChanged || classChanged || nameChanged || battleModeChanged || goldUpgradesChanged || shardUpgradesChanged) {
            const hero = state.saveData.hero;
            const activeStage = state.saveData.activeStage;
            const equipped = state.saveData.inventory?.filter(i => i?.equipped) || [];
@@ -221,6 +194,8 @@ export const PixiGame: React.FC = () => {
            }
            lastStage = activeStage;
            lastEquippedIds = currentEquippedIds;
+           lastGoldUpgrades = currentGoldUpgrades;
+           lastShardUpgrades = currentShardUpgrades;
            lastBattleMode = state.battleMode;
 
           if (battleModeChanged) {
@@ -293,13 +268,14 @@ export const PixiGame: React.FC = () => {
                 hero.potions,
                 hero.autoUsePotion,
                 hero.autoBuyPotions,
-                hero.gold
+                hero.gold,
+                hero.goldUpgrades
               );
             }
 
             if ((stageChanged || levelChanged) && state.battleMode === 'stage') {
               const monster = generateMonsterForStage(activeStage, hero?.level || 1, state.saveData.monsterResearch, state.saveData.currentWave || 1);
-              engine.startBattle(monster);
+              engine.startBattle(monster, state.saveData.currentWave || 1);
             }
           }
         }
@@ -324,7 +300,10 @@ export const PixiGame: React.FC = () => {
           langState.language,
           hero.shardUpgrades,
           hero.potions,
-          hero.autoUsePotion
+          hero.autoUsePotion,
+          hero.autoBuyPotions,
+          hero.gold,
+          hero.goldUpgrades
         );
       }
     });
@@ -341,12 +320,7 @@ export const PixiGame: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full h-full relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/90 shadow-inner flex items-center justify-center">
-      {/* Dynamic Environment Background Image */}
-      <div 
-        className="absolute inset-0 w-full h-full bg-cover bg-bottom transition-all duration-700 ease-in-out opacity-55 pointer-events-none"
-        style={{ backgroundImage: `url(${battleMode === 'dungeon' ? getDungeonBackgroundUrl(activeDungeonId) : getBackgroundUrl(activeStage)})` }}
-      />
+    <div className="w-full h-full relative overflow-hidden bg-slate-950 flex items-center justify-center">
       {/* Dark overlay for contrast */}
       <div className="absolute inset-0 bg-slate-950/20 pointer-events-none" />
 
@@ -384,64 +358,14 @@ export const PixiGame: React.FC = () => {
             {t('revive_title')}
           </h3>
           <p className="text-[10px] sm:text-xs text-slate-400 max-w-sm mb-4 sm:mb-5 px-4 leading-normal">
-            {t('revive_subtitle')}
+            {useLanguageStore.getState().language === 'vi' 
+              ? 'Anh hùng ngã xuống! Đang hồi sinh về Wave 1 để tiếp tục rèn luyện chỉ số...' 
+              : 'Hero defeated! Reviving at Wave 1 to continue training stats...'}
           </p>
 
-          {/* Options deck */}
-          <div className="flex flex-col gap-2 w-full max-w-[280px] sm:max-w-[310px] px-2">
-            
-            {/* OPTION 1: Revive with Gold */}
-            <button
-              onClick={() => reviveHero('gold')}
-              disabled={saveData.hero.gold < reviveCostGold}
-              className="group relative flex flex-col items-center justify-center bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-450 hover:to-yellow-400 disabled:from-slate-800 disabled:to-slate-800 text-slate-950 disabled:text-slate-500 font-black py-1.5 px-3 sm:py-2 sm:px-4 rounded-xl shadow-lg hover:shadow-yellow-500/10 active:scale-[0.98] transition cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-            >
-              <div className="flex items-center gap-1.5 text-xs sm:text-sm">
-                <span>💰</span>
-                <span>{t('revive_gold')}</span>
-              </div>
-              <div className="text-[9px] font-bold opacity-80 mt-0.5">
-                {reviveCostGold.toLocaleString()} G
-              </div>
-            </button>
-
-            {/* OPTION 2: Revive with Diamonds */}
-            <button
-              onClick={() => reviveHero('diamonds')}
-              disabled={saveData.hero.diamonds < reviveCostDiamonds}
-              className="group relative flex flex-col items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-800 disabled:to-slate-800 text-white disabled:text-slate-500 font-bold py-1.5 px-3 sm:py-2 sm:px-4 rounded-xl shadow-lg hover:shadow-blue-500/10 active:scale-[0.98] transition cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-            >
-              <div className="flex items-center gap-1.5 text-xs sm:text-sm">
-                <span>💎</span>
-                <span>{t('revive_diamonds')}</span>
-              </div>
-              <div className="text-[9px] font-medium opacity-95 mt-0.5">
-                {reviveCostDiamonds} 💎
-              </div>
-            </button>
-
-            {/* divider line */}
-            <div className="flex items-center my-0.5">
-              <div className="flex-1 h-[1px] bg-slate-900" />
-              <span className="px-3 text-[9px] text-slate-600 uppercase tracking-widest font-mono">or</span>
-              <div className="flex-1 h-[1px] bg-slate-900" />
-            </div>
-
-            {/* OPTION 3: Free revive immediately */}
-            <button
-              onClick={() => reviveHero('time')}
-              className="flex flex-col items-center justify-center border border-slate-800 bg-slate-900/60 hover:bg-slate-850 hover:border-slate-700 text-slate-300 font-bold py-2.5 px-3 sm:px-4 rounded-xl active:scale-[0.98] transition cursor-pointer"
-            >
-              <div className="text-xs">
-                {t('revive_time')}
-              </div>
-            </button>
-
-          </div>
-
           {/* Countdown display */}
-          <div className="mt-4 text-[10px] sm:text-xs text-rose-400 font-bold font-mono tracking-wide bg-rose-950/20 border border-rose-900/30 px-3.5 py-1.5 rounded-full shadow-inner animate-pulse">
-            ⏳ {t('revive_countdown', { seconds: reviveCountdown })}
+          <div className="mt-2 text-[10.5px] sm:text-xs text-rose-455 font-bold font-mono tracking-wide bg-rose-950/35 border border-rose-900/40 px-4 py-2 rounded-full shadow-inner animate-pulse">
+            ⏳ {useLanguageStore.getState().language === 'vi' ? `Tự động hồi sinh sau ${reviveCountdown} giây...` : `Auto-reviving in ${reviveCountdown}s...`}
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../stores/gameStore';
 import { dbService } from '@idle-rpg/firebase';
-import { QuestTemplate, QuestType, QuestTargetType } from '@idle-rpg/shared';
+import { QuestTemplate, QuestType, QuestTargetType, GAME_ICONS } from '@idle-rpg/shared';
 import { useTranslation } from '../utils/i18n';
 
 interface AdminPageProps {
@@ -647,10 +647,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
                         <td className="px-4 py-4 space-y-1">
                           <div className="flex gap-1.5">
                             <span className="bg-slate-950 border border-slate-900 rounded px-1.5 py-0.5 text-[9px] font-bold text-yellow-400 flex items-center gap-0.5">
-                              💰 {q.rewardGold}
+                              {GAME_ICONS.GOLD} {q.rewardGold}
                             </span>
                             <span className="bg-slate-950 border border-slate-900 rounded px-1.5 py-0.5 text-[9px] font-bold text-blue-400 flex items-center gap-0.5">
-                              💎 {q.rewardDiamonds}
+                              {GAME_ICONS.DIAMOND} {q.rewardDiamonds}
                             </span>
                           </div>
                         </td>

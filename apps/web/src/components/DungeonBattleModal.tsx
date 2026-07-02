@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../stores/gameStore';
 import { useLanguageStore } from '../stores/languageStore';
+import { GAME_ICONS } from '@idle-rpg/shared';
 import { ItemGraphic } from './ItemGraphic';
 import { GemGraphic } from './GemGraphic';
 import { useTranslation, getTranslatedItemName } from '../utils/i18n';
@@ -106,7 +107,7 @@ export const DungeonBattleModal: React.FC = () => {
                 {/* Gold */}
                 {dungeonRewardGold && (
                   <span className="bg-slate-950 border border-slate-900 rounded-xl px-3 py-1.5 text-xs font-black text-white flex items-center gap-2 shadow">
-                    <span className="text-sm">💰</span>
+                    <span className="text-sm">{GAME_ICONS.GOLD}</span>
                     <span>+{dungeonRewardGold.toLocaleString()} Vàng</span>
                   </span>
                 )}
@@ -114,7 +115,7 @@ export const DungeonBattleModal: React.FC = () => {
                 {/* Diamonds */}
                 {dungeonRewardDiamonds && (
                   <span className="bg-slate-950 border border-slate-900 rounded-xl px-3 py-1.5 text-xs font-black text-white flex items-center gap-2 shadow">
-                    <span className="text-sm">💎</span>
+                    <span className="text-sm">{GAME_ICONS.DIAMOND}</span>
                     <span>+{dungeonRewardDiamonds.toLocaleString()} Kim Cương</span>
                   </span>
                 )}

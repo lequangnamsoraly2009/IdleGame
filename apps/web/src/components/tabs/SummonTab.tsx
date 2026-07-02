@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { useTranslation, getTranslatedItemName } from '../../utils/i18n';
+import { GAME_ICONS } from '@idle-rpg/shared';
 import { ItemGraphic } from '../ItemGraphic';
 
 interface PullResult {
   templateId: string;
   name: string;
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-  slot: 'weapon' | 'armor' | 'helmet' | 'boots' | 'ring';
+  slot: 'weapon' | 'armor' | 'helmet' | 'boots' | 'ring' | 'gloves';
+  allowedClass?: 'knight' | 'mage' | 'assassin';
 }
 
 export const SummonTab: React.FC = () => {
@@ -22,7 +24,8 @@ export const SummonTab: React.FC = () => {
         templateId: item.templateId,
         name: item.name,
         rarity: item.rarity,
-        slot: item.slot
+        slot: item.slot,
+        allowedClass: item.allowedClass
       })));
     }
   }, [activeSummonResult]);
@@ -103,15 +106,15 @@ export const SummonTab: React.FC = () => {
           text: 'text-amber-500 font-extrabold neon-text-gold',
           extraElements: (
             <>
-              <div 
-                className="absolute w-[180%] h-[180%] bg-[conic-gradient(from_0deg,transparent_10%,#f59e0b_45%,#fbbf24_55%,transparent_90%)] animate-spin pointer-events-none rounded-full" 
+              <div
+                className="absolute w-[180%] h-[180%] bg-[conic-gradient(from_0deg,transparent_10%,#f59e0b_45%,#fbbf24_55%,transparent_90%)] animate-spin pointer-events-none rounded-full"
                 style={{ animationDuration: '2.5s' }}
               />
               <div className="absolute inset-[1px] bg-slate-950 rounded-[11px] pointer-events-none" />
-              
+
               <div className="absolute inset-0.5 bg-gradient-to-br from-amber-500/15 to-orange-600/10 rounded-[10px] pointer-events-none" />
               <div className="absolute w-8 h-8 rounded-full bg-amber-500/15 blur-sm animate-pulse pointer-events-none" />
-              
+
               <div className="absolute top-0.5 left-0.5 text-[6px] animate-pulse text-amber-300 pointer-events-none">✨</div>
               <div className="absolute bottom-0.5 right-1 text-[6px] animate-pulse text-amber-300 pointer-events-none" style={{ animationDelay: '0.6s' }}>✨</div>
             </>
@@ -162,7 +165,7 @@ export const SummonTab: React.FC = () => {
             className="flex-1 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-700 text-white text-xs font-extrabold py-3 px-3 rounded-xl transition active:scale-[0.98] disabled:opacity-40 cursor-pointer"
           >
             <span className="block">{inventory.length >= 50 ? 'Hành lý đầy' : t('summon_x1')}</span>
-            <span className="text-[10px] text-blue-400 font-bold">10 💎</span>
+            <span className="text-[10px] text-blue-400 font-bold">10 {GAME_ICONS.DIAMOND}</span>
           </button>
 
           {/* Summon x10 */}
@@ -172,7 +175,7 @@ export const SummonTab: React.FC = () => {
             className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-extrabold py-3 px-3 rounded-xl border border-indigo-400/20 active:scale-[0.98] shadow shadow-indigo-500/10 transition disabled:opacity-40 cursor-pointer"
           >
             <span className="block">{(50 - inventory.length) < 10 ? 'Yêu cầu 10 ô trống' : t('summon_x10')}</span>
-            <span className="text-[10px] text-yellow-300 font-bold">90 💎 <span className="text-[9px] text-yellow-400 line-through">100</span></span>
+            <span className="text-[10px] text-yellow-300 font-bold">90 {GAME_ICONS.DIAMOND} <span className="text-[9px] text-yellow-400 line-through">100</span></span>
           </button>
         </div>
       </div>
@@ -183,7 +186,7 @@ export const SummonTab: React.FC = () => {
           <h4 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-3.5 flex items-center gap-1.5 font-display">
             🎁 {t('summon_results')}
           </h4>
-          
+
           {recentPulls.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[230px] overflow-y-auto pr-1 py-1">
               {recentPulls.map((pull, idx) => {
@@ -199,6 +202,11 @@ export const SummonTab: React.FC = () => {
                     {ui.extraElements}
 
                     {/* Item Graphic Illustration */}
+                    {pull.allowedClass && (
+                      <span className="absolute top-0.5 right-0.5 text-[8px] pointer-events-none z-20 select-none">
+                        {pull.allowedClass === 'knight' ? '🛡️' : pull.allowedClass === 'mage' ? '🔮' : '🗡️'}
+                      </span>
+                    )}
                     <ItemGraphic templateId={pull.templateId} className="w-11 h-11 mb-1 relative z-10" />
 
                     {/* Name Badge */}

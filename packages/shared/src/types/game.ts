@@ -1,6 +1,6 @@
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
-export type EquipmentSlot = 'weapon' | 'armor' | 'helmet' | 'boots' | 'ring';
+export type EquipmentSlot = 'weapon' | 'armor' | 'helmet' | 'boots' | 'ring' | 'gloves';
 
 export interface BaseStats {
   maxHp: number;
@@ -15,6 +15,7 @@ export interface BaseStats {
   block?: number;      // block rate fraction (0 to 1)
   magicAttack?: number; // magic attack power
   magicResist?: number; // magic resistance
+  hpRecovery?: number; // health regeneration per second
 }
 
 export interface ItemAffix {
@@ -42,6 +43,7 @@ export interface EquipmentItem {
   slot: EquipmentSlot;
   rarity: ItemRarity;
   stats: BaseStats;
+  quality?: number; // quality rating multiplier (e.g. 80 to 160)
   level: number;
   upgradeCost: number;
   equipped: boolean;
@@ -81,6 +83,12 @@ export interface HeroState {
   autoBuyPotions?: boolean;
   gems?: Record<string, number>;
   dungeonTickets?: number;
+  goldUpgrades?: {
+    attack?: number;
+    hp?: number;
+    hpRecovery?: number;
+    critDamage?: number;
+  };
 }
 
 export type DamageType = 'physical' | 'fire' | 'ice' | 'poison' | 'holy' | 'dark';

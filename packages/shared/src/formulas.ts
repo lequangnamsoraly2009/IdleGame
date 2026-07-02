@@ -31,7 +31,8 @@ export function calculateUpgradeCost(slot: EquipmentSlot, rarity: ItemRarity, cu
     armor: 1.0,
     helmet: 0.9,
     boots: 0.8,
-    ring: 1.5
+    ring: 1.5,
+    gloves: 1.1
   }[slot];
 
   return Math.floor(50 * slotMultiplier * rarityMultiplier * Math.pow(1.22, currentLevel - 1));
@@ -58,7 +59,7 @@ export function calculateItemStats(slot: EquipmentSlot, rarity: ItemRarity, leve
     defense: 0,
     speed: 0,
     critRate: 0,
-    critDamage: 1.5
+    critDamage: 0
   };
 
   switch (slot) {
@@ -67,21 +68,26 @@ export function calculateItemStats(slot: EquipmentSlot, rarity: ItemRarity, leve
       base.critRate = 0.05;
       break;
     case 'armor':
-      base.maxHp = Math.round(80 * mult);
-      base.defense = Math.round(8 * mult);
+      base.maxHp = Math.round(25 * mult);
+      base.defense = Math.round(10 * mult);
       break;
     case 'helmet':
-      base.maxHp = Math.round(45 * mult);
-      base.defense = Math.round(4 * mult);
+      base.maxHp = Math.round(15 * mult);
+      base.defense = Math.round(5 * mult);
       break;
     case 'boots':
-      base.maxHp = Math.round(35 * mult);
+      base.maxHp = Math.round(10 * mult);
       base.speed = 10;
       break;
     case 'ring':
       base.attack = Math.round(5 * mult);
       base.critRate = 0.02;
-      base.critDamage = 1.6;
+      base.critDamage = 0.10;
+      break;
+    case 'gloves':
+      base.attack = Math.round(8 * mult);
+      base.speed = 5;
+      base.critRate = 0.01;
       break;
   }
 
@@ -124,21 +130,21 @@ export function getFinalItemStats(item: EquipmentItem): BaseStats {
       const tier = parseInt(tierStr) || 1;
       
       if (type === 'ruby') {
-        // Attack: Tier 1: 15, Tier 2: 35, Tier 3: 80, Tier 4: 180, Tier 5: 400
-        const values = [15, 35, 80, 180, 400];
-        base.attack += values[tier - 1] || 15;
+        // Attack %: Tier 1: 5%, Tier 2: 10%, Tier 3: 15%, Tier 4: 20%, Tier 5: 25%
+        const values = [5, 10, 15, 20, 25];
+        base.attack += values[tier - 1] || 5;
       } else if (type === 'topaz') {
-        // Magic Attack: Tier 1: 15, Tier 2: 35, Tier 3: 80, Tier 4: 180, Tier 5: 400
-        const values = [15, 35, 80, 180, 400];
-        base.magicAttack = (base.magicAttack || 0) + (values[tier - 1] || 15);
+        // Magic Attack %: Tier 1: 5%, Tier 2: 10%, Tier 3: 15%, Tier 4: 20%, Tier 5: 25%
+        const values = [5, 10, 15, 20, 25];
+        base.magicAttack = (base.magicAttack || 0) + (values[tier - 1] || 5);
       } else if (type === 'emerald') {
-        // Max HP: Tier 1: 150, Tier 2: 350, Tier 3: 800, Tier 4: 1800, Tier 5: 4000
-        const values = [150, 350, 800, 1800, 4000];
-        base.maxHp += values[tier - 1] || 150;
+        // Max HP %: Tier 1: 10%, Tier 2: 20%, Tier 3: 30%, Tier 4: 40%, Tier 5: 50%
+        const values = [10, 20, 30, 40, 50];
+        base.maxHp += values[tier - 1] || 10;
       } else if (type === 'sapphire') {
-        // Defense: Tier 1: 10, Tier 2: 25, Tier 3: 60, Tier 4: 140, Tier 5: 320
-        const values = [10, 25, 60, 140, 320];
-        base.defense += values[tier - 1] || 10;
+        // Defense %: Tier 1: 5%, Tier 2: 10%, Tier 3: 15%, Tier 4: 20%, Tier 5: 25%
+        const values = [5, 10, 15, 20, 25];
+        base.defense += values[tier - 1] || 5;
       } else if (type === 'amethyst') {
         // Crit Rate: Tier 1: 2%, Tier 2: 4%, Tier 3: 6%, Tier 4: 8%, Tier 5: 10%
         // Crit Damage: Tier 1: 5%, Tier 2: 10%, Tier 3: 15%, Tier 4: 20%, Tier 5: 25%
@@ -205,13 +211,25 @@ export function calculatePrestigePoints(stageCleared: number): number {
   return Math.floor(Math.pow(stageCleared - 9, 1.5));
 }
 
+export function calculateGoldUpgradeCost(stat: 'attack' | 'hp' | 'hpRecovery' | 'critDamage', currentLevel: number): number {
+  const baseCosts = {
+    attack: 100,
+    hp: 100,
+    hpRecovery: 120,
+    critDamage: 250
+  };
+  // Scales at 1.15 multiplier to properly align with exponential gold income scaling (1.12 per stage level)
+  return Math.floor(baseCosts[stat] * Math.pow(1.15, currentLevel));
+}
+
 // Core stats calculation for Hero
 export function recalculateHeroStats(
   level: number,
   prestigePoints: number,
   equippedItems: EquipmentItem[],
   heroClass?: 'knight' | 'mage' | 'assassin',
-  shardUpgrades?: { attack?: number; magicAttack?: number; maxHp?: number }
+  shardUpgrades?: { attack?: number; magicAttack?: number; maxHp?: number },
+  goldUpgrades?: { attack?: number; hp?: number; hpRecovery?: number; critDamage?: number }
 ): BaseStats {
   // Shard Upgrades (each upgrade level gives +3% bonus)
   const shardHpPct = 1 + (shardUpgrades?.maxHp || 0) * 0.03;
@@ -277,14 +295,15 @@ export function recalculateHeroStats(
   }
 
   const baseStats: BaseStats = {
-    maxHp: Math.round(Math.round(baseHp + (level - 1) * hpGrowth) * shardHpPct),
-    attack: Math.round(Math.round(baseAtk + (level - 1) * atkGrowth) * shardAtkPct),
+    maxHp: Math.round(Math.round(baseHp + (level - 1) * hpGrowth + (goldUpgrades?.hp || 0) * 85) * shardHpPct),
+    attack: Math.round(Math.round(baseAtk + (level - 1) * atkGrowth + (goldUpgrades?.attack || 0) * 12) * shardAtkPct),
     magicAttack: Math.round(Math.round(baseMagAtk + (level - 1) * magAtkGrowth) * shardMagAtkPct),
     defense: Math.round(baseDef + (level - 1) * defGrowth),
     magicResist: Math.round(baseMagRes + (level - 1) * magResGrowth),
     speed: baseSpd,
     critRate: baseCrit,
-    critDamage: baseCritDmg,
+    critDamage: baseCritDmg + (goldUpgrades?.critDamage || 0) * 0.02,
+    hpRecovery: (goldUpgrades?.hpRecovery || 0) * 3,
     lifesteal: 0,
     spellVamp: 0,
     evasion: 0,
@@ -296,9 +315,12 @@ export function recalculateHeroStats(
   const prestigeHpMult = 1 + prestigePoints * 0.02;
   const prestigeDefMult = 1 + prestigePoints * 0.01;
 
-  let totalMaxHp = baseStats.maxHp;
-  let totalAttack = baseStats.attack;
-  let totalDefense = baseStats.defense;
+  let eqHpPct = 1.0;
+  let eqAtkPct = 1.0;
+  let eqDefPct = 1.0;
+  let eqMagAtkPct = 1.0;
+  let eqMagResPct = 1.0;
+
   let totalSpeed = baseStats.speed;
   let totalCritRate = baseStats.critRate;
   let totalCritDamage = baseStats.critDamage;
@@ -306,32 +328,31 @@ export function recalculateHeroStats(
   let totalSpellVamp = baseStats.spellVamp || 0;
   let totalEvasion = baseStats.evasion || 0;
   let totalBlock = baseStats.block || 0;
-  let totalMagicAttack = baseStats.magicAttack || 0;
-  let totalMagicResist = baseStats.magicResist || 0;
 
   // Add equipment bonuses safely using getFinalItemStats helper
   const items = equippedItems || [];
   for (const item of items) {
     if (!item) continue;
     const stats = getFinalItemStats(item);
-    totalMaxHp += stats.maxHp || 0;
-    totalAttack += stats.attack || 0;
-    totalDefense += stats.defense || 0;
+    eqHpPct += (stats.maxHp || 0) / 100;
+    eqAtkPct += (stats.attack || 0) / 100;
+    eqDefPct += (stats.defense || 0) / 100;
+    eqMagAtkPct += (stats.magicAttack || 0) / 100;
+    eqMagResPct += (stats.magicResist || 0) / 100;
+
     totalSpeed += stats.speed || 0;
     totalCritRate += stats.critRate || 0;
-    totalCritDamage += (stats.critDamage - 1.5) > 0 ? (stats.critDamage - 1.5) : 0;
+    totalCritDamage += stats.critDamage || 0;
     totalLifesteal += stats.lifesteal || 0;
     totalSpellVamp += stats.spellVamp || 0;
     totalEvasion += stats.evasion || 0;
     totalBlock += stats.block || 0;
-    totalMagicAttack += stats.magicAttack || 0;
-    totalMagicResist += stats.magicResist || 0;
   }
 
   return {
-    maxHp: Math.round(totalMaxHp * prestigeHpMult),
-    attack: Math.round(totalAttack * prestigeDmgMult),
-    defense: Math.round(totalDefense * prestigeDefMult),
+    maxHp: Math.round(baseStats.maxHp * eqHpPct * prestigeHpMult),
+    attack: Math.round(baseStats.attack * eqAtkPct * prestigeDmgMult),
+    defense: Math.round(baseStats.defense * eqDefPct * prestigeDefMult),
     speed: totalSpeed,
     critRate: Math.min(0.85, totalCritRate), // cap crit rate at 85%
     critDamage: Math.round(totalCritDamage * 100) / 100,
@@ -339,8 +360,9 @@ export function recalculateHeroStats(
     spellVamp: Math.round(totalSpellVamp * 100) / 100,
     evasion: Math.round(Math.min(0.75, totalEvasion) * 100) / 100, // cap evasion at 75%
     block: Math.round(Math.min(0.75, totalBlock) * 100) / 100,      // cap block at 75%
-    magicAttack: Math.round(totalMagicAttack * prestigeDmgMult),
-    magicResist: Math.round(totalMagicResist * prestigeDefMult)
+    magicAttack: Math.round((baseStats.magicAttack || 0) * eqMagAtkPct * prestigeDmgMult),
+    magicResist: Math.round((baseStats.magicResist || 0) * eqMagResPct * prestigeDefMult),
+    hpRecovery: baseStats.hpRecovery || 0
   };
 }
 
@@ -372,9 +394,53 @@ const SUFFIXES = [
   { name: 'of Shield', stats: { block: 0.04 } }
 ];
 
+export function rollItemQuality(rarity: ItemRarity): number {
+  let min = 100;
+  let max = 100;
+  switch (rarity) {
+    case 'common':
+      min = 80; max = 100;
+      break;
+    case 'uncommon':
+      min = 90; max = 110;
+      break;
+    case 'rare':
+      min = 95; max = 120;
+      break;
+    case 'epic':
+      min = 100; max = 135;
+      break;
+    case 'legendary':
+      min = 110; max = 160;
+      break;
+  }
+  return Math.floor(min + Math.random() * (max - min + 1));
+}
+
+export function scaleStatsByQuality(stats: BaseStats, quality: number): BaseStats {
+  const mult = quality / 100;
+  return {
+    maxHp: stats.maxHp ? Math.round(stats.maxHp * mult) : 0,
+    attack: stats.attack ? Math.round(stats.attack * mult) : 0,
+    defense: stats.defense ? Math.round(stats.defense * mult) : 0,
+    speed: stats.speed ? Math.round(stats.speed * mult) : 0,
+    critRate: stats.critRate ? Math.round(stats.critRate * mult * 1000) / 1000 : 0,
+    critDamage: stats.critDamage ? Math.round(stats.critDamage * mult * 100) / 100 : 0,
+    lifesteal: stats.lifesteal ? Math.round(stats.lifesteal * mult * 100) / 100 : 0,
+    spellVamp: stats.spellVamp ? Math.round(stats.spellVamp * mult * 100) / 100 : 0,
+    evasion: stats.evasion ? Math.round(stats.evasion * mult * 100) / 100 : 0,
+    block: stats.block ? Math.round(stats.block * mult * 100) / 100 : 0,
+    magicAttack: stats.magicAttack ? Math.round(stats.magicAttack * mult) : 0,
+    magicResist: stats.magicResist ? Math.round(stats.magicResist * mult) : 0,
+    hpRecovery: stats.hpRecovery ? Math.round(stats.hpRecovery * mult) : 0
+  };
+}
+
 // Generate a random item instance from template
 export function createItemInstance(template: ItemTemplate, level = 1): EquipmentItem {
-  const stats = calculateItemStats(template.slot, template.rarity, level);
+  const quality = rollItemQuality(template.rarity);
+  const baseStats = calculateItemStats(template.slot, template.rarity, level);
+  const stats = scaleStatsByQuality(baseStats, quality);
 
   let socketCount = 0;
   if (template.rarity === 'common') {
@@ -469,6 +535,7 @@ export function createItemInstance(template: ItemTemplate, level = 1): Equipment
     slot: template.slot,
     rarity: template.rarity,
     stats,
+    quality,
     level,
     upgradeCost: calculateUpgradeCost(template.slot, template.rarity, level),
     equipped: false,
@@ -483,117 +550,296 @@ export function createItemInstance(template: ItemTemplate, level = 1): Equipment
 }
 
 // Default static templates for testing / database init
-export const DEFAULT_ITEM_TEMPLATES: ItemTemplate[] = [
-  // === WEAPONS ===
-  // Common
-  { id: 't_wpn_rusty', name: 'Rusty Sword', slot: 'weapon', rarity: 'common', allowedClass: 'knight', stats: {} },
-  { id: 't_wpn_rusty_staff', name: 'Rusty Staff', slot: 'weapon', rarity: 'common', allowedClass: 'mage', stats: {} },
-  { id: 't_wpn_rusty_dagger', name: 'Rusty Dagger', slot: 'weapon', rarity: 'common', allowedClass: 'assassin', stats: {} },
-  // Uncommon
-  { id: 't_wpn_steel', name: 'Steel Sword', slot: 'weapon', rarity: 'uncommon', allowedClass: 'knight', stats: {} },
-  { id: 't_wpn_apprentice_staff', name: 'Apprentice Staff', slot: 'weapon', rarity: 'uncommon', allowedClass: 'mage', stats: {} },
-  { id: 't_wpn_steel_daggers', name: 'Steel Daggers', slot: 'weapon', rarity: 'uncommon', allowedClass: 'assassin', stats: {} },
-  // Rare
-  { id: 't_wpn_knight', name: 'Knightly Claymore', slot: 'weapon', rarity: 'rare', allowedClass: 'knight', stats: {} },
-  { id: 't_wpn_wizard_rod', name: 'Wizard Rod', slot: 'weapon', rarity: 'rare', allowedClass: 'mage', stats: {} },
-  { id: 't_wpn_poison_dagger', name: 'Silent Poison Dagger', slot: 'weapon', rarity: 'rare', allowedClass: 'assassin', stats: {} },
-  // Epic
-  { id: 't_wpn_demonic', name: 'Demonic Reaver', slot: 'weapon', rarity: 'epic', allowedClass: 'knight', stats: {} },
-  { id: 't_wpn_archmage_wand', name: 'Archmage Wand', slot: 'weapon', rarity: 'epic', allowedClass: 'mage', stats: {} },
-  { id: 't_wpn_death_claws', name: 'Death Mark Claws', slot: 'weapon', rarity: 'epic', allowedClass: 'assassin', stats: {} },
-  // Legendary
-  { id: 't_wpn_excalibur', name: 'Excalibur', slot: 'weapon', rarity: 'legendary', allowedClass: 'knight', stats: { lifesteal: 0.08 } },
-  { id: 't_wpn_cosmos_staff', name: 'Staff of Infinite Cosmos', slot: 'weapon', rarity: 'legendary', allowedClass: 'mage', stats: { spellVamp: 0.10 } },
-  { id: 't_wpn_asura_blades', name: 'Asura Double Blades', slot: 'weapon', rarity: 'legendary', allowedClass: 'assassin', stats: { lifesteal: 0.10 } },
+const ITEM_NAMES_DB: Record<string, Record<string, Record<string, string[]>>> = {
+  knight: {
+    weapon: {
+      common: ["Kiếm sắt rỉ", "Rìu tiều phu", "Búa gỗ"],
+      uncommon: ["Kiếm thép thô", "Rìu chiến kép", "Búa sắt nặng"],
+      rare: ["Đại kiếm khổng lồ", "Rìu xuyên giáp", "Thương Thần sắt"],
+      epic: ["Kiếm Hỏa Long", "Rìu chiến phá trời", "Búa chấn động đất"],
+      legendary: ["Kiếm Thần Thiên Mệnh", "Rìu Thần Long Phá Trời", "Búa Diệt Quỷ Hủy Thế"]
+    },
+    helmet: {
+      common: ["Mũ sắt trơn", "Mũ chiến binh da thô", "Nía sắt"],
+      uncommon: ["Mũ lính pháo đài", "Mũ sắt nạm đồng", "Mũ sừng bò"],
+      rare: ["Mũ giáp nặng", "Mũ sừng chiến binh rừng sâu", "Mũ thép chắc chắn"],
+      epic: ["Mũ Hỏa Long", "Mũ sừng Quỷ Thép", "Mũ Đại Chiến Thần"],
+      legendary: ["Mũ Vua Vàng", "Mũ chiến Thần Long", "Mũ Bất tử Vua Âm phủ"]
+    },
+    armor: {
+      common: ["Giáp da thô", "Đệm ngực sắt", "Giáp xích rách"],
+      uncommon: ["Giáp xích lính", "Giáp tấm thép thô", "Giáp vai kim loại"],
+      rare: ["Giáp thép nặng tinh chế", "Giáp tấm chắc chắn", "Giáp Sư tử lớn"],
+      epic: ["Giáp vảy Hỏa Long", "Giáp Chiến Thần Vô địch", "Giáp nặng thạch anh"],
+      legendary: ["Giáp Thánh Vương", "Giáp Thần Long Bất tử", "Giáp Huyền Vũ Cổ đại"]
+    },
+    boots: {
+      common: ["Giày da thô nặng", "Giày vải đế gỗ", "Giày sắt rỉ"],
+      uncommon: ["Giày sắt lính", "Giày bảo vệ da bò", "Giày chiến thép nhẹ"],
+      rare: ["Giày thép nặng tinh chế", "Giày da gấu chắc chắn", "Giày đinh thép"],
+      epic: ["Giày Hỏa Long Bộ", "Giày Kim cương Bất hoại", "Giày Đại Chiến Thần"],
+      legendary: ["Giày Sao Thần Vương", "Giày Thần Long Bất tử", "Giày Trấn Địa Cổ đại"]
+    },
+    ring: {
+      common: ["Nhẫn sắt rộng", "Nhẫn đồng thô bạo", "Vòng tay đồng"],
+      uncommon: ["Nhẫn thép gia cố", "Nhẫn đá mắt hổ", "Vòng tay chiến binh bạc"],
+      rare: ["Nhẫn Sư tử Vương", "Nhẫn phòng thủ đá khổng lồ", "Bông tai Ý chí Chiến tranh"],
+      epic: ["Nhẫn mắt Hỏa Long", "Nhẫn bảo vệ cơ thể Kim cương", "Nhẫn Chiến Thần Cuồng nộ"],
+      legendary: ["Nhẫn Thần Vương Rung chuyển Trời", "Nhẫn Linh hồn Thần Long Bất tử", "Nhẫn Hoang dã Cổ đại"]
+    },
+    gloves: {
+      common: ["Găng tay da dày", "Băng tay chiến binh vải thô", "Găng tay sắt sứt mẻ"],
+      uncommon: ["Găng tay lính thép", "Găng tay da gấu thô", "Găng tay bảo vệ cổ tay"],
+      rare: ["Găng tay thép tinh chế", "Găng tay Bão Sư tử", "Găng tay Phá giáp nặng"],
+      epic: ["Găng tay móng vuốt Hỏa Long", "Găng tay Kim cương Bất hoại", "Găng tay Sức mạnh Chiến thần"],
+      legendary: ["Tay Bá chủ Thần Vương", "Tay móng vuốt Thần Long Bất tử", "Nắm đấm Khai Thiên Cổ đại"]
+    }
+  },
+  mage: {
+    weapon: {
+      common: ["Gậy sồi cũ", "Sách phép nát", "Gậy tập luyện"],
+      uncommon: ["Susty Phép nát", "Dady Phép nát", "Hiding Phép nát"],
+      rare: ["Ciame Phép sư", "Biornet Phép nát", "Slime Phép sư"],
+      epic: ["Tavuri Slayer", "Blanote Slayer", "Soarmon Slayer"],
+      legendary: ["Finpus Slayer", "Gamson Slayer", "Star Slayer"]
+    },
+    helmet: {
+      common: ["Canvas Scarf", "Vastous Scarf", "Dossing Scarf"],
+      uncommon: ["Higher Canvy", "Poatrous Scarf", "Dark Emperor Scarf"],
+      rare: ["Deely Hats", "Unique Burn Hats", "Dark Genhle Mask"],
+      epic: ["Blot Iffuers Mask", "The Warth Mask", "Dark Emperor Mirror Mask"],
+      legendary: ["The Isinokls Mask", "Dark Emperor Mirror Mask", "Grand Dark Emperor Mirror Mask"]
+    },
+    armor: {
+      common: ["Torn Cloth Cloak", "Torn Cloth Cloak II", "Dragon Scale Cloak"],
+      uncommon: ["Torn Cloth Cloak III", "Torn Cloth Cloak IV", "Dragon Scale Armor"],
+      rare: ["Sawidans Armor", "Suvnitflure Armor", "Dragoriosx Dark Armor"],
+      epic: ["Dragon Scale Armor II", "Dragon Scale Armor III", "Dragon Scale Dark Armor"],
+      legendary: ["The Tavone Armor", "Dragon Scale Dark Armor II", "Ancient Dragon Scale Armor"]
+    },
+    boots: {
+      common: ["Torn Cloth Shoes", "Torn Cloth Shoes II", "Torn Cloth Shoes III"],
+      uncommon: ["Torn Cloth Shoes IV", "Torn Cloth Shoes V", "Torn Cloth Shoes VI"],
+      rare: ["Torn Cloth Shoes VII", "Detherworld Shoes", "Nine Netherworld Shoes"],
+      epic: ["Nelneanworld Shoes", "Hithwauworld Shoes", "Nine Aivay Shoes"],
+      legendary: ["Netherworld Steps", "Nine Netherworld Steps", "Cosmic Netherworld Steps"]
+    },
+    ring: {
+      common: ["Plain Copper Ring", "Plain Copper Ring II", "Plain Copper Ring III"],
+      uncommon: ["Plain Copper Ring IV", "Plain Copper Ring V", "Gray Copper Ring"],
+      rare: ["Epic Copper Ring", "Damn Copper Ring", "Epic Copper Ring II"],
+      epic: ["World-Copper Ring", "World-Destroyer Ring", "World-Destroyer Ring II"],
+      legendary: ["World-Destroying Ring", "World-Destroying Killing Intent Rings", "Universe-Destroying Ring"]
+    },
+    gloves: {
+      common: ["Thin Cloth Gloves", "Thin Cloth Gloves II", "Blood Cloth Gloves"],
+      uncommon: ["Thin Cloth Gloves III", "Thin Cloth Gloves IV", "Stroalownem Gloves"],
+      rare: ["Epin Cloth Gloves", "Blsan Cloth Gloves", "Blood Coth Gloves"],
+      epic: ["Blood God Water Gloves", "Blood God Slaughter Hand", "Blood God Slaughter Hand II"],
+      legendary: ["Blood God Slaughter Hand III", "Blood God Slaughter Hand IV", "Blood God Slaughter Hand V"]
+    }
+  },
+  assassin: {
+    weapon: {
+      common: ["Dao Găm Gỉ Sét", "Kiếm Ngắn Gỗ", "Shuriken Sắt"],
+      uncommon: ["Lưỡi Kép Thép Sắc Bén", "Dao Găm Đồng", "Kiếm Răng Cưa"],
+      rare: ["Kim Độc", "Kiếm Ngắn Săn Đêm", "Cây Chùy Gai Ám Sát"],
+      epic: ["Lưỡi Trăng Máu", "Móng Vuốt Bóng Tối", "Lưỡi Hái Linh Hồn"],
+      legendary: ["Móng Vuốt Phong Ma", "Gương Thảm Họa", "Kẻ Diệt Sao"]
+    },
+    helmet: {
+      common: ["Khăn Quàng Cổ Vải Bố", "Mũ Da Mòn", "Mặt Nạ Vải Thô"],
+      uncommon: ["Khăn Quàng Đêm Đen", "Mũ Da Sói", "Mặt Nạ Sắt Nửa Mặt"],
+      rare: ["Mũ Trùm Rừng Sâu", "Mặt Nạ Thợ Săn Đêm", "Băng Đeo Đầu Huyết Tộc"],
+      epic: ["Mũ Trùm Vô Hình", "Mặt Nạ Quỷ Đêm", "Vương Miện Bóng Đêm"],
+      legendary: ["Gương Mắt Thần", "Mặt Nạ Tay Hư Không", "Mặt Nạ Gương Hắc Hoàng Đế"]
+    },
+    armor: {
+      common: ["Áo Choàng Vải Rách", "Giáp Da Thô", "Áo Khoác Ngắn Thợ Săn"],
+      uncommon: ["Áo Choàng Người Đi Đêm", "Giáp Da Rừng Nhiệt Đới", "Giáp Sợi Thép"],
+      rare: ["Giáp Da Báo Băng", "Áo Choàng Tàng Hình", "Giáp Nhẹ Khảm Bạc"],
+      epic: ["Áo Choàng Bóng Huyết", "Giáp Rắn Đêm", "Áo Choàng Bóng Quỷ"],
+      legendary: ["Áo Choàng Đêm Ngàn Năm", "Giáp Bóng Ma Thần", "Giáp Vảy Rồng Đen"]
+    },
+    boots: {
+      common: ["Giày Vải Rách", "Băng Quấn Chân Vải", "Giày Da Thô"],
+      uncommon: ["Giày Da Thợ Săn", "Giày Vải Gai Bền", "Giày Người Đi Đêm Nhẹ"],
+      rare: ["Giày Trăm Bước Chân Nhẹ", "Ủng Tốc Độ Báo Gấm", "Đinh Giày Ám Sát"],
+      epic: ["Ủng Bóng Gió", "Bước Chân Ủng Bóng Huyết", "Ủng Đêm Bí Ẩn"],
+      legendary: ["Bước Chân Tốc Bầu Trời Sao", "Ủng Gió Nhanh Hư Không", "Chín Bước Chân Địa Ngục"]
+    },
+    ring: {
+      common: ["Nhẫn Đồng Trơn", "Nhẫn Đá Thô", "Nhẫn Sắt Sứt Mẻ"],
+      uncommon: ["Nhẫn Khắc Biểu Tượng", "Nhẫn Mã Não", "Nhẫn Sắt Ý Bạc"],
+      rare: ["Nhẫn Ngọc Rắn Độc", "Nhẫn Huyết Thạch Thật", "Nhẫn Tốc Độ Ánh Sáng"],
+      epic: ["Nhẫn Định Vị Mắt Quỷ", "Nhẫn Sức Mạnh Quỷ Bóng Tối", "Nhẫn Tinh Hoa Trăng Máu"],
+      legendary: ["Nhẫn Phước Lành Thần Thánh", "Cõi Hư Không Tối Cao", "Nhẫn Sát Ý Hủy Diệt Thế Giới"]
+    },
+    gloves: {
+      common: ["Găng Tay Vải Mỏng", "Găng Tay Da Thô", "Băng Quấn Tay Vải Gai"],
+      uncommon: ["Găng Tay Thợ Săn", "Găng Tay Da Khảm Đồng", "Găng Tay Người Đi Đêm"],
+      rare: ["Găng Tay Móng Vuốt Độc", "Găng Tay Nhẹ Khảm Bạc", "Găng Tay Tăng Tốc"],
+      epic: ["Găng Tay Móng Vuốt Quỷ", "Găng Tay Đêm Chết Chóc", "Găng Tay Bóng Tối"],
+      legendary: ["Móng Vuốt Thần Thánh Bàn Tay Thần", "Bàn Tay Hủy Diệt Hư Không", "Bàn Tay Tàn Sát Huyết Thần"]
+    }
+  }
+};
 
-  // === ARMOR ===
-  // Common
-  { id: 't_arm_rag', name: 'Ragged Mail', slot: 'armor', rarity: 'common', allowedClass: 'knight', stats: {} },
-  { id: 't_arm_rag_robe', name: 'Torn Robe', slot: 'armor', rarity: 'common', allowedClass: 'mage', stats: {} },
-  { id: 't_arm_rag_cloak', name: 'Shadow Cloak', slot: 'armor', rarity: 'common', allowedClass: 'assassin', stats: {} },
-  // Uncommon
-  { id: 't_arm_leather', name: 'Reinforced Jerkin', slot: 'armor', rarity: 'uncommon', allowedClass: 'knight', stats: {} },
-  { id: 't_arm_leather_robe', name: 'Apprentice Vestments', slot: 'armor', rarity: 'uncommon', allowedClass: 'mage', stats: {} },
-  { id: 't_arm_leather_cloak', name: 'Hunter Cape', slot: 'armor', rarity: 'uncommon', allowedClass: 'assassin', stats: {} },
-  // Rare
-  { id: 't_arm_plate', name: 'Iron Platebody', slot: 'armor', rarity: 'rare', allowedClass: 'knight', stats: {} },
-  { id: 't_arm_silk_robe', name: 'Mystic Silk Robe', slot: 'armor', rarity: 'rare', allowedClass: 'mage', stats: {} },
-  { id: 't_arm_shadow_vest', name: 'Shadow Assassin Vest', slot: 'armor', rarity: 'rare', allowedClass: 'assassin', stats: {} },
-  // Epic
-  { id: 't_arm_dragon', name: 'Dragonscale Armor', slot: 'armor', rarity: 'epic', allowedClass: 'knight', stats: {} },
-  { id: 't_arm_phoenix_robe', name: 'Phoenix Flame Robe', slot: 'armor', rarity: 'epic', allowedClass: 'mage', stats: {} },
-  { id: 't_arm_nether_cloak', name: 'Nether Shadow Shroud', slot: 'armor', rarity: 'epic', allowedClass: 'assassin', stats: {} },
-  // Legendary
-  { id: 't_arm_god_plate', name: 'God Warlord Plate', slot: 'armor', rarity: 'legendary', allowedClass: 'knight', stats: { block: 0.12 } },
-  { id: 't_arm_celestial_robe', name: 'Celestial Archmage Robes', slot: 'armor', rarity: 'legendary', allowedClass: 'mage', stats: { evasion: 0.06, block: 0.04 } },
-  { id: 't_arm_phantom_garb', name: 'Phantom Assassin Garb', slot: 'armor', rarity: 'legendary', allowedClass: 'assassin', stats: { evasion: 0.12 } },
+const LEGACY_ID_MAP: Record<string, string> = {
+  "knight_weapon_common_0": "t_wpn_rusty",
+  "knight_weapon_uncommon_0": "t_wpn_steel",
+  "knight_weapon_rare_0": "t_wpn_knight",
+  "knight_weapon_epic_0": "t_wpn_demonic",
+  "knight_weapon_legendary_0": "t_wpn_excalibur",
+  "mage_weapon_common_0": "t_wpn_rusty_staff",
+  "mage_weapon_uncommon_0": "t_wpn_apprentice_staff",
+  "mage_weapon_rare_0": "t_wpn_wizard_rod",
+  "mage_weapon_epic_0": "t_wpn_archmage_wand",
+  "mage_weapon_legendary_0": "t_wpn_cosmos_staff",
+  "assassin_weapon_common_0": "t_wpn_rusty_dagger",
+  "assassin_weapon_uncommon_0": "t_wpn_steel_daggers",
+  "assassin_weapon_rare_0": "t_wpn_poison_dagger",
+  "assassin_weapon_epic_0": "t_wpn_death_claws",
+  "assassin_weapon_legendary_0": "t_wpn_asura_blades",
+  "knight_armor_common_0": "t_arm_rag",
+  "knight_armor_uncommon_0": "t_arm_leather",
+  "knight_armor_rare_0": "t_arm_plate",
+  "knight_armor_epic_0": "t_arm_dragon",
+  "knight_armor_legendary_0": "t_arm_god_plate",
+  "mage_armor_common_0": "t_arm_rag_robe",
+  "mage_armor_uncommon_0": "t_arm_leather_robe",
+  "mage_armor_rare_0": "t_arm_silk_robe",
+  "mage_armor_epic_0": "t_arm_phoenix_robe",
+  "mage_armor_legendary_0": "t_arm_celestial_robe",
+  "assassin_armor_common_0": "t_arm_rag_cloak",
+  "assassin_armor_uncommon_0": "t_arm_leather_cloak",
+  "assassin_armor_rare_0": "t_arm_shadow_vest",
+  "assassin_armor_epic_0": "t_arm_nether_cloak",
+  "assassin_armor_legendary_0": "t_arm_phantom_garb",
+  "knight_helmet_common_0": "t_hel_cap",
+  "knight_helmet_uncommon_0": "t_hel_iron",
+  "knight_helmet_rare_0": "t_hel_great",
+  "knight_helmet_epic_0": "t_hel_dragon_horn",
+  "knight_helmet_legendary_0": "t_hel_aegis_visor",
+  "mage_helmet_common_0": "t_hel_cap_mage",
+  "mage_helmet_uncommon_0": "t_hel_apprentice_hood",
+  "mage_helmet_rare_0": "t_hel_wizard_hat",
+  "mage_helmet_epic_0": "t_hel_archmage_crown",
+  "mage_helmet_legendary_0": "t_hel_cosmos_crown",
+  "assassin_helmet_common_0": "t_hel_cap_assassin",
+  "assassin_helmet_uncommon_0": "t_hel_leather_mask",
+  "assassin_helmet_rare_0": "t_hel_shadow_hood",
+  "assassin_helmet_epic_0": "t_hel_death_cowl",
+  "assassin_helmet_legendary_0": "t_hel_asura_hood",
+  "knight_boots_common_0": "t_bts_worn",
+  "knight_boots_uncommon_0": "t_bts_steel_greaves",
+  "knight_boots_rare_0": "t_bts_guardian",
+  "knight_boots_epic_0": "t_bts_dragonscale",
+  "knight_boots_legendary_0": "t_bts_aegis",
+  "mage_boots_common_0": "t_bts_worn_mage",
+  "mage_boots_uncommon_0": "t_bts_mage_sandals",
+  "mage_boots_rare_0": "t_bts_sorcerer_boots",
+  "mage_boots_epic_0": "t_bts_archmage_slippers",
+  "mage_boots_legendary_0": "t_bts_cosmos",
+  "assassin_boots_common_0": "t_bts_worn_assassin",
+  "assassin_boots_uncommon_0": "t_bts_leather",
+  "assassin_boots_rare_0": "t_bts_stealth_treads",
+  "assassin_boots_epic_0": "t_bts_shadow_boots",
+  "assassin_boots_legendary_0": "t_bts_asura",
+  "knight_ring_common_0": "t_rng_brass",
+  "knight_ring_uncommon_0": "t_rng_silver",
+  "knight_ring_rare_0": "t_rng_ruby",
+  "knight_ring_epic_0": "t_rng_dragon_crest",
+  "knight_ring_legendary_0": "t_rng_aegis",
+  "mage_ring_common_0": "t_rng_brass_mage",
+  "mage_ring_uncommon_0": "t_rng_silver_mage",
+  "mage_ring_rare_0": "t_rng_ruby_mage",
+  "mage_ring_epic_0": "t_rng_archmage_signet",
+  "mage_ring_legendary_0": "t_rng_cosmos",
+  "assassin_ring_common_0": "t_rng_brass_assassin",
+  "assassin_ring_uncommon_0": "t_rng_silver_assassin",
+  "assassin_ring_rare_0": "t_rng_ruby_assassin",
+  "assassin_ring_epic_0": "t_rng_death_band",
+  "assassin_ring_legendary_0": "t_rng_asura"
+};
 
-  // === HELMETS ===
-  // Common
-  { id: 't_hel_cap', name: 'Rusty Skullcap', slot: 'helmet', rarity: 'common', allowedClass: 'knight', stats: {} },
-  { id: 't_hel_cap_mage', name: 'Cloth Cowl', slot: 'helmet', rarity: 'common', allowedClass: 'mage', stats: {} },
-  { id: 't_hel_cap_assassin', name: 'Ragged Hood', slot: 'helmet', rarity: 'common', allowedClass: 'assassin', stats: {} },
-  // Uncommon
-  { id: 't_hel_iron', name: 'Iron Barbute', slot: 'helmet', rarity: 'uncommon', allowedClass: 'knight', stats: {} },
-  { id: 't_hel_apprentice_hood', name: 'Mage Hood', slot: 'helmet', rarity: 'uncommon', allowedClass: 'mage', stats: {} },
-  { id: 't_hel_leather_mask', name: 'Leather Mask', slot: 'helmet', rarity: 'uncommon', allowedClass: 'assassin', stats: {} },
-  // Rare
-  { id: 't_hel_great', name: 'Steel Greathelm', slot: 'helmet', rarity: 'rare', allowedClass: 'knight', stats: {} },
-  { id: 't_hel_wizard_hat', name: 'Wizard Hat', slot: 'helmet', rarity: 'rare', allowedClass: 'mage', stats: {} },
-  { id: 't_hel_shadow_hood', name: 'Shadow Mask', slot: 'helmet', rarity: 'rare', allowedClass: 'assassin', stats: {} },
-  // Epic
-  { id: 't_hel_dragon_horn', name: 'Dragon Horn Helm', slot: 'helmet', rarity: 'epic', allowedClass: 'knight', stats: {} },
-  { id: 't_hel_archmage_crown', name: 'Archmage Crown', slot: 'helmet', rarity: 'epic', allowedClass: 'mage', stats: {} },
-  { id: 't_hel_death_cowl', name: 'Death Mark Cowl', slot: 'helmet', rarity: 'epic', allowedClass: 'assassin', stats: {} },
-  // Legendary
-  { id: 't_hel_aegis_visor', name: 'Aegis Helmet', slot: 'helmet', rarity: 'legendary', allowedClass: 'knight', stats: {} },
-  { id: 't_hel_cosmos_crown', name: 'Crown of Infinite Cosmos', slot: 'helmet', rarity: 'legendary', allowedClass: 'mage', stats: {} },
-  { id: 't_hel_asura_hood', name: 'Hood of Asura', slot: 'helmet', rarity: 'legendary', allowedClass: 'assassin', stats: {} },
+const getTemplateId = (cls: string, slot: string, rarity: string, idx: number): string => {
+  const key = `${cls}_${slot}_${rarity}_${idx}`;
+  if (LEGACY_ID_MAP[key]) return LEGACY_ID_MAP[key];
+  
+  const slotShorthands: Record<string, string> = {
+    weapon: "wpn",
+    armor: "arm",
+    helmet: "hel",
+    boots: "bts",
+    ring: "rng",
+    gloves: "glo"
+  };
+  const sh = slotShorthands[slot] || slot;
+  return `t_${sh}_${cls}_${rarity}_${idx + 1}`;
+};
 
-  // === BOOTS ===
-  // Common
-  { id: 't_bts_worn', name: 'Heavy Iron Boots', slot: 'boots', rarity: 'common', allowedClass: 'knight', stats: {} },
-  { id: 't_bts_worn_mage', name: 'Cloth Slippers', slot: 'boots', rarity: 'common', allowedClass: 'mage', stats: {} },
-  { id: 't_bts_worn_assassin', name: 'Light Wraps', slot: 'boots', rarity: 'common', allowedClass: 'assassin', stats: {} },
-  // Uncommon
-  { id: 't_bts_steel_greaves', name: 'Steel Greaves', slot: 'boots', rarity: 'uncommon', allowedClass: 'knight', stats: {} },
-  { id: 't_bts_mage_sandals', name: 'Mage Sandals', slot: 'boots', rarity: 'uncommon', allowedClass: 'mage', stats: {} },
-  { id: 't_bts_leather', name: 'Swift Leather Boots', slot: 'boots', rarity: 'uncommon', allowedClass: 'assassin', stats: {} },
-  // Rare
-  { id: 't_bts_guardian', name: 'Guardian Sabatons', slot: 'boots', rarity: 'rare', allowedClass: 'knight', stats: {} },
-  { id: 't_bts_sorcerer_boots', name: 'Sorcerer Boots', slot: 'boots', rarity: 'rare', allowedClass: 'mage', stats: {} },
-  { id: 't_bts_stealth_treads', name: 'Stealth Treads', slot: 'boots', rarity: 'rare', allowedClass: 'assassin', stats: {} },
-  // Epic
-  { id: 't_bts_dragonscale', name: 'Dragonscale Greaves', slot: 'boots', rarity: 'epic', allowedClass: 'knight', stats: {} },
-  { id: 't_bts_archmage_slippers', name: 'Archmage Slippers', slot: 'boots', rarity: 'epic', allowedClass: 'mage', stats: {} },
-  { id: 't_bts_shadow_boots', name: 'Shadow Dancer Boots', slot: 'boots', rarity: 'epic', allowedClass: 'assassin', stats: {} },
-  // Legendary
-  { id: 't_bts_aegis', name: 'Sabatons of Aegis', slot: 'boots', rarity: 'legendary', allowedClass: 'knight', stats: {} },
-  { id: 't_bts_cosmos', name: 'Cosmos Treads', slot: 'boots', rarity: 'legendary', allowedClass: 'mage', stats: {} },
-  { id: 't_bts_asura', name: 'Asura Greaves', slot: 'boots', rarity: 'legendary', allowedClass: 'assassin', stats: {} },
+const getLegendaryStats = (cls: string, slot: string, idx: number): Partial<BaseStats> => {
+  if (slot === "weapon") {
+    if (cls === "knight") {
+      if (idx === 0) return { lifesteal: 0.08 };
+      if (idx === 1) return { critRate: 0.05 };
+      return { critDamage: 0.15 };
+    } else if (cls === "mage") {
+      if (idx === 0) return { spellVamp: 0.10 };
+      if (idx === 1) return { critRate: 0.06 };
+      return { critDamage: 0.20 };
+    } else {
+      if (idx === 0) return { lifesteal: 0.10 };
+      if (idx === 1) return { critRate: 0.12 };
+      return { critDamage: 0.25 };
+    }
+  }
+  if (slot === "armor") {
+    if (cls === "knight") {
+      if (idx === 0) return { block: 0.12 };
+      if (idx === 1) return { defense: 10 };
+      return { maxHp: 50 };
+    } else if (cls === "mage") {
+      if (idx === 0) return { evasion: 0.08 };
+      if (idx === 1) return { block: 0.06 };
+      return { evasion: 0.06, block: 0.04 };
+    } else {
+      if (idx === 0) return { evasion: 0.12 };
+      if (idx === 1) return { critRate: 0.05 };
+      return { evasion: 0.08, critRate: 0.03 };
+    }
+  }
+  return {};
+};
 
-  // === RINGS ===
-  // Common
-  { id: 't_rng_brass', name: 'Brass Signet', slot: 'ring', rarity: 'common', allowedClass: 'knight', stats: {} },
-  { id: 't_rng_brass_mage', name: 'Quartz Ring', slot: 'ring', rarity: 'common', allowedClass: 'mage', stats: {} },
-  { id: 't_rng_brass_assassin', name: 'Copper Band', slot: 'ring', rarity: 'common', allowedClass: 'assassin', stats: {} },
-  // Uncommon
-  { id: 't_rng_silver', name: 'Silver Ring', slot: 'ring', rarity: 'uncommon', allowedClass: 'knight', stats: {} },
-  { id: 't_rng_silver_mage', name: 'Opal Ring', slot: 'ring', rarity: 'uncommon', allowedClass: 'mage', stats: {} },
-  { id: 't_rng_silver_assassin', name: 'Obsidian Band', slot: 'ring', rarity: 'uncommon', allowedClass: 'assassin', stats: {} },
-  // Rare
-  { id: 't_rng_ruby', name: 'Ruby Signet Ring', slot: 'ring', rarity: 'rare', allowedClass: 'knight', stats: {} },
-  { id: 't_rng_ruby_mage', name: 'Sapphire Band', slot: 'ring', rarity: 'rare', allowedClass: 'mage', stats: {} },
-  { id: 't_rng_ruby_assassin', name: 'Emerald Ring', slot: 'ring', rarity: 'rare', allowedClass: 'assassin', stats: {} },
-  // Epic
-  { id: 't_rng_dragon_crest', name: 'Dragon Crest Ring', slot: 'ring', rarity: 'epic', allowedClass: 'knight', stats: {} },
-  { id: 't_rng_archmage_signet', name: 'Archmage Signet', slot: 'ring', rarity: 'epic', allowedClass: 'mage', stats: {} },
-  { id: 't_rng_death_band', name: 'Death Mark Band', slot: 'ring', rarity: 'epic', allowedClass: 'assassin', stats: {} },
-  // Legendary
-  { id: 't_rng_aegis', name: 'Ring of Aegis', slot: 'ring', rarity: 'legendary', allowedClass: 'knight', stats: {} },
-  { id: 't_rng_cosmos', name: 'Ring of Cosmos', slot: 'ring', rarity: 'legendary', allowedClass: 'mage', stats: {} },
-  { id: 't_rng_asura', name: 'Ring of Asura', slot: 'ring', rarity: 'legendary', allowedClass: 'assassin', stats: {} }
-];
+const buildTemplates = (): ItemTemplate[] => {
+  const templates: ItemTemplate[] = [];
+  const classes: Array<"knight" | "mage" | "assassin"> = ["knight", "mage", "assassin"];
+  const slots: EquipmentSlot[] = ["weapon", "helmet", "armor", "boots", "ring", "gloves"];
+  const rarities: ItemRarity[] = ["common", "uncommon", "rare", "epic", "legendary"];
+
+  for (const cls of classes) {
+    for (const slot of slots) {
+      for (const rarity of rarities) {
+        const names = ITEM_NAMES_DB[cls]?.[slot]?.[rarity] || [];
+        names.forEach((name, idx) => {
+          templates.push({
+            id: getTemplateId(cls, slot, rarity, idx),
+            name,
+            slot,
+            rarity,
+            allowedClass: cls,
+            stats: rarity === "legendary" ? getLegendaryStats(cls, slot, idx) : {}
+          });
+        });
+      }
+    }
+  }
+  return templates;
+};
+
+export const DEFAULT_ITEM_TEMPLATES: ItemTemplate[] = buildTemplates();
 
 export function generateMonsterForStage(
   stage: number,
@@ -733,9 +979,9 @@ export function generateMonsterForStage(
   const isMutated = Math.random() < 0.005;
 
   // Base Stats Scaling (from selected species multipliers)
-  let hp = Math.round(45 * Math.pow(1.15, level - 1) * selectedSpecies.baseHpMult);
-  let attack = Math.round(8 * Math.pow(1.12, level - 1) * selectedSpecies.baseAtkMult);
-  let defense = Math.round(2 * Math.pow(1.09, level - 1) * selectedSpecies.baseDefMult);
+  let hp = Math.round(120 * Math.pow(1.15, level - 1) * selectedSpecies.baseHpMult);
+  let attack = Math.round(6 * Math.pow(1.08, level - 1) * selectedSpecies.baseAtkMult);
+  let defense = Math.round(2 * Math.pow(1.05, level - 1) * selectedSpecies.baseDefMult);
   let speed = 80 + Math.min(50, level * 0.5);
 
   // Exp & Gold reward scaling
@@ -746,18 +992,19 @@ export function generateMonsterForStage(
   const statMultScale = Math.min(1.0, stage / 10);
   let rankStatMultiplier = 1.0;
   switch (rank) {
-    case 'elite': rankStatMultiplier = 1 + (1.25 - 1) * statMultScale; break;
-    case 'champion': rankStatMultiplier = 1 + (1.6 - 1) * statMultScale; break;
-    case 'king': rankStatMultiplier = 1 + (2.2 - 1) * statMultScale; break;
-    case 'legend': rankStatMultiplier = 1 + (3.0 - 1) * statMultScale; break;
-    case 'mythic': rankStatMultiplier = 1 + (4.2 - 1) * statMultScale; break;
-    case 'ancient': rankStatMultiplier = 1 + (6.0 - 1) * statMultScale; break;
-    case 'world_boss': rankStatMultiplier = 1 + (10.0 - 1) * statMultScale; break;
+    case 'normal': rankStatMultiplier = 1 + (3.0 - 1) * statMultScale; break;
+    case 'elite': rankStatMultiplier = 1 + (3.5 - 1) * statMultScale; break;
+    case 'champion': rankStatMultiplier = 1 + (4.5 - 1) * statMultScale; break;
+    case 'king': rankStatMultiplier = 1 + (6.0 - 1) * statMultScale; break;
+    case 'legend': rankStatMultiplier = 1 + (8.0 - 1) * statMultScale; break;
+    case 'mythic': rankStatMultiplier = 1 + (12.0 - 1) * statMultScale; break;
+    case 'ancient': rankStatMultiplier = 1 + (16.0 - 1) * statMultScale; break;
+    case 'world_boss': rankStatMultiplier = 1 + (25.0 - 1) * statMultScale; break;
   }
 
   hp = Math.round(hp * rankStatMultiplier);
-  attack = Math.round(attack * (1 + (rankStatMultiplier - 1) * 0.5));
-  defense = Math.round(defense * (1 + (rankStatMultiplier - 1) * 0.4));
+  attack = Math.round(attack * (1 + (rankStatMultiplier - 1) * 0.4));
+  defense = Math.round(defense * (1 + (rankStatMultiplier - 1) * 0.3));
   expReward = Math.round(expReward * rankStatMultiplier);
   goldMin = Math.round(goldMin * rankStatMultiplier);
 
@@ -835,7 +1082,7 @@ export function calculateItemCP(item: EquipmentItem): number {
     (stats.magicResist || 0) * 4.0 +
     (stats.speed || 0) * 5.0 +
     (stats.critRate || 0) * 100 * 15.0 +
-    ((stats.critDamage || 1.5) - 1.5) * 100 * 8.0 +
+    (stats.critDamage || 0) * 100 * 8.0 +
     (stats.lifesteal || 0) * 100 * 10.0 +
     (stats.spellVamp || 0) * 100 * 10.0 +
     (stats.evasion || 0) * 100 * 12.0 +
@@ -865,9 +1112,10 @@ export function calculateHeroCP(
   prestigePoints: number,
   equippedItems: EquipmentItem[],
   heroClass?: 'knight' | 'mage' | 'assassin',
-  shardUpgrades?: { attack?: number; magicAttack?: number; maxHp?: number }
+  shardUpgrades?: { attack?: number; magicAttack?: number; maxHp?: number },
+  goldUpgrades?: { attack?: number; hp?: number; hpRecovery?: number; critDamage?: number }
 ): number {
-  const stats = recalculateHeroStats(level, prestigePoints, equippedItems, heroClass, shardUpgrades);
+  const stats = recalculateHeroStats(level, prestigePoints, equippedItems, heroClass, shardUpgrades, goldUpgrades);
 
   // Calculate basic CP based on final stats
   let cp = stats.attack * 6.0 +

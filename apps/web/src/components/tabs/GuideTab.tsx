@@ -1,16 +1,72 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { useLanguageStore } from '../../stores/languageStore';
-import { MONSTER_SPECIES_DATABASE, BestiarySpecies, DamageType } from '@idle-rpg/shared';
+import { MONSTER_SPECIES_DATABASE, BestiarySpecies, DamageType, DEFAULT_ITEM_TEMPLATES, GAME_ICONS } from '@idle-rpg/shared';
+import { useTranslation, getTranslatedItemName } from '../../utils/i18n';
 
 type BestiaryTab = 'normal' | 'boss' | 'king' | 'mutated' | 'mystery' | 'extinct';
 
 export const GuideTab: React.FC = () => {
   const { saveData } = useGameStore();
   const { language } = useLanguageStore();
+  const { t } = useTranslation();
+  const [guideTab, setGuideTab] = useState<'bestiary' | 'equipment'>('equipment');
+  const [eqClass, setEqClass] = useState<'knight' | 'mage' | 'assassin'>('knight');
   const [activeTab, setActiveTab] = useState<BestiaryTab>('normal');
   const [selectedId, setSelectedId] = useState<string>(MONSTER_SPECIES_DATABASE[0].id);
   const [showDetailOnMobile, setShowDetailOnMobile] = useState<boolean>(false);
+
+  const slots = [
+    { key: 'weapon', labelVi: 'Vũ khí', labelEn: 'Weapon' },
+    { key: 'helmet', labelVi: 'Mũ bảo hiểm', labelEn: 'Helmet' },
+    { key: 'armor', labelVi: 'Áo giáp', labelEn: 'Armor' },
+    { key: 'boots', labelVi: 'Giày', labelEn: 'Boots' },
+    { key: 'ring', labelVi: 'Nhẫn', labelEn: 'Ring' },
+    { key: 'gloves', labelVi: 'Găng tay', labelEn: 'Gloves' }
+  ];
+
+  const rarities = [
+    { key: 'common', labelVi: 'Phổ thông', labelEn: 'Common', headerClass: 'bg-slate-900 border-slate-800 text-slate-400', cellClass: 'border-slate-800/40 bg-slate-950/20 text-slate-300', dotClass: 'text-slate-500' },
+    { key: 'uncommon', labelVi: 'Không phổ biến', labelEn: 'Uncommon', headerClass: 'bg-emerald-950/40 border-emerald-900/50 text-emerald-400', cellClass: 'border-emerald-950/30 bg-emerald-950/5 text-emerald-300', dotClass: 'text-emerald-400' },
+    { key: 'rare', labelVi: 'Hiếm', labelEn: 'Rare', headerClass: 'bg-blue-950/40 border-blue-900/50 text-blue-400', cellClass: 'border-blue-950/30 bg-blue-950/5 text-blue-300', dotClass: 'text-blue-400' },
+    { key: 'epic', labelVi: 'Sử thi', labelEn: 'Epic', headerClass: 'bg-purple-950/40 border-purple-900/50 text-purple-400', cellClass: 'border-purple-950/30 bg-purple-950/5 text-purple-300', dotClass: 'text-purple-450' },
+    { key: 'legendary', labelVi: 'Huyền thoại', labelEn: 'Legendary', headerClass: 'bg-amber-950/40 border-amber-900/50 text-amber-500', cellClass: 'border-amber-950/30 bg-amber-950/5 text-amber-300 shadow-[inset_0_0_8px_rgba(245,158,11,0.05)]', dotClass: 'text-amber-500' }
+  ];
+
+  const getCellItems = (slotKey: string, rarityKey: string) => {
+    return DEFAULT_ITEM_TEMPLATES.filter(item => 
+      item.allowedClass === eqClass && 
+      item.slot === slotKey && 
+      item.rarity === rarityKey
+    );
+  };
+
+  const getItemIcon = (name: string, slotKey: string) => {
+    const n = name.toLowerCase();
+    if (slotKey === 'weapon') {
+      if (n.includes('kiếm') || n.includes('đao') || n.includes('sword') || n.includes('blade') || n.includes('asura') || n.includes('tàn tinh') || n.includes('star slayer') || n.includes('chủy thủ')) return '🗡️';
+      if (n.includes('rìu') || n.includes('axe')) return '🪓';
+      if (n.includes('búa') || n.includes('chùy') || n.includes('hammer') || n.includes('mace')) return '🔨';
+      if (n.includes('gậy') || n.includes('trượng') || n.includes('staff') || n.includes('wand') || n.includes('kẻ diệt')) return '🔮';
+      if (n.includes('sách') || n.includes('tập') || n.includes('book') || n.includes('grimoire')) return '📖';
+      if (n.includes('shuriken')) return '🥋';
+      return '⚔️';
+    }
+    if (slotKey === 'helmet') {
+      if (n.includes('khăn') || n.includes('choàng') || n.includes('scarf') || n.includes('cowl') || n.includes('nón')) return '🧣';
+      if (n.includes('mặt nạ') || n.includes('mask') || n.includes('kính') || n.includes('gương')) return '🎭';
+      return GAME_ICONS.SLOT_HELMET;
+    }
+    if (slotKey === 'armor') return '👕';
+    if (slotKey === 'boots') return '🥾';
+    if (slotKey === 'ring') {
+      if (n.includes('vòng') || n.includes('lắc') || n.includes('bracelet')) return '📿';
+      if (n.includes('bông') || n.includes('earring') || n.includes('hoa tai')) return '💎';
+      return '💍';
+    }
+    if (slotKey === 'gloves') return '🧤';
+    return '📦';
+  };
 
   if (!saveData) return null;
 
@@ -96,317 +152,424 @@ export const GuideTab: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-slate-950/40 backdrop-blur-md rounded-2xl border border-slate-800/80 p-4 font-sans text-slate-200">
       
-      {/* Tab selectors */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 bg-slate-950/80 p-1.5 rounded-xl border border-slate-900 mb-4 select-none shrink-0">
-        {(['normal', 'boss', 'king', 'mutated', 'mystery', 'extinct'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => {
-              setActiveTab(tab);
-              const list = MONSTER_SPECIES_DATABASE.filter(s => {
-                if (tab === 'mutated') return s.category === 'normal';
-                return s.category === tab;
-              });
-              if (list.length > 0) setSelectedId(list[0].id);
-              setShowDetailOnMobile(false); // Back to list on tab change
-            }}
-            className={`text-[9px] sm:text-xs font-bold py-2 rounded-lg cursor-pointer transition active:scale-95 ${
-              activeTab === tab
-                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/10'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
-            }`}
-          >
-            {tab === 'normal' ? (language === 'vi' ? 'Quái Thường' : 'Normal') :
-             tab === 'boss' ? (language === 'vi' ? 'Thủ Lĩnh' : 'Boss') :
-             tab === 'king' ? (language === 'vi' ? 'Thiên Vương' : 'King') :
-             tab === 'mutated' ? (language === 'vi' ? 'Biến Dị 🧬' : 'Mutated 🧬') :
-             tab === 'mystery' ? (language === 'vi' ? 'Bí Ẩn ❓' : 'Mystery ❓') :
-             (language === 'vi' ? 'Tuyệt Chủng' : 'Extinct')}
-          </button>
-        ))}
+      {/* Top Selector: Bestiary vs Equipment Codex */}
+      <div className="flex bg-slate-950/80 p-1 rounded-xl border border-slate-900 mb-3 select-none shrink-0 max-w-xs self-center">
+        <button
+          onClick={() => setGuideTab('equipment')}
+          className={`flex-1 text-[10px] font-black uppercase py-1.5 px-4 rounded-lg cursor-pointer transition ${
+            guideTab === 'equipment'
+              ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          {language === 'vi' ? '🛡️ Trang Bị' : '🛡️ Equipment'}
+        </button>
+        <button
+          onClick={() => setGuideTab('bestiary')}
+          className={`flex-1 text-[10px] font-black uppercase py-1.5 px-4 rounded-lg cursor-pointer transition ${
+            guideTab === 'bestiary'
+              ? 'bg-gradient-to-r from-violet-600 to-indigo-650 text-white'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          {language === 'vi' ? '👾 Quái Vật' : '👾 Monsters'}
+        </button>
       </div>
 
-      <div className="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden relative">
-        {/* Left column: grid view species list */}
-        <div className={`flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 gap-2 scrollbar-thin content-start ${
-          showDetailOnMobile ? 'hidden md:grid' : 'grid'
-        }`}>
-          {filteredList.map(monster => {
-            const isSelected = currentMonster.id === monster.id;
-            const mRes = monsterResearch[monster.id] || { level: 0, exp: 0, kills: 0 };
-            const isDiscovered = mRes.level > 0 || mRes.kills > 0;
-
-            return (
+      {guideTab === 'bestiary' ? (
+        <>
+          {/* Tab selectors */}
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 bg-slate-950/80 p-1.5 rounded-xl border border-slate-900 mb-4 select-none shrink-0">
+            {(['normal', 'boss', 'king', 'mutated', 'mystery', 'extinct'] as const).map(tab => (
               <button
-                key={monster.id}
+                key={tab}
                 onClick={() => {
-                  setSelectedId(monster.id);
-                  setShowDetailOnMobile(true);
+                  setActiveTab(tab);
+                  const list = MONSTER_SPECIES_DATABASE.filter(s => {
+                    if (tab === 'mutated') return s.category === 'normal';
+                    return s.category === tab;
+                  });
+                  if (list.length > 0) setSelectedId(list[0].id);
+                  setShowDetailOnMobile(false); // Back to list on tab change
                 }}
-                className={`p-3 rounded-xl border text-left cursor-pointer transition active:scale-95 flex items-center justify-between gap-3 ${
-                  isSelected
-                    ? 'bg-violet-950/30 border-violet-500/60 shadow-[0_0_12px_rgba(139,92,246,0.2)]'
-                    : 'bg-slate-900/40 border-slate-850 hover:border-slate-800/80 hover:bg-slate-900/70'
+                className={`text-[9px] sm:text-xs font-bold py-2 rounded-lg cursor-pointer transition active:scale-95 ${
+                  activeTab === tab
+                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/10'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {/* Slime micro indicator */}
-                  <div
-                    className="w-6 h-5 rounded-t-full border border-slate-950 flex-shrink-0 flex items-center justify-center relative shadow-inner"
-                    style={{ backgroundColor: isDiscovered ? monster.color : '#334155' }}
+                {tab === 'normal' ? (language === 'vi' ? 'Quái Thường' : 'Normal') :
+                 tab === 'boss' ? (language === 'vi' ? 'Thủ Lĩnh' : 'Boss') :
+                 tab === 'king' ? (language === 'vi' ? 'Thiên Vương' : 'King') :
+                 tab === 'mutated' ? (language === 'vi' ? 'Biến Dị 🧬' : 'Mutated 🧬') :
+                 tab === 'mystery' ? (language === 'vi' ? 'Bí Ẩn ❓' : 'Mystery ❓') :
+                 (language === 'vi' ? 'Tuyệt Chủng' : 'Extinct')}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden relative">
+            {/* Left column: grid view species list */}
+            <div className={`flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 gap-2 scrollbar-thin content-start ${
+              showDetailOnMobile ? 'hidden md:grid' : 'grid'
+            }`}>
+              {filteredList.map(monster => {
+                const isSelected = currentMonster.id === monster.id;
+                const mRes = monsterResearch[monster.id] || { level: 0, exp: 0, kills: 0 };
+                const isDiscovered = mRes.level > 0 || mRes.kills > 0;
+
+                return (
+                  <button
+                    key={monster.id}
+                    onClick={() => {
+                      setSelectedId(monster.id);
+                      setShowDetailOnMobile(true);
+                    }}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition active:scale-95 flex items-center justify-between gap-3 ${
+                      isSelected
+                        ? 'bg-violet-950/30 border-violet-500/60 shadow-[0_0_12px_rgba(139,92,246,0.2)]'
+                        : 'bg-slate-900/40 border-slate-850 hover:border-slate-800/80 hover:bg-slate-900/70'
+                    }`}
                   >
-                    {monster.hasCrown && isDiscovered && (
-                      <span className="absolute -top-2.5 text-[8px] animate-bounce">👑</span>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {/* Slime micro indicator */}
+                      <div
+                        className="w-6 h-5 rounded-t-full border border-slate-950 flex-shrink-0 flex items-center justify-center relative shadow-inner"
+                        style={{ backgroundColor: isDiscovered ? monster.color : '#334155' }}
+                      >
+                        {monster.hasCrown && isDiscovered && (
+                          <span className="absolute -top-2.5 text-[8px] animate-bounce">👑</span>
+                        )}
+                        {!isDiscovered && <span className="text-[7px] font-extrabold text-slate-500">?</span>}
+                      </div>
+
+                      <div className="truncate min-w-0">
+                        <h4 className="text-[11px] font-extrabold text-slate-100 truncate">
+                          {isDiscovered ? (language === 'vi' ? monster.nameVi : monster.nameEn) : '???'}
+                        </h4>
+                        <span className="text-[8px] text-slate-500 block uppercase tracking-wider">
+                          Kills: <strong className="text-slate-400">{mRes.kills.toLocaleString()}</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    {isDiscovered && (
+                      <span className="bg-slate-950 border border-slate-800 px-1.5 py-0.5 rounded text-[8px] text-amber-400 font-extrabold shrink-0">
+                        Lv.{mRes.level}
+                      </span>
                     )}
-                    {!isDiscovered && <span className="text-[7px] font-extrabold text-slate-500">?</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className={`w-full h-full md:w-[280px] bg-slate-900/60 border border-slate-850 rounded-xl p-4 flex flex-col justify-between overflow-y-auto scrollbar-thin shrink-0 ${
+              !showDetailOnMobile ? 'hidden md:flex' : 'flex'
+            }`}>
+              
+              <div>
+                {/* Mobile Back Button */}
+                <button
+                  onClick={() => setShowDetailOnMobile(false)}
+                  className="md:hidden w-full mb-4 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-slate-300 hover:text-white text-[10px] font-extrabold py-2 px-4 rounded-xl transition cursor-pointer active:scale-95 flex items-center justify-center gap-1.5 shadow"
+                >
+                  ⬅️ {language === 'vi' ? 'QUAY LẠI DANH SÁCH' : 'BACK TO LIST'}
+                </button>
+                {/* Visual element and metadata */}
+                <div className="flex flex-col items-center border-b border-slate-850 pb-3 mb-3">
+                  <div
+                    className={`w-20 h-16 rounded-t-full border-2 border-slate-950 flex items-center justify-center relative shadow-lg transition duration-300 transform hover:scale-105 ${
+                      activeTab === 'mutated' ? 'animate-pulse' : ''
+                    }`}
+                    style={{
+                      backgroundColor: isUnlockedName ? currentMonster.color : '#334155',
+                      filter: activeTab === 'mutated' ? 'hue-rotate(90deg) saturate(1.5)' : ''
+                    }}
+                  >
+                    {/* Face specs */}
+                    {isUnlockedName && (
+                      <>
+                        <div className="absolute w-1.5 h-1.5 bg-slate-950 rounded-full left-5 top-6" />
+                        <div className="absolute w-1.5 h-1.5 bg-slate-950 rounded-full right-5 top-6" />
+                        <div className="w-2.5 h-1.5 border-b-2 border-slate-950 rounded-full absolute bottom-5" />
+                      </>
+                    )}
+
+                    {currentMonster.hasCrown && isUnlockedName && (
+                      <span className="absolute -top-6 text-2xl animate-bounce">👑</span>
+                    )}
+                    {!isUnlockedName && <span className="text-lg font-bold text-slate-500">?</span>}
                   </div>
 
-                  <div className="truncate min-w-0">
-                    <h4 className="text-[11px] font-extrabold text-slate-100 truncate">
-                      {isDiscovered ? (language === 'vi' ? monster.nameVi : monster.nameEn) : '???'}
-                    </h4>
-                    <span className="text-[8px] text-slate-500 block uppercase tracking-wider">
-                      Kills: <strong className="text-slate-400">{mRes.kills.toLocaleString()}</strong>
+                  <h3 className="text-sm font-extrabold text-white mt-3 text-center">
+                    {isUnlockedName ? (language === 'vi' ? currentMonster.nameVi : currentMonster.nameEn) : '???'}
+                    {activeTab === 'mutated' && isUnlockedName && <span className="text-purple-400 text-[10px] ml-1 font-bold">🧬 [Mutated]</span>}
+                  </h3>
+                  
+                  <div className="flex gap-2 mt-1">
+                    <span className="text-[8px] bg-slate-950 border border-slate-800 text-slate-400 rounded px-1.5 py-0.5">
+                      {language === 'vi' ? `Lực chiến Ải: Lvl ${currentStats.level}` : `Simulated Lvl: ${currentStats.level}`}
+                    </span>
+                    <span className="text-[8px] bg-slate-950 border border-slate-800 text-slate-400 rounded px-1.5 py-0.5 uppercase tracking-wide">
+                      {currentMonster.family}
                     </span>
                   </div>
                 </div>
 
-                {isDiscovered && (
-                  <span className="bg-slate-950 border border-slate-800 px-1.5 py-0.5 rounded text-[8px] text-amber-400 font-extrabold shrink-0">
-                    Lv.{mRes.level}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className={`w-full h-full md:w-[280px] bg-slate-900/60 border border-slate-850 rounded-xl p-4 flex flex-col justify-between overflow-y-auto scrollbar-thin shrink-0 ${
-          !showDetailOnMobile ? 'hidden md:flex' : 'flex'
-        }`}>
-          
-          <div>
-            {/* Mobile Back Button */}
-            <button
-              onClick={() => setShowDetailOnMobile(false)}
-              className="md:hidden w-full mb-4 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-slate-300 hover:text-white text-[10px] font-extrabold py-2 px-4 rounded-xl transition cursor-pointer active:scale-95 flex items-center justify-center gap-1.5 shadow"
-            >
-              ⬅️ {language === 'vi' ? 'QUAY LẠI DANH SÁCH' : 'BACK TO LIST'}
-            </button>
-            {/* Visual element and metadata */}
-            <div className="flex flex-col items-center border-b border-slate-850 pb-3 mb-3">
-              <div
-                className={`w-20 h-16 rounded-t-full border-2 border-slate-950 flex items-center justify-center relative shadow-lg transition duration-300 transform hover:scale-105 ${
-                  activeTab === 'mutated' ? 'animate-pulse' : ''
-                }`}
-                style={{
-                  backgroundColor: isUnlockedName ? currentMonster.color : '#334155',
-                  filter: activeTab === 'mutated' ? 'hue-rotate(90deg) saturate(1.5)' : ''
-                }}
-              >
-                {/* Face specs */}
-                {isUnlockedName && (
-                  <>
-                    <div className="absolute w-1.5 h-1.5 bg-slate-950 rounded-full left-5 top-6" />
-                    <div className="absolute w-1.5 h-1.5 bg-slate-950 rounded-full right-5 top-6" />
-                    <div className="w-2.5 h-1.5 border-b-2 border-slate-950 rounded-full absolute bottom-5" />
-                  </>
-                )}
-
-                {currentMonster.hasCrown && isUnlockedName && (
-                  <span className="absolute -top-6 text-2xl animate-bounce">👑</span>
-                )}
-                {!isUnlockedName && <span className="text-lg font-bold text-slate-500">?</span>}
-              </div>
-
-              <h3 className="text-sm font-extrabold text-white mt-3 text-center">
-                {isUnlockedName ? (language === 'vi' ? currentMonster.nameVi : currentMonster.nameEn) : '???'}
-                {activeTab === 'mutated' && isUnlockedName && <span className="text-purple-400 text-[10px] ml-1 font-bold">🧬 [Mutated]</span>}
-              </h3>
-              
-              <div className="flex gap-2 mt-1">
-                <span className="text-[8px] bg-slate-950 border border-slate-800 text-slate-400 rounded px-1.5 py-0.5">
-                  {language === 'vi' ? `Lực chiến Ải: Lvl ${currentStats.level}` : `Simulated Lvl: ${currentStats.level}`}
-                </span>
-                <span className="text-[8px] bg-slate-950 border border-slate-800 text-slate-400 rounded px-1.5 py-0.5 uppercase tracking-wide">
-                  {currentMonster.family}
-                </span>
-              </div>
-            </div>
-
-            {/* Research EXP tracker */}
-            <div className="space-y-1.5 mb-3.5 bg-slate-950/60 p-2.5 rounded-xl border border-slate-900">
-              <div className="flex justify-between items-center text-[10px]">
-                <span className="text-slate-400 font-bold">
-                  {language === 'vi' ? 'Mức Nghiên Cứu' : 'Research Level'}
-                </span>
-                <span className="text-amber-400 font-extrabold">Lv.{research.level} / 50</span>
-              </div>
-
-              <div className="h-2.5 bg-slate-900 border border-slate-850 rounded-full overflow-hidden relative">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-300"
-                  style={{ width: `${researchProgress}%` }}
-                />
-                <span className="absolute inset-0 text-[8px] font-extrabold flex items-center justify-center text-white select-none">
-                  {research.exp} / {nextExpNeeded} EXP
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-1.5 pt-1 text-[8px] font-bold">
-                <div className={`flex justify-between items-center px-1.5 py-0.5 rounded ${isUnlockedBuff10 ? 'bg-emerald-950/40 text-emerald-400' : 'bg-slate-900 text-slate-650'}`}>
-                  <span>⚔️ Công +2%:</span>
-                  <span>{isUnlockedBuff10 ? '✔️ On' : 'Off'}</span>
-                </div>
-                <div className={`flex justify-between items-center px-1.5 py-0.5 rounded ${isUnlockedBuff20 ? 'bg-emerald-950/40 text-emerald-400' : 'bg-slate-900 text-slate-650'}`}>
-                  <span>🎁 Rơi Đồ +5%:</span>
-                  <span>{isUnlockedBuff20 ? '✔️ On' : 'Off'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Core Stats Block */}
-            <div className="space-y-1.5 mb-3 bg-slate-950/30 p-3 border border-slate-900 rounded-xl">
-              <span className="block text-[8px] text-slate-500 font-bold uppercase tracking-wider mb-1">
-                {language === 'vi' ? 'Thông Số Lực Chiến' : 'Simulated Combat Stats'}
-              </span>
-
-              {isUnlockedStats ? (
-                <div className="space-y-1.5 text-[10px]">
-                  <div className="flex justify-between border-b border-slate-900/60 pb-1">
-                    <span className="text-slate-400">💖 HP</span>
-                    <span className="text-slate-200 font-bold font-mono">{currentStats.hp.toLocaleString()}</span>
+                {/* Research EXP tracker */}
+                <div className="space-y-1.5 mb-3.5 bg-slate-950/60 p-2.5 rounded-xl border border-slate-900">
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-slate-400 font-bold">
+                      {language === 'vi' ? 'Mức Nghiên Cứu' : 'Research Level'}
+                    </span>
+                    <span className="text-amber-400 font-extrabold">Lv.{research.level} / 50</span>
                   </div>
-                  <div className="flex justify-between border-b border-slate-900/60 pb-1">
-                    <span className="text-slate-400">⚔️ ATK</span>
-                    <span className="text-slate-200 font-bold font-mono">{currentStats.attack.toLocaleString()}</span>
+
+                  <div className="h-2.5 bg-slate-900 border border-slate-850 rounded-full overflow-hidden relative">
+                    <div
+                      className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-300"
+                      style={{ width: `${researchProgress}%` }}
+                    />
+                    <span className="absolute inset-0 text-[8px] font-extrabold flex items-center justify-center text-white select-none">
+                      {research.exp} / {nextExpNeeded} EXP
+                    </span>
                   </div>
-                  <div className="flex justify-between border-b border-slate-900/60 pb-1">
-                    <span className="text-slate-400">🛡️ DEF</span>
-                    <span className="text-slate-200 font-bold font-mono">{currentStats.defense.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-slate-900/60 pb-1">
-                    <span className="text-slate-400">🎯 {language === 'vi' ? 'Điểm Yếu' : 'Weaknesses'}</span>
-                    <div className="flex gap-1.5">
-                      {currentMonster.weaknesses.map(w => {
-                        const style = getElementTag(w);
-                        return (
-                          <span key={w} className={`text-[8px] px-1 py-0.2 rounded font-extrabold uppercase ${style.color}`}>
-                            {style.tag}
-                          </span>
-                        );
-                      })}
+
+                  <div className="grid grid-cols-2 gap-1.5 pt-1 text-[8px] font-bold">
+                    <div className={`flex justify-between items-center px-1.5 py-0.5 rounded ${isUnlockedBuff10 ? 'bg-emerald-950/40 text-emerald-400' : 'bg-slate-900 text-slate-650'}`}>
+                      <span>⚔️ Công +2%:</span>
+                      <span>{isUnlockedBuff10 ? '✔️ On' : 'Off'}</span>
+                    </div>
+                    <div className={`flex justify-between items-center px-1.5 py-0.5 rounded ${isUnlockedBuff20 ? 'bg-emerald-950/40 text-emerald-400' : 'bg-slate-900 text-slate-650'}`}>
+                      <span>🎁 Rơi Đồ +5%:</span>
+                      <span>{isUnlockedBuff20 ? '✔️ On' : 'Off'}</span>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="text-center py-2 text-slate-600 text-[10px] italic">
-                  🔒 Đạt Cấp Nghiên Cứu 1 để giải khóa thông số
-                </div>
-              )}
-            </div>
 
-            {/* Boss Records Memory */}
-            {(currentMonster.category === 'boss' || currentMonster.category === 'king' || currentMonster.category === 'extinct') && (
-              <div className="space-y-1.5 mb-3 bg-violet-950/10 p-3 border border-violet-950/20 rounded-xl">
-                <span className="block text-[8px] text-violet-400 font-extrabold uppercase tracking-wider mb-1">
-                  🏆 {language === 'vi' ? 'KỶ LỤC DIỆT BOSS' : 'BOSS TRIAL RECORDS'}
-                </span>
-                <div className="space-y-1 text-[10px]">
-                  <div className="flex justify-between border-b border-violet-950/5 pb-1">
-                    <span className="text-slate-400">{language === 'vi' ? 'Hạ Lần Đầu' : 'First Kill'}</span>
-                    <span className="text-slate-200 font-semibold font-mono">
-                      {research.firstKillTime ? new Date(research.firstKillTime).toLocaleDateString() : 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b border-violet-950/5 pb-1">
-                    <span className="text-slate-400">{language === 'vi' ? 'Tốc Độ Kỷ Lục' : 'Fastest Kill'}</span>
-                    <span className="text-amber-400 font-bold font-mono">
-                      {research.fastestKillMs ? `${(research.fastestKillMs / 1000).toFixed(2)}s ⏱️` : 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between pb-0.5">
-                    <span className="text-slate-400">{language === 'vi' ? 'Sát Thương Max' : 'Max Hit'}</span>
-                    <span className="text-red-400 font-bold font-mono">
-                      {research.highestDamage ? `${research.highestDamage.toLocaleString()} 💥` : 'N/A'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Skills & Description */}
-            <div className="space-y-2 mb-3">
-              <div className="bg-slate-950/20 border border-slate-900 rounded-xl p-3">
-                <span className="block text-[8px] text-slate-500 font-bold uppercase tracking-wider mb-1">
-                  ⭐ {language === 'vi' ? 'KỸ NĂNG ĐẶC TRƯNG' : 'SIGNATURE SKILL'}
-                </span>
-                {isUnlockedDrops ? (
-                  <span className="text-[10px] text-slate-300 font-bold block">
-                    {language === 'vi' ? currentMonster.skillVi : currentMonster.skillEn}
+                {/* Core Stats Block */}
+                <div className="space-y-1.5 mb-3 bg-slate-950/30 p-3 border border-slate-900 rounded-xl">
+                  <span className="block text-[8px] text-slate-500 font-bold uppercase tracking-wider mb-1">
+                    {language === 'vi' ? 'Thông Số Lực Chiến' : 'Simulated Combat Stats'}
                   </span>
-                ) : (
-                  <span className="text-[10px] text-slate-600 italic block">
-                    🔒 Đạt Cấp Nghiên Cứu 5 để xem kỹ năng
-                  </span>
-                )}
-              </div>
 
-              <div className="bg-slate-950/20 border border-slate-900 rounded-xl p-3">
-                <span className="block text-[8px] text-slate-500 font-bold uppercase tracking-wider mb-1">
-                  📖 {language === 'vi' ? 'GIẢI THOẠI & LORE' : 'SPECIES LORE'}
-                </span>
-                {isUnlockedLore ? (
-                  <p className="text-[10px] text-slate-400 leading-relaxed">
-                    {language === 'vi' ? currentMonster.loreVi : currentMonster.loreEn}
-                  </p>
-                ) : (
-                  <p className="text-[10px] text-slate-600 italic leading-relaxed">
-                    🔒 Đạt Cấp Nghiên Cứu 30 để giải mã giai thoại quái vật
-                  </p>
-                )}
-              </div>
-            </div>
+                  {isUnlockedStats ? (
+                    <div className="space-y-1.5 text-[10px]">
+                      <div className="flex justify-between border-b border-slate-900/60 pb-1">
+                        <span className="text-slate-400">💖 HP</span>
+                        <span className="text-slate-200 font-bold font-mono">{currentStats.hp.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between border-b border-slate-900/60 pb-1">
+                        <span className="text-slate-400">⚔️ ATK</span>
+                        <span className="text-slate-200 font-bold font-mono">{currentStats.attack.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between border-b border-slate-900/60 pb-1">
+                        <span className="text-slate-400">🛡️ DEF</span>
+                        <span className="text-slate-200 font-bold font-mono">{currentStats.defense.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center border-b border-slate-900/60 pb-1">
+                        <span className="text-slate-400">🎯 {language === 'vi' ? 'Điểm Yếu' : 'Weaknesses'}</span>
+                        <div className="flex gap-1.5">
+                          {currentMonster.weaknesses.map(w => {
+                            const style = getElementTag(w);
+                            return (
+                              <span key={w} className={`text-[8px] px-1 py-0.2 rounded font-extrabold uppercase ${style.color}`}>
+                                {style.tag}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-2 text-slate-600 text-[10px] italic">
+                      🔒 Đạt Cấp Nghiên Cứu 1 để giải khóa thông số
+                    </div>
+                  )}
+                </div>
 
-            {/* Drop tables preview */}
-            <div className="bg-slate-950/20 border border-slate-900 rounded-xl p-3 mb-2">
-              <span className="block text-[8px] text-slate-500 font-bold uppercase tracking-wider mb-1.5">
-                💎 {language === 'vi' ? 'DANH SÁCH RƠI ĐỒ' : 'MONSTER DROP PREVIEW'}
-              </span>
-              {isUnlockedDrops ? (
-                <div className="space-y-1 text-[9px]">
-                  <div className="flex justify-between text-slate-400 pb-0.5 border-b border-slate-900/60 mb-1">
-                    <span>Vật phẩm</span>
-                    <span>Tỉ lệ</span>
+                {/* Boss Records Memory */}
+                {(currentMonster.category === 'boss' || currentMonster.category === 'king' || currentMonster.category === 'extinct') && (
+                  <div className="space-y-1.5 mb-3 bg-violet-950/10 p-3 border border-violet-950/20 rounded-xl">
+                    <span className="block text-[8px] text-violet-400 font-extrabold uppercase tracking-wider mb-1">
+                      🏆 {language === 'vi' ? 'KỶ LỤC DIỆT BOSS' : 'BOSS TRIAL RECORDS'}
+                    </span>
+                    <div className="space-y-1 text-[10px]">
+                      <div className="flex justify-between border-b border-violet-950/5 pb-1">
+                        <span className="text-slate-400">{language === 'vi' ? 'Hạ Lần Đầu' : 'First Kill'}</span>
+                        <span className="text-slate-200 font-semibold font-mono">
+                          {research.firstKillTime ? new Date(research.firstKillTime).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-b border-violet-950/5 pb-1">
+                        <span className="text-slate-400">{language === 'vi' ? 'Tốc Độ Kỷ Lục' : 'Fastest Kill'}</span>
+                        <span className="text-amber-400 font-bold font-mono">
+                          {research.fastestKillMs ? `${(research.fastestKillMs / 1000).toFixed(2)}s ⏱️` : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pb-0.5">
+                        <span className="text-slate-400">{language === 'vi' ? 'Sát Thương Max' : 'Max Hit'}</span>
+                        <span className="text-red-400 font-bold font-mono">
+                          {research.highestDamage ? `${research.highestDamage.toLocaleString()} 💥` : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-slate-300">
-                    <span>Thiết Bị Phổ Thông (Common Gear)</span>
-                    <span className="font-mono text-emerald-400">100%</span>
+                )}
+
+                {/* Skills & Description */}
+                <div className="space-y-2 mb-3">
+                  <div className="bg-slate-950/20 border border-slate-900 rounded-xl p-3">
+                    <span className="block text-[8px] text-slate-500 font-bold uppercase tracking-wider mb-1">
+                      ⭐ {language === 'vi' ? 'KỸ NĂNG ĐẶC TRƯNG' : 'SIGNATURE SKILL'}
+                    </span>
+                    {isUnlockedDrops ? (
+                      <span className="text-[10px] text-slate-300 font-bold block">
+                        {language === 'vi' ? currentMonster.skillVi : currentMonster.skillEn}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-600 italic block">
+                        🔒 Đạt Cấp Nghiên Cứu 5 để xem kỹ năng
+                      </span>
+                    )}
                   </div>
-                  <div className="flex justify-between text-slate-300">
-                    <span>Đá Khảm Ngọc (Sockets/Gems)</span>
-                    <span className="font-mono text-blue-400">10%</span>
-                  </div>
-                  <div className="flex justify-between text-slate-300">
-                    <span>Trang Bị Sử Thi (Epic/Legendary)</span>
-                    <span className="font-mono text-purple-400">{(0.1 * currentMonster.baseHpMult).toFixed(2)}%</span>
+
+                  <div className="bg-slate-950/20 border border-slate-900 rounded-xl p-3">
+                    <span className="block text-[8px] text-slate-500 font-bold uppercase tracking-wider mb-1">
+                      📖 {language === 'vi' ? 'GIẢI THOẠI & LORE' : 'SPECIES LORE'}
+                    </span>
+                    {isUnlockedLore ? (
+                      <p className="text-[10px] text-slate-400 leading-relaxed">
+                        {language === 'vi' ? currentMonster.loreVi : currentMonster.loreEn}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-slate-600 italic leading-relaxed">
+                        🔒 Đạt Cấp Nghiên Cứu 30 để giải mã giai thoại quái vật
+                      </p>
+                    )}
                   </div>
                 </div>
-              ) : (
-                <span className="text-[10px] text-slate-600 italic block">
-                  🔒 Đạt Cấp Nghiên Cứu 5 để xem tỉ lệ rơi đồ
-                </span>
-              )}
+
+                {/* Drop tables preview */}
+                <div className="bg-slate-950/20 border border-slate-900 rounded-xl p-3 mb-2">
+                  <span className="block text-[8px] text-slate-500 font-bold uppercase tracking-wider mb-1.5">
+                    💎 {language === 'vi' ? 'DANH SÁCH RƠI ĐỒ' : 'MONSTER DROP PREVIEW'}
+                  </span>
+                  {isUnlockedDrops ? (
+                    <div className="space-y-1 text-[9px]">
+                      <div className="flex justify-between text-slate-400 pb-0.5 border-b border-slate-900/60 mb-1">
+                        <span>Vật phẩm</span>
+                        <span>Tỉ lệ</span>
+                      </div>
+                      <div className="flex justify-between text-slate-300">
+                        <span>Thiết Bị Phổ Thông (Common Gear)</span>
+                        <span className="font-mono text-emerald-400">100%</span>
+                      </div>
+                      <div className="flex justify-between text-slate-300">
+                        <span>Đá Khảm Ngọc (Sockets/Gems)</span>
+                        <span className="font-mono text-blue-400">10%</span>
+                      </div>
+                      <div className="flex justify-between text-slate-300">
+                        <span>Trang Bị Sử Thi (Epic/Legendary)</span>
+                        <span className="font-mono text-purple-400">{(0.1 * currentMonster.baseHpMult).toFixed(2)}%</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-slate-600 italic block">
+                      🔒 Đạt Cấp Nghiên Cứu 5 để xem tỉ lệ rơi đồ
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-[9px] text-slate-500 border-t border-slate-850 pt-2 text-center">
+                {language === 'vi' 
+                  ? `Gia đình Slime hoàn thành: ${familyCompletion.discovered} / ${familyCompletion.total} thành viên`
+                  : `${currentMonster.family.toUpperCase()} completion: ${familyCompletion.discovered} / ${familyCompletion.total}`}
+              </div>
             </div>
           </div>
+        </>
+      ) : (
+        <div className="flex-grow flex flex-col overflow-hidden">
+          {/* CLASS SELECTOR */}
+          <div className="grid grid-cols-3 gap-2 bg-slate-950/80 p-1 rounded-xl border border-slate-900 mb-4 select-none shrink-0 w-full">
+            {(['knight', 'mage', 'assassin'] as const).map(cls => (
+              <button
+                key={cls}
+                onClick={() => setEqClass(cls)}
+                className={`text-xs font-extrabold py-2 rounded-lg cursor-pointer transition active:scale-95 flex items-center justify-center gap-1.5 ${
+                  eqClass === cls
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 font-black'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+                }`}
+              >
+                {cls === 'knight' ? '🛡️' : cls === 'mage' ? '🔮' : '🗡️'}
+                {cls === 'knight' ? (language === 'vi' ? 'Chiến Binh' : 'Knight') :
+                 cls === 'mage' ? (language === 'vi' ? 'Pháp Sư' : 'Mage') :
+                 (language === 'vi' ? 'Sát Thủ' : 'Assassin')}
+              </button>
+            ))}
+          </div>
 
-          <div className="text-[9px] text-slate-500 border-t border-slate-850 pt-2 text-center">
-            {language === 'vi' 
-              ? `Gia đình Slime hoàn thành: ${familyCompletion.discovered} / ${familyCompletion.total} thành viên`
-              : `${currentMonster.family.toUpperCase()} completion: ${familyCompletion.discovered} / ${familyCompletion.total}`}
+          {/* MATRIX TABLE */}
+          <div className="flex-1 overflow-auto border border-slate-900 rounded-xl bg-slate-950/40 select-text">
+            <table className="w-full text-left text-xs border-collapse min-w-[700px] sm:min-w-[800px]">
+              <thead>
+                <tr className="bg-slate-950 border-b border-slate-900">
+                  <th className="py-3 px-4 font-black uppercase text-slate-400 text-[10px] tracking-wider w-[120px] text-center">
+                    {language === 'vi' ? 'Loại Trang Bị' : 'Equipment Slot'}
+                  </th>
+                  {rarities.map(r => (
+                    <th key={r.key} className={`py-3 px-4 font-black uppercase text-[10px] tracking-wider text-center border-l border-slate-900/60 ${r.headerClass}`}>
+                      {language === 'vi' ? r.labelVi : r.labelEn}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-900/80 font-medium">
+                {slots.map(s => (
+                  <tr key={s.key} className="hover:bg-slate-900/20 transition-colors">
+                    {/* Row Header: Slot type */}
+                    <td className="py-4 px-3 text-center bg-slate-950/60 border-r border-slate-900/80 font-black text-slate-350 text-[11px] leading-tight">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-lg">
+                          {s.key === 'weapon' ? GAME_ICONS.SLOT_WEAPON : s.key === 'helmet' ? GAME_ICONS.SLOT_HELMET : s.key === 'armor' ? GAME_ICONS.SLOT_ARMOR : s.key === 'boots' ? GAME_ICONS.SLOT_BOOTS : s.key === 'ring' ? GAME_ICONS.SLOT_RING : GAME_ICONS.SLOT_GLOVES}
+                        </span>
+                        <span>{language === 'vi' ? s.labelVi : s.labelEn}</span>
+                      </div>
+                    </td>
+
+                    {/* Columns by rarity */}
+                    {rarities.map(r => {
+                      const cellItems = getCellItems(s.key, r.key);
+                      return (
+                        <td key={r.key} className={`p-3 border-l border-slate-900/60 text-[11.5px] align-middle ${r.cellClass}`}>
+                          <div className="space-y-1.5 flex flex-col justify-center">
+                            {cellItems.map(item => {
+                              const icon = getItemIcon(item.name, s.key);
+                              return (
+                                <div key={item.id} className="flex items-center gap-1.5 hover:translate-x-0.5 transition-transform duration-100 cursor-help" title={`ID: ${item.id}`}>
+                                  <span className={`text-[12px] filter drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]`}>
+                                    {icon}
+                                  </span>
+                                  <span className="font-semibold text-slate-200 truncate">
+                                    {getTranslatedItemName(t, item as any)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
