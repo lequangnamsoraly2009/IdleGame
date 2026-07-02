@@ -1,478 +1,154 @@
-# Idle RPG Web
+# ⚔️ Idle RPG Web ⚔️
 
-> A modern Idle RPG built with React, PixiJS and Firebase.
+> A premium, modern browser-based Idle RPG built with React 19, TypeScript, PixiJS, Zustand, and Firebase. Featuring real-time combat, equipment forging, summoning, dungeons, guild features, and daily-limited package mechanics.
 
 ---
 
 ## 🎯 Project Vision
 
-Idle RPG Web là một game Idle RPG chạy trên trình duyệt, được thiết kế theo kiến trúc hiện đại, dễ mở rộng và có thể vận hành lâu dài.
+**Idle RPG Web** is designed for thousands of hours of gameplay, featuring a decoupled game engine, state-of-the-art visual styling, and a live config-driven model synchronized with Firebase backend databases.
 
-Mục tiêu:
-
-- Gameplay có thể chơi hàng nghìn giờ.
-- Dữ liệu đồng bộ nhiều thiết bị.
-- Hỗ trợ Event, Guild, PvP.
-- Có Admin CMS để chỉnh game mà không cần deploy.
-- Triển khai hoàn toàn trên GitHub + Vercel + Firebase.
+- **Endless Auto-Battle:** Hero defeats monsters, levels up, and climbs stage difficulties automatically, even offline.
+- **Deep Progression:** Gear quality scales from Common to Legendary, featuring random affixes, upgrade levels, and attribute gem sockets.
+- **Ascension & Prestige:** Ascend to reset level and stage in exchange for Prestige Points, unlocking permanent multiplier bonuses.
+- **Config-Driven Assets:** Monster scaling, item drops, quests, and summon rates are configurable dynamically from database states without redeployments.
 
 ---
 
-# Core Gameplay Loop
+## 🔁 Core Gameplay Loop
 
 ```
-Login
-
-↓
-
-Offline Reward
-
-↓
-
-Hero Auto Battle
-
-↓
-
-Monster
-
-↓
-
-Loot
-
-↓
-
-Inventory
-
-↓
-
-Equip
-
-↓
-
-Upgrade
-
-↓
-
-Dungeon
-
-↓
-
-Boss
-
-↓
-
-Prestige
-
-↓
-
-Unlock World
-
-↓
-
-Repeat
+                     ┌──────────────────┐
+                     │    User Login    │
+                     └────────┬─────────┘
+                              │
+                     ┌────────▼─────────┐
+                     │  Offline Reward  │
+                     └────────┬─────────┘
+                              │
+                     ┌────────▼─────────┐
+                     │ Auto-Battle Loop │◄────────────────┐
+                     └────────┬─────────┘                 │
+                              │                           │
+            ┌─────────────────┴─────────────────┐         │
+            ▼                                   ▼         │
+   ┌─────────────────┐                 ┌────────────────┐ │
+   │  Defeat Monster │                 │  Defeat Boss   │ │
+   └────────┬────────┘                 └────────┬───────┘ │
+            │                                   │         │
+   ┌────────▼────────┐                 ┌────────▼───────┐ │
+   │ Gold, EXP, Loot │                 │ Progress Stage │ │
+   └────────┬────────┘                 └────────┬───────┘ │
+            │                                   │         │
+   ┌────────▼────────┐                 ┌────────▼───────┐ │
+   │ Inventory & Bag │                 │ Ascension (CP) │ │
+   └────────┬────────┘                 └────────┬───────┘ │
+            │                                   │         │
+   ┌────────▼────────┐                          │         │
+   │ Forge / Gems    ├──────────────────────────┘         │
+   └─────────────────┘                                    │
+            │                                             │
+            └─────────────────────────────────────────────┘
 ```
 
 ---
 
-# Tech Stack
+## ✨ Key Features & Implementation Specifications
 
-## Frontend
+### 🛡️ 1. Action Bar & Booster Shortcuts
+- **Flexible Setup:** Drag, drop, and equip consumables (Health Potions, Speed Elixirs, EXP Charms) into any of the 7 shortcut slots.
+- **Edit Mode:** Toggle edit mode using a floating action button. Remove items with absolute-positioned delete buttons (`top-[-3px] right-[-3px]`) or tap empty slots to open the inventory selection modal.
+- **Circular SVG Cooldown:** Real-time countdown clock rendered using vector circles with dynamic SVG `strokeDashoffset` properties.
+- **Depleted Visual State:** Display items with `0` quantity using grayscale filters, high opacity reduction, and a red cross-out SVG vector indicator.
+- **Pulsing Halo Glow:** Ready-to-use active items pulse with custom color halos to match their rarity grades.
 
-- React 19
-- TypeScript
-- Vite
-- PixiJS
-- TailwindCSS
-- shadcn/ui
-- Motion
-- Howler
+### 🛒 2. Shop & Daily limits System
+- **Unified Card Layout:** Clean vertical alignment of buttons to prevent overlapping labels and overflow issues on small viewport screens.
+- **Bulk Buying Modal:** Offers custom quantity adjustment sliders, text inputs, and quick presets (`10`, `20`, `50`, `100`). Checks balance dynamically to lock checkout buttons.
+- **Unified Counter Limits:** Merges bulk and single item checks to utilize a unified limit key (e.g. `potion_30`) to simplify backend operations.
+- **Daily Quotas:** High-value discount packs (saving 5%-20%) are capped at a maximum of 100 purchases per day. The limit count (e.g. `Còn: 100/100`) is displayed on the top right of the transaction button.
+- **Aesthetic Ordering:** Places the primary transaction button (`h-10`) at the bottom of the card and the smaller bulk purchase button (`h-8`, exactly 80% height of the main button) above it, wrapped in a glowing pulsing border.
 
-## State
+### 🔨 3. Forge & Gem Sockets
+- **Attribute Gem Fusion:** Merge 3 gems of the same tier to progress to the next level. Fusing rates decrease as gem tiers increase (100% / 50% / 10% / 1%).
+- **Item Dismantling:** Recycle unwanted rare items for Aether Shards. Yields are calculated dynamically, scaling with item level and monster kill counters.
+- **Socket Inscription:** Equip gems into equipment sockets to apply direct, flat base attribute bonuses.
 
-- Zustand
-
-## Server State
-
-- TanStack Query
-
-## Backend
-
-- Firebase Authentication
-- Firestore
-- Storage
-- Cloud Functions
-- Analytics
-
-## Deploy
-
-- GitHub
-- Vercel
+### 📊 4. Combat Stats & formulas
+- **Combat Power (CP):** Weighted formula checking attack speed, critical multiplier, spell vamp, life steal, block rate, gear rarity bonuses, and slotted gems:
+  $$\text{Item CP} = \text{ATK} \times 6 + \text{M.ATK} \times 6 + \text{HP} \times 0.5 + \text{DEF} \times 4 + \text{M.RES} \times 4 + \text{SPD} \times 5 + \text{CRIT\%} \times 15 + \text{Lifesteal\%} \times 10 + \text{Gems} \times 100$$
+- **Monster Scaling:** Attributes and drops multiply exponentially based on the active stage:
+  $$\text{Max HP} = \text{Round}\left(120 \times 1.15^{\text{Level} - 1} \times \text{Species Mult} \times \text{Rank Mult}\right)$$
+- **Combat Feed:** Live logger sorting messages into categories (All / Combat / Loot) with custom highlighting.
 
 ---
 
-# Architecture
+## 🛠️ Tech Stack
 
-```
-GitHub
-
-↓
-
-Vercel
-
-↓
-
-React
-
-↓
-
-PixiJS Engine
-
-↓
-
-Firebase
-```
+- **Core Framework:** React 19, TypeScript, Vite
+- **Rendering Engine:** PixiJS (high-performance canvas webgl rendering loop)
+- **State Management:** Zustand (decoupled from UI render thread)
+- **CSS Styling:** Vanilla CSS + TailwindCSS (premium dark mode, glassmorphism, pulse micro-animations)
+- **Database Backend:** Firebase Authentication, Realtime Database, Firestore
+- **Deployment Platform:** Vercel
 
 ---
 
-# Repository Structure
+## 📁 Repository Structure
 
 ```
 idle-rpg/
-
-docs/
-
-apps/
-    web/
-
-packages/
-    engine/
-    ui/
-    firebase/
-    shared/
-
-firebase/
-
-.github/
+├── apps/
+│   └── web/                   # Vite React SPA App
+│       ├── src/
+│       │   ├── components/    # UI Modals & Page Layouts
+│       │   │   └── tabs/      # Feature panels (Shop, Hero, Bag, Summon)
+│       │   ├── stores/        # Zustand global store files
+│       │   └── index.css      # Core style declarations
+│       └── public/            # Game asset sheets & audio files
+├── packages/
+│   ├── shared/                # Core algorithms, database definitions, and formulas
+│   ├── engine/                # PixiJS battle logic & visual particles
+│   ├── ui/                    # Reusable React layout components
+│   └── firebase/              # Client configurations and sparse array restoration utils
+├── documents/                 # Game specifications, roadmaps, and features guides
+├── firebase/                  # Security rules & deployment settings
+└── package.json               # Monorepo workspaces dependencies config
 ```
 
 ---
 
-# Engine Architecture
+## ⚡ Setup & Development
 
-```
-Engine
-
-├── Scene
-
-├── Hero
-
-├── Monster
-
-├── Battle
-
-├── Loot
-
-├── Animation
-
-├── Audio
-
-└── Particle
+### 1. Installation
+Clone the repository and install dependencies at the workspace root:
+```bash
+npm install
 ```
 
-Engine không phụ thuộc React.
-
-React chỉ hiển thị UI.
-
----
-
-# React Responsibilities
-
-React chịu trách nhiệm:
-
-- Inventory
-- Hero
-- Equipment
-- Shop
-- Guild
-- Quest
-- Popup
-- Navigation
-- Loading
-- Toast
-
-Game Scene sẽ được render bằng PixiJS.
-
----
-
-# Firebase Collections
-
+### 2. Running Locally
+Run the Vite development server in hot-reload mode:
+```bash
+npm run dev
 ```
-users
 
-heroes
-
-inventory
-
-equipment
-
-skills
-
-quests
-
-guilds
-
-leaderboards
-
-events
-
-mail
-
-configs
+### 3. Build & Compile Verification
+Verify typings and build static distribution bundles:
+```bash
+npm run build
 ```
 
 ---
 
-# Config Driven Design
+## 🔒 Security & Data Integrity
 
-Toàn bộ game được điều khiển bằng Config.
-
-Ví dụ:
-
-- Monster HP
-- Monster Damage
-- Item Drop Rate
-- Skill
-- Quest
-- Event
-- Shop
-
-đều được đọc từ Firestore.
-
-Không hard-code trong source.
+The game implements server-side validations using **Firebase Database Rules** (`database.rules.json`):
+- Read/write access is restricted exclusively to authenticated users matching the specific profile `uid`.
+- Data updates are validated schema-wise (e.g., negative value preventions on speed elixirs, exp charms, or gold balances).
+- Client-side checks dynamically verify daily purchase arrays during login to automatically reset daily limit limits at midnight.
 
 ---
 
-# UI Layout
+## 📄 License
 
-```
-+------------------------------------------------+
-
- Gold     Diamond      Mail      Setting
-
-+------------------------------------------------+
-
-             PixiJS Game Scene
-
- Hero               Monster
-
- Floating Damage
-
- Loot Drop
-
-+------------------------------------------------+
-
- Hero  Bag  Quest  Guild  Shop  Summon
-
-+------------------------------------------------+
-```
-
----
-
-# Folder Structure
-
-```
-src/
-
-assets/
-
-components/
-
-features/
-
-game/
-
-hooks/
-
-services/
-
-stores/
-
-types/
-
-utils/
-```
-
----
-
-# Coding Convention
-
-- TypeScript Strict Mode
-- Feature-first Architecture
-- SOLID
-- DRY
-- Composition over Inheritance
-- Functional Components
-- No Redux
-- Zustand cho Game State
-
----
-
-# Git Flow
-
-```
-main
-
-develop
-
-feature/*
-
-release/*
-```
-
----
-
-# CI/CD
-
-```
-Push
-
-↓
-
-GitHub
-
-↓
-
-GitHub Actions
-
-↓
-
-Build
-
-↓
-
-ESLint
-
-↓
-
-Type Check
-
-↓
-
-Deploy
-
-↓
-
-Vercel
-```
-
----
-
-# Development Roadmap
-
-## Phase 1
-
-- Project Setup
-- Firebase
-- Authentication
-- PixiJS
-- UI Layout
-
----
-
-## Phase 2
-
-- Hero
-- Monster
-- Battle
-- Damage
-- Loot
-
----
-
-## Phase 3
-
-- Inventory
-- Equipment
-- Upgrade
-- Shop
-
----
-
-## Phase 4
-
-- Dungeon
-- Boss
-- Prestige
-
----
-
-## Phase 5
-
-- Guild
-- PvP
-- Event
-- Leaderboard
-
----
-
-## Phase 6
-
-- Admin CMS
-- LiveOps
-- Analytics
-
----
-
-# Long-term Features
-
-- Battle Pass
-- Daily Quest
-- Weekly Event
-- Monthly Event
-- Pet System
-- Mount System
-- Crafting
-- Arena
-- Guild War
-- Raid
-- Achievement
-- Collection
-- Endless Tower
-
----
-
-# Deployment
-
-Frontend
-
-- Vercel
-
-Backend
-
-- Firebase
-
-Repository
-
-- GitHub
-
-Không sử dụng VPS.
-
-Không cần Docker.
-
-Không cần Server Node riêng.
-
----
-
-# Development Principles
-
-- Code đơn giản, dễ đọc.
-- Tách biệt Game Engine và UI.
-- Ưu tiên khả năng mở rộng.
-- Mọi dữ liệu gameplay đều có thể cấu hình.
-- Tài liệu luôn được cập nhật song song với mã nguồn.
-
----
-
-# License
-
-Private Project.
+Private Game Project. Developed with 💖.
