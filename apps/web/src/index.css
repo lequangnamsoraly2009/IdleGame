@@ -186,3 +186,15 @@
   animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes avatar-float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.02);
+  }
+}
+.animate-avatar-float {
+  animation: avatar-float 4s ease-in-out infinite;
+}
+

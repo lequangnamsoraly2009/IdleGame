@@ -147,7 +147,7 @@ export const HeroTab: React.FC = () => {
       <TransparentImage
         src={imgUrl}
         alt={cls}
-        className="w-24 h-24 sm:w-28 sm:h-28 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)] select-none"
+        className="w-24 h-24 sm:w-28 sm:h-28 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)] select-none animate-avatar-float"
       />
     );
   };
