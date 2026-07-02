@@ -152,3 +152,37 @@
   animation: success-pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+/* Loading Screen Keyframes & Utility Animations */
+@keyframes spin-reverse {
+  0% { transform: rotate(360deg); }
+  100% { transform: rotate(0deg); }
+}
+.animate-spin-reverse {
+  animation: spin-reverse 8s linear infinite;
+}
+
+@keyframes pulse-progress {
+  0%, 100% { width: 75%; }
+  50% { width: 95%; }
+}
+.animate-pulse-progress {
+  animation: pulse-progress 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-150%); }
+  50% { transform: translateX(150%); }
+  100% { transform: translateX(150%); }
+}
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.animate-fade-in {
+  animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
