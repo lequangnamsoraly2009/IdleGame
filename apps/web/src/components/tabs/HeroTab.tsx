@@ -349,6 +349,41 @@ export const HeroTab: React.FC = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Temporary Boosters Active Buffs */}
+                  {(() => {
+                    const speedElixirRemaining = Math.max(0, ((hero.speedElixirActiveUntil ?? 0) - Date.now()) / 1000);
+                    const expCharmRemaining = Math.max(0, ((hero.expCharmActiveUntil ?? 0) - Date.now()) / 1000);
+                    const hasActiveBoosters = speedElixirRemaining > 0 || expCharmRemaining > 0;
+
+                    if (!hasActiveBoosters) return null;
+
+                    return (
+                      <div className="pt-2 border-t border-slate-800 space-y-1.5 mt-2">
+                        <span className="block text-[8px] text-slate-500 uppercase tracking-widest font-semibold mb-1">
+                          {language === 'vi' ? 'BÙA BỔ TRỢ HOẠT ĐỘNG' : 'ACTIVE BOOSTER BUFFS'}
+                        </span>
+                        
+                        {speedElixirRemaining > 0 && (
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-slate-400">⚡ {language === 'vi' ? 'Thuốc Tốc Độ (+50% Tốc Đánh)' : 'Speed Elixir (+50% Atk Speed)'}</span>
+                            <span className="font-mono text-yellow-400 font-bold bg-slate-950/40 px-1.5 py-0.5 rounded border border-yellow-500/10 text-[9.5px]">
+                              {Math.floor(speedElixirRemaining / 60)}m {Math.floor(speedElixirRemaining % 60)}s
+                            </span>
+                          </div>
+                        )}
+
+                        {expCharmRemaining > 0 && (
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-slate-400">📜 {language === 'vi' ? 'Bùa EXP (+100% EXP Nhận)' : 'EXP Charm (+100% EXP Gain)'}</span>
+                            <span className="font-mono text-purple-400 font-bold bg-slate-950/40 px-1.5 py-0.5 rounded border border-purple-500/10 text-[9.5px]">
+                              {Math.floor(expCharmRemaining / 60)}m {Math.floor(expCharmRemaining % 60)}s
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

@@ -18,6 +18,25 @@ import { SummonResultOverlay } from './SummonResultOverlay';
 import { GuideModal } from './GuideModal';
 import { calculateHeroCP, calculateGoldUpgradeCost, GAME_ICONS } from '@idle-rpg/shared';
 
+const PotionIcon: React.FC = () => (
+  <svg viewBox="0 0 24 24" className="w-[20px] h-[20px] drop-shadow-[0_0_8px_rgba(239,68,68,0.85)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+    {/* Liquid inside */}
+    <path d="M6 14L8 9H16L18 14C19.2 16.5 18 20 15 20H9C6 20 4.8 16.5 6 14Z" fill="url(#potionLiquid)" />
+    {/* Bottle outline */}
+    <path d="M9 3H15V6H9V3Z" fill="#b45309" stroke="#78350f" strokeWidth="1.5" />
+    <path d="M8 6H16L20 15C21.5 18.5 19 21 15.5 21H8.5C5 21 2.5 18.5 4 15L8 6Z" stroke="#94a3b8" strokeWidth="2" strokeLinejoin="round" />
+    {/* Highlights */}
+    <path d="M7.5 11C7 9.5 8.5 7.5 8.5 7.5" stroke="white" strokeWidth="1.2" strokeLinecap="round" opacity="0.6" />
+    <defs>
+      <linearGradient id="potionLiquid" x1="12" y1="9" x2="12" y2="20" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#fca5a5" />
+        <stop offset="35%" stopColor="#ef4444" />
+        <stop offset="100%" stopColor="#991b1b" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
 const LEVEL_LOCKS = {
   hero: 1,
   dungeon: 5,
@@ -53,17 +72,184 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     claimQuestReward,
     buyDungeonTicket,
     rollHeroTraits,
-    toggleHeroTraitLock
+    toggleHeroTraitLock,
+    usePotion,
+    potionCooldownRemaining,
+    equipBooster,
+    useBooster
   } = useGameStore();
 
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguageStore();
   const [logFilter, setLogFilter] = useState<'all' | 'combat' | 'loot'>('all');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isAutoSkills, setIsAutoSkills] = useState(true);
   const [nameInput, setNameInput] = useState('');
   const [activeSubTab, setActiveSubTab] = useState<string>('character');
   const [guideTopic, setGuideTopic] = useState<string | null>(null);
+  const [activeBoosterSelectorSlot, setActiveBoosterSelectorSlot] = useState<number | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  const renderBoosterSlot = (slotIndex: number) => {
+    if (!saveData || !saveData.hero) return null;
+    const hero = saveData.hero;
+    const equipped = hero.equippedBoosters ?? ['potion', null, null, null, null, null, null];
+    const boosterType = equipped[slotIndex];
+
+    const isVi = language === 'vi';
+
+    if (!boosterType) {
+      return (
+        <button
+          onClick={() => setActiveBoosterSelectorSlot(slotIndex)}
+          className="w-[38px] h-[38px] rounded-full bg-slate-950 hover:bg-slate-900 border-2 border-dashed border-amber-500/50 flex items-center justify-center text-xs text-amber-500/70 font-black cursor-pointer active:scale-95 transition-all select-none shadow-inner shrink-0"
+          title={isVi ? 'Trang bị phím tắt' : 'Equip shortcut'}
+        >
+          ➕
+        </button>
+      );
+    }
+
+    let name = '';
+    let count = 0;
+    let isActive = false;
+    let durationRemaining = 0;
+    let maxDuration = 300;
+    let icon: React.ReactNode = null;
+    let badgeColor = '';
+    let triggerAction = () => { };
+
+    if (boosterType === 'potion') {
+      name = isVi ? 'Bình Máu' : 'Health Potion';
+      count = hero.potions ?? 5;
+      isActive = potionCooldownRemaining > 0;
+      durationRemaining = potionCooldownRemaining;
+      maxDuration = 15;
+      icon = <PotionIcon />;
+      badgeColor = 'bg-red-600 text-white';
+      triggerAction = () => usePotion();
+    } else if (boosterType === 'speed_elixir') {
+      name = isVi ? 'Thuốc Tốc Độ' : 'Speed Elixir';
+      count = hero.speedElixirs ?? 0;
+      const activeUntil = hero.speedElixirActiveUntil ?? 0;
+      durationRemaining = Math.max(0, (activeUntil - Date.now()) / 1000);
+      isActive = durationRemaining > 0;
+      maxDuration = 300;
+      icon = <span className="text-base">⚡</span>;
+      badgeColor = 'bg-amber-500 text-slate-950';
+      triggerAction = () => useBooster('speed_elixir');
+    } else if (boosterType === 'exp_charm') {
+      name = isVi ? 'Bùa EXP' : 'EXP Charm';
+      count = hero.expCharms ?? 0;
+      const activeUntil = hero.expCharmActiveUntil ?? 0;
+      durationRemaining = Math.max(0, (activeUntil - Date.now()) / 1000);
+      isActive = durationRemaining > 0;
+      maxDuration = 300;
+      icon = <span className="text-base">📜</span>;
+      badgeColor = 'bg-purple-600 text-white';
+      triggerAction = () => useBooster('exp_charm');
+    }
+
+    const borderClass = isActive
+      ? 'border-slate-900 shadow-[0_0_12px_rgba(255,255,255,0.05)]'
+      : 'border-slate-750 hover:border-slate-650';
+
+    return (
+      <div className="relative shrink-0 select-none w-[38px] h-[38px]">
+        {/* Main Activation Button */}
+        <button
+          disabled={!isEditMode && count === 0}
+          onClick={() => {
+            if (isEditMode) {
+              setActiveBoosterSelectorSlot(slotIndex);
+            } else {
+              triggerAction();
+            }
+          }}
+          className={`relative w-[38px] h-[38px] transition-all focus:outline-none block ${
+            !isEditMode && count === 0 ? 'cursor-not-allowed' : 'cursor-pointer active:scale-95'
+          }`}
+          title={`${name} (${isEditMode ? (isVi ? 'Chỉnh sửa' : 'Edit') : (isVi ? 'Sử dụng' : 'Use')})`}
+        >
+          <div className={`w-[38px] h-[38px] rounded-full bg-slate-900 flex items-center justify-center overflow-hidden relative border-2 ${borderClass}`}>
+            <div className={isActive ? 'opacity-35 grayscale-[20%]' : count === 0 ? 'opacity-20 grayscale-[90%]' : 'opacity-100'}>
+              {icon}
+            </div>
+
+            {/* Countdown overlay */}
+            {isActive && (
+              <div className="absolute inset-0 bg-slate-950/60 flex items-center justify-center rounded-full z-10">
+                <span className={`text-[7.5px] font-black font-mono ${boosterType === 'potion' ? 'text-red-400' : 'text-yellow-400'}`}>
+                  {durationRemaining > 60
+                    ? `${Math.floor(durationRemaining / 60)}m`
+                    : `${durationRemaining.toFixed(1)}s`}
+                </span>
+              </div>
+            )}
+
+            {/* Circular active border overlay using SVG */}
+            {isActive && (
+              <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none z-20" viewBox="0 0 38 38">
+                <circle
+                  cx="19"
+                  cy="19"
+                  r="18"
+                  fill="transparent"
+                  stroke={boosterType === 'potion' ? '#ef4444' : '#fbbf24'}
+                  strokeWidth="2"
+                  strokeDasharray={2 * Math.PI * 18}
+                  strokeDashoffset={2 * Math.PI * 18 * (1 - durationRemaining / maxDuration)}
+                  strokeLinecap="round"
+                  className="transition-all duration-100 ease-linear"
+                />
+              </svg>
+            )}
+
+            {/* Diagonal Out of Stock Slash Line */}
+            {count === 0 && (
+              <svg className="absolute inset-0 w-full h-full pointer-events-none z-20" viewBox="0 0 38 38">
+                <line 
+                  x1="8" y1="30" 
+                  x2="30" y2="8" 
+                  stroke="#ef4444" 
+                  strokeWidth="2.5" 
+                  strokeLinecap="round"
+                  className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+                />
+              </svg>
+            )}
+          </div>
+
+          {/* Outer halo glow when ready and count > 0 */}
+          {!isActive && count > 0 && (
+            <div className={`absolute inset-0 rounded-full border pointer-events-none scale-105 animate-pulse z-20 ${boosterType === 'potion'
+              ? 'border-red-500/25 shadow-[0_0_8px_rgba(239,68,68,0.15)]'
+              : boosterType === 'speed_elixir'
+                ? 'border-amber-500/25 shadow-[0_0_8px_rgba(245,158,11,0.15)]'
+                : 'border-purple-500/25 shadow-[0_0_8px_rgba(168,85,247,0.15)]'
+              }`} />
+          )}
+        </button>
+
+        {/* Owned count badge centered directly below the button */}
+        <span className={`absolute left-1/2 -translate-x-1/2 top-[41px] text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded-full border border-slate-950 shadow-md z-30 leading-none whitespace-nowrap ${badgeColor}`}>
+          {count}
+        </span>
+
+        {/* Small red minus icon overlay when edit mode is toggled */}
+        {isEditMode && (
+          <button
+            onClick={() => {
+              equipBooster(slotIndex, null);
+            }}
+            className="absolute top-[-3px] right-[-3px] w-4.5 h-4.5 rounded-full bg-red-600 hover:bg-red-500 border border-slate-950 flex items-center justify-center text-[10px] text-white font-black cursor-pointer shadow-md active:scale-90 transition z-30 select-none focus:outline-none"
+            title={isVi ? 'Gỡ trang bị' : 'Unequip booster'}
+          >
+            -
+          </button>
+        )}
+      </div>
+    );
+  };
 
   // Sync sub-tab when main tab changes
   React.useEffect(() => {
@@ -677,62 +863,26 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
 
             {/* Legend of Slime Skill Action Bar */}
-            <div className="pt-2 pb-1.5 px-3 flex items-center justify-between gap-1 w-full bg-slate-950/40 border-t border-slate-900/40 shrink-0 select-none">
+            <div className="pt-2 pb-5 px-3 flex items-center justify-center gap-2.5 w-full bg-slate-950/40 border-t border-slate-900/40 shrink-0 select-none">
 
-              {/* AUTO TOGGLE */}
+              {renderBoosterSlot(0)}
+              {renderBoosterSlot(1)}
+              {renderBoosterSlot(2)}
+              {renderBoosterSlot(3)}
+              {renderBoosterSlot(4)}
+              {renderBoosterSlot(5)}
+              {renderBoosterSlot(6)}
+
+              {/* Edit Mode Toggle Button */}
               <button
-                onClick={() => setIsAutoSkills(prev => !prev)}
-                className={`w-[42px] h-[42px] rounded-full border-2 flex flex-col items-center justify-center text-[9px] font-black leading-none uppercase tracking-tighter cursor-pointer active:scale-95 transition-all shadow-[0_0_12px_rgba(245,158,11,0.2)] shrink-0 ${isAutoSkills
-                  ? 'bg-gradient-to-b from-amber-400 via-yellow-500 to-amber-600 border-yellow-300 text-slate-950 animate-pulse'
-                  : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+                onClick={() => setIsEditMode(prev => !prev)}
+                className={`w-[34px] h-[34px] rounded-full border-2 flex items-center justify-center text-xs cursor-pointer active:scale-95 transition-all shadow-md shrink-0 ${isEditMode
+                  ? 'bg-emerald-600 border-emerald-400 text-white font-black shadow-[0_0_10px_rgba(16,185,129,0.3)] border-emerald-300'
+                  : 'bg-slate-900 border-slate-750 text-slate-450 hover:text-white'
                   }`}
+                title={isEditMode ? (language === 'vi' ? 'Hoàn tất' : 'Done') : (language === 'vi' ? 'Chỉnh sửa' : 'Edit')}
               >
-                <span>AUTO</span>
-                <span className="text-[7.5px] mt-0.5">{isAutoSkills ? 'ON' : 'OFF'}</span>
-              </button>
-
-              {/* SKILL 1: Active Companion (Equipped/Ready) */}
-              <div className="relative group cursor-pointer active:scale-95 transition-all shrink-0">
-                <div className="w-[38px] h-[38px] rounded-full bg-slate-900 border-2 border-yellow-500 flex items-center justify-center text-base shadow-[0_0_10px_rgba(234,179,8,0.15)] overflow-hidden">
-                  <span>💧</span>
-                </div>
-                <div className="absolute inset-0 rounded-full border border-yellow-300/40 pointer-events-none scale-105" />
-              </div>
-
-              {/* SKILL 2: Cooldown state */}
-              <div className="relative group cursor-pointer active:scale-95 transition-all shrink-0">
-                <div className="w-[38px] h-[38px] rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center text-base overflow-hidden relative">
-                  <span className="opacity-40">🐱</span>
-                  <div className="absolute inset-0 bg-slate-950/70 flex items-center justify-center rounded-full">
-                    <span className="text-[8.5px] font-black text-amber-500 font-mono">2.5s</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* SKILL 3: Scythe Skill */}
-              <div className="relative group cursor-pointer active:scale-95 transition-all shrink-0">
-                <div className="w-[38px] h-[38px] rounded-full bg-slate-900 border-2 border-slate-750 flex items-center justify-center text-base overflow-hidden">
-                  <span>💀</span>
-                </div>
-              </div>
-
-              {/* SKILL 4: Egg Skill */}
-              <div className="relative group cursor-pointer active:scale-95 transition-all shrink-0">
-                <div className="w-[38px] h-[38px] rounded-full bg-slate-900 border-2 border-slate-750 flex items-center justify-center text-base overflow-hidden">
-                  <span>🥚</span>
-                </div>
-              </div>
-
-              {/* SKILL 5: Lightning Skill */}
-              <div className="relative group cursor-pointer active:scale-95 transition-all shrink-0">
-                <div className="w-[38px] h-[38px] rounded-full bg-slate-900 border-2 border-slate-750 flex items-center justify-center text-base overflow-hidden">
-                  <span>⚡</span>
-                </div>
-              </div>
-
-              {/* SKILL 6: Empty Slot (+) */}
-              <button className="w-[38px] h-[38px] rounded-full bg-slate-950 hover:bg-slate-900 border-2 border-dashed border-amber-500/50 flex items-center justify-center text-xs text-amber-500/70 font-black cursor-pointer active:scale-95 transition-all select-none shadow-inner shrink-0">
-                ➕
+                {isEditMode ? '✓' : '✏️'}
               </button>
 
             </div>
@@ -1151,6 +1301,137 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
             {/* Progress slider bar */}
             <div className="w-56 h-1 bg-slate-900 border border-slate-850 rounded-full overflow-hidden mx-auto relative">
               <div className="h-full bg-indigo-500 rounded-full animate-pulse w-full" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booster Selection Overlay Popover */}
+      {activeBoosterSelectorSlot !== null && saveData && saveData.hero && (
+        <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-40 flex flex-col items-center justify-center p-4 select-none">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 w-72 max-w-full shadow-2xl relative">
+            {/* Close Button */}
+            <button
+              onClick={() => setActiveBoosterSelectorSlot(null)}
+              className="absolute top-2 right-2 text-slate-500 hover:text-white cursor-pointer w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-800 transition text-sm font-bold"
+            >
+              ✕
+            </button>
+
+            <h4 className="text-xs font-black uppercase text-slate-250 tracking-wider mb-4 text-center">
+              {language === 'vi' ? 'Trang Bị Bổ Trợ' : 'Equip Booster'}
+            </h4>
+
+            <div className="space-y-2.5 mb-2">
+              {(() => {
+                const equipped = saveData.hero.equippedBoosters ?? ['potion', null, null, null, null, null, null];
+                const isPotionEquipped = equipped.includes('potion');
+                const isSpeedEquipped = equipped.includes('speed_elixir');
+                const isExpEquipped = equipped.includes('exp_charm');
+
+                return (
+                  <>
+                    {/* Option 1: Potion */}
+                    <div className="p-2 bg-slate-950/60 border border-slate-850 hover:border-slate-700/60 rounded-xl flex justify-between items-center transition duration-200">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center">
+                          <PotionIcon />
+                        </div>
+                        <div className="text-left">
+                          <span className="text-[10px] font-extrabold text-white block leading-tight">
+                            {language === 'vi' ? 'Bình Máu' : 'Health Potion'}
+                          </span>
+                          <span className="text-[8px] text-slate-500 block mt-0.5">
+                            {language === 'vi' ? `Đang có: ${saveData.hero.potions ?? 5}` : `Owned: ${saveData.hero.potions ?? 5}`}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        disabled={isPotionEquipped}
+                        onClick={() => {
+                          equipBooster(activeBoosterSelectorSlot, 'potion');
+                          setActiveBoosterSelectorSlot(null);
+                        }}
+                        className={`text-[9px] font-extrabold px-2.5 py-1.5 rounded-lg active:scale-95 transition-all shadow shrink-0 border ${isPotionEquipped
+                          ? 'bg-slate-850 text-slate-500 border-slate-800 cursor-not-allowed opacity-60'
+                          : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500/20 cursor-pointer'
+                          }`}
+                      >
+                        {isPotionEquipped ? (language === 'vi' ? 'ĐÃ TRANG BỊ' : 'EQUIPPED') : (language === 'vi' ? 'TRANG BỊ' : 'EQUIP')}
+                      </button>
+                    </div>
+
+                    {/* Option 2: Speed Elixir */}
+                    <div className="p-2 bg-slate-950/60 border border-slate-850 hover:border-slate-700/60 rounded-xl flex justify-between items-center transition duration-200">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-lg w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center">⚡</span>
+                        <div className="text-left">
+                          <span className="text-[10px] font-extrabold text-white block leading-tight">
+                            {language === 'vi' ? 'Thuốc Tốc Độ' : 'Speed Elixir'}
+                          </span>
+                          <span className="text-[8px] text-slate-500 block mt-0.5">
+                            {language === 'vi' ? `Đang có: ${saveData.hero.speedElixirs ?? 0}` : `Owned: ${saveData.hero.speedElixirs ?? 0}`}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        disabled={isSpeedEquipped}
+                        onClick={() => {
+                          equipBooster(activeBoosterSelectorSlot, 'speed_elixir');
+                          setActiveBoosterSelectorSlot(null);
+                        }}
+                        className={`text-[9px] font-extrabold px-2.5 py-1.5 rounded-lg active:scale-95 transition-all shadow shrink-0 border ${isSpeedEquipped
+                          ? 'bg-slate-850 text-slate-500 border-slate-800 cursor-not-allowed opacity-60'
+                          : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500/20 cursor-pointer'
+                          }`}
+                      >
+                        {isSpeedEquipped ? (language === 'vi' ? 'ĐÃ TRANG BỊ' : 'EQUIPPED') : (language === 'vi' ? 'TRANG BỊ' : 'EQUIP')}
+                      </button>
+                    </div>
+
+                    {/* Option 3: EXP Charm */}
+                    <div className="p-2 bg-slate-950/60 border border-slate-850 hover:border-slate-700/60 rounded-xl flex justify-between items-center transition duration-200">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-lg w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center">📜</span>
+                        <div className="text-left">
+                          <span className="text-[10px] font-extrabold text-white block leading-tight">
+                            {language === 'vi' ? 'Bùa EXP' : 'EXP Charm'}
+                          </span>
+                          <span className="text-[8px] text-slate-500 block mt-0.5">
+                            {language === 'vi' ? `Đang có: ${saveData.hero.expCharms ?? 0}` : `Owned: ${saveData.hero.expCharms ?? 0}`}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        disabled={isExpEquipped}
+                        onClick={() => {
+                          equipBooster(activeBoosterSelectorSlot, 'exp_charm');
+                          setActiveBoosterSelectorSlot(null);
+                        }}
+                        className={`text-[9px] font-extrabold px-2.5 py-1.5 rounded-lg active:scale-95 transition-all shadow shrink-0 border ${isExpEquipped
+                          ? 'bg-slate-850 text-slate-500 border-slate-800 cursor-not-allowed opacity-60'
+                          : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500/20 cursor-pointer'
+                          }`}
+                      >
+                        {isExpEquipped ? (language === 'vi' ? 'ĐÃ TRANG BỊ' : 'EQUIPPED') : (language === 'vi' ? 'TRANG BỊ' : 'EQUIP')}
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
+
+              {/* Option 4: Unequip */}
+              {saveData.hero.equippedBoosters?.[activeBoosterSelectorSlot] && (
+                <button
+                  onClick={() => {
+                    equipBooster(activeBoosterSelectorSlot, null);
+                    setActiveBoosterSelectorSlot(null);
+                  }}
+                  className="w-full py-2 bg-red-950/40 hover:bg-red-950/60 border border-red-900/30 text-red-400 text-[9px] font-extrabold rounded-lg cursor-pointer transition active:scale-95 duration-200 mt-2"
+                >
+                  {language === 'vi' ? 'GỠ TRANG BỊ' : 'UNEQUIP BOOSTER'}
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -124,6 +124,8 @@ export class GameEngine {
   private potionsCount: number = 0;
   private potionCooldownRemaining: number = 0;
   private autoBuyPotions: boolean = false;
+  private isSpeedElixirActive: boolean = false;
+  private isExpCharmActive: boolean = false;
   private gold: number = 0;
 
   // Timers (in seconds)
@@ -471,7 +473,9 @@ export class GameEngine {
     autoBuyPotions?: boolean,
     gold?: number,
     goldUpgrades?: { attack?: number; hp?: number; hpRecovery?: number; critDamage?: number },
-    traits?: any[]
+    traits?: any[],
+    isSpeedElixirActive?: boolean,
+    isExpCharmActive?: boolean
   ) {
     this.heroLevel = level;
     this.prestigePoints = prestigePoints;
@@ -503,6 +507,12 @@ export class GameEngine {
     }
     if (traits) {
       this.traits = traits;
+    }
+    if (isSpeedElixirActive !== undefined) {
+      this.isSpeedElixirActive = isSpeedElixirActive;
+    }
+    if (isExpCharmActive !== undefined) {
+      this.isExpCharmActive = isExpCharmActive;
     }
     this.recalculateStats();
 
@@ -1167,6 +1177,9 @@ export class GameEngine {
           let speedVal = 100;
           if (ally === this.allyEntities[0]) {
             speedVal = this.heroStats.speed;
+            if (this.isSpeedElixirActive) {
+              speedVal = speedVal * 1.5;
+            }
           } else {
             speedVal = ally.heroClass === 'knight' ? 95 : ally.heroClass === 'mage' ? 100 : 125;
           }
@@ -1905,6 +1918,9 @@ export class GameEngine {
     }
 
     let totalExp = this.accumulatedExp;
+    if (this.isExpCharmActive) {
+      totalExp = Math.round(totalExp * 2);
+    }
     let totalGold = this.accumulatedGold;
     let totalDiamonds = this.accumulatedDiamonds;
     let itemsDropped = this.accumulatedItems;

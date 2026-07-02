@@ -90,7 +90,7 @@ interface GameState {
   buyAetherChest: () => void;
   buyAetherDiamonds: () => void;
   claimQuestReward: (questId: string) => void;
-  buyGoldPack: () => void;
+  buyGoldPack: (quantity?: number) => void;
   summonEquipment: () => void;
   summonTenEquipment: () => void;
   setActiveSummonResult: (items: EquipmentItem[] | null) => void;
@@ -119,6 +119,9 @@ interface GameState {
   usePotion: () => void;
   buyPotion: (quantity: number, currency: 'gold' | 'diamonds') => void;
   toggleAutoUsePotion: () => void;
+  buyBooster: (type: 'speed_elixir' | 'exp_charm', quantity?: number) => void;
+  equipBooster: (slotIndex: number, type: 'potion' | 'speed_elixir' | 'exp_charm' | null) => void;
+  useBooster: (type: 'speed_elixir' | 'exp_charm') => void;
   toggleAutoDismantleCommon: () => void;
   toggleAutoDismantleUncommon: () => void;
   toggleAutoDismantleRare: () => void;
@@ -293,6 +296,13 @@ export const useGameStore = create<GameState>((set, get) => {
               }
               if (data.hero.potions === undefined) data.hero.potions = 5;
               if (data.hero.autoUsePotion === undefined) data.hero.autoUsePotion = false;
+              if (data.hero.speedElixirs === undefined) data.hero.speedElixirs = 0;
+              if (data.hero.expCharms === undefined) data.hero.expCharms = 0;
+              if (data.hero.equippedBoosters === undefined || data.hero.equippedBoosters.length < 7) {
+                data.hero.equippedBoosters = ['potion', null, null, null, null, null, null];
+              }
+              if (data.hero.speedElixirActiveUntil === undefined) data.hero.speedElixirActiveUntil = 0;
+              if (data.hero.expCharmActiveUntil === undefined) data.hero.expCharmActiveUntil = 0;
               if (data.hero.autoDismantleCommon === undefined) data.hero.autoDismantleCommon = false;
               if (data.hero.autoDismantleUncommon === undefined) data.hero.autoDismantleUncommon = false;
               if (data.hero.autoDismantleRare === undefined) data.hero.autoDismantleRare = false;
@@ -1333,6 +1343,164 @@ export const useGameStore = create<GameState>((set, get) => {
       );
     },
 
+    buyBooster: (type: 'speed_elixir' | 'exp_charm', quantity: number = 1) => {
+      const state = get();
+      if (!state.saveData) return;
+
+      const hero = state.saveData.hero;
+      const cost = 10 * quantity;
+
+      if (hero.diamonds < cost) {
+        state.addLogMessage(useLanguageStore.getState().language === 'vi' ? '❌ Không đủ Kim Cương!' : '❌ Insufficient Diamonds!', 'system');
+        return;
+      }
+
+      const nextSave = {
+        ...state.saveData,
+        hero: {
+          ...hero,
+          diamonds: hero.diamonds - cost,
+          speedElixirs: type === 'speed_elixir' ? (hero.speedElixirs ?? 0) + quantity : (hero.speedElixirs ?? 0),
+          expCharms: type === 'exp_charm' ? (hero.expCharms ?? 0) + quantity : (hero.expCharms ?? 0)
+        }
+      };
+
+      set({ saveData: nextSave });
+      dbService.saveGame(nextSave).catch(err => console.error("Save error:", err));
+
+      const isVi = useLanguageStore.getState().language === 'vi';
+      const name = type === 'speed_elixir' 
+        ? (isVi ? 'Thuốc Tốc Độ' : 'Speed Elixir') 
+        : (isVi ? 'Bùa EXP' : 'EXP Charm');
+
+      state.addLogMessage(
+        isVi 
+          ? `🛒 Đã mua thành công ${quantity}x ${name} (-${cost} Kim Cương)` 
+          : `🛒 Successfully purchased ${quantity}x ${name} (-${cost} Diamonds)`,
+        'system'
+      );
+      state.showToast(
+        isVi
+          ? `🎉 Đã mua thành công ${quantity}x ${name}!`
+          : `🎉 Purchased ${quantity}x ${name}!`
+      );
+    },
+
+    equipBooster: (slotIndex: number, type: 'potion' | 'speed_elixir' | 'exp_charm' | null) => {
+      const state = get();
+      if (!state.saveData) return;
+
+      const hero = state.saveData.hero;
+      const equippedBoosters = [...(hero.equippedBoosters ?? ['potion', null, null, null, null, null, null])];
+      equippedBoosters[slotIndex] = type;
+
+      const nextSave = {
+        ...state.saveData,
+        hero: {
+          ...hero,
+          equippedBoosters
+        }
+      };
+
+      set({ saveData: nextSave });
+      dbService.saveGame(nextSave).catch(err => console.error("Save error:", err));
+
+      const isVi = useLanguageStore.getState().language === 'vi';
+      if (type) {
+        const name = type === 'potion'
+          ? (isVi ? 'Bình Máu' : 'Health Potion')
+          : type === 'speed_elixir' 
+            ? (isVi ? 'Thuốc Tốc Độ' : 'Speed Elixir') 
+            : (isVi ? 'Bùa EXP' : 'EXP Charm');
+        state.addLogMessage(
+          isVi
+            ? `🎒 Đã trang bị ${name} vào phím tắt ô ${slotIndex + 1}.`
+            : `🎒 Equipped ${name} into shortcut slot ${slotIndex + 1}.`,
+          'system'
+        );
+      } else {
+        state.addLogMessage(
+          isVi
+            ? `🎒 Đã tháo vật phẩm bổ trợ khỏi phím tắt ô ${slotIndex + 1}.`
+            : `🎒 Unequipped booster from shortcut slot ${slotIndex + 1}.`,
+          'system'
+        );
+      }
+    },
+
+    useBooster: (type: 'speed_elixir' | 'exp_charm') => {
+      const state = get();
+      if (!state.saveData) return;
+
+      const hero = state.saveData.hero;
+      const owned = type === 'speed_elixir' ? (hero.speedElixirs ?? 0) : (hero.expCharms ?? 0);
+
+      const isVi = useLanguageStore.getState().language === 'vi';
+      const name = type === 'speed_elixir' 
+        ? (isVi ? 'Thuốc Tốc Độ' : 'Speed Elixir') 
+        : (isVi ? 'Bùa EXP' : 'EXP Charm');
+
+      if (owned <= 0) {
+        state.addLogMessage(
+          isVi 
+            ? `❌ Hết ${name}! Hãy mua thêm ở Cửa Hàng.` 
+            : `❌ Out of ${name}! Purchase more in the Shop.`, 
+          'system'
+        );
+        return;
+      }
+
+      const now = Date.now();
+      const currentActiveUntil = type === 'speed_elixir' 
+        ? (hero.speedElixirActiveUntil ?? 0) 
+        : (hero.expCharmActiveUntil ?? 0);
+      
+      const nextActiveUntil = Math.max(now, currentActiveUntil) + 5 * 60 * 1000;
+
+      const nextSave = {
+        ...state.saveData,
+        hero: {
+          ...hero,
+          speedElixirs: type === 'speed_elixir' ? owned - 1 : (hero.speedElixirs ?? 0),
+          expCharms: type === 'exp_charm' ? owned - 1 : (hero.expCharms ?? 0),
+          speedElixirActiveUntil: type === 'speed_elixir' ? nextActiveUntil : (hero.speedElixirActiveUntil ?? 0),
+          expCharmActiveUntil: type === 'exp_charm' ? nextActiveUntil : (hero.expCharmActiveUntil ?? 0)
+        }
+      };
+
+      set({ saveData: nextSave });
+      dbService.saveGame(nextSave).catch(err => console.error("Save error:", err));
+
+      state.addLogMessage(
+        isVi
+          ? `⚡ Đã sử dụng 1x ${name}! Kích hoạt hiệu ứng tăng cường thêm 5 phút.`
+          : `⚡ Used 1x ${name}! Activated booster effect for 5 minutes.`,
+        'combat'
+      );
+
+      if (state.engineInstance) {
+        const equipped = nextSave.inventory?.filter(i => i?.equipped) || [];
+        state.engineInstance.updateState(
+          nextSave.hero.level,
+          nextSave.hero.prestigePoints,
+          equipped,
+          nextSave.activeStage,
+          nextSave.hero.heroClass,
+          nextSave.hero.name || 'Hero',
+          isVi ? 'vi' : 'en',
+          nextSave.hero.shardUpgrades,
+          nextSave.hero.potions,
+          nextSave.hero.autoUsePotion,
+          nextSave.hero.autoBuyPotions,
+          nextSave.hero.gold,
+          nextSave.hero.goldUpgrades,
+          nextSave.hero.traits,
+          Date.now() < nextActiveUntil && type === 'speed_elixir' ? true : (Date.now() < (hero.speedElixirActiveUntil ?? 0)),
+          Date.now() < nextActiveUntil && type === 'exp_charm' ? true : (Date.now() < (hero.expCharmActiveUntil ?? 0))
+        );
+      }
+    },
+
     toggleAutoDismantleCommon: () => {
       const state = get();
       if (!state.saveData) return;
@@ -1478,17 +1646,17 @@ export const useGameStore = create<GameState>((set, get) => {
       autoSave(updatedSave);
     },
 
-    buyGoldPack: () => {
+    buyGoldPack: (quantity: number = 1) => {
       const { saveData } = get();
       if (!saveData) return;
 
-      const cost = 15; // 15 diamonds
+      const cost = 15 * quantity; // 15 diamonds
       if (saveData.hero.diamonds < cost) {
         get().addLogMessage(tStore('insufficient_diamonds'), 'system');
         return;
       }
 
-      const goldGained = 800 * saveData.activeStage;
+      const goldGained = 800 * saveData.activeStage * quantity;
       const hero = { ...saveData.hero };
       hero.diamonds -= cost;
       hero.gold += goldGained;

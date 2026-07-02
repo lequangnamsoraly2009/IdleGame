@@ -77,6 +77,11 @@ export interface HeroState {
   heroClass?: 'knight' | 'mage' | 'assassin';
   potions?: number;
   autoUsePotion?: boolean;
+  speedElixirs?: number;
+  expCharms?: number;
+  equippedBoosters?: (string | null)[];
+  speedElixirActiveUntil?: number;
+  expCharmActiveUntil?: number;
   autoDismantleCommon?: boolean;
   autoDismantleUncommon?: boolean;
   autoDismantleRare?: boolean;

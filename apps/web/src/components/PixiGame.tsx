@@ -129,7 +129,9 @@ export const PixiGame: React.FC = () => {
             hero.autoBuyPotions,
             hero.gold,
             hero.goldUpgrades,
-            hero.traits
+            hero.traits,
+            Date.now() < (hero.speedElixirActiveUntil ?? 0),
+            Date.now() < (hero.expCharmActiveUntil ?? 0)
           );
         }
         
@@ -275,7 +277,9 @@ export const PixiGame: React.FC = () => {
                 hero.autoBuyPotions,
                 hero.gold,
                 hero.goldUpgrades,
-                hero.traits
+                hero.traits,
+                Date.now() < (hero.speedElixirActiveUntil ?? 0),
+                Date.now() < (hero.expCharmActiveUntil ?? 0)
               );
             }
 
@@ -310,7 +314,9 @@ export const PixiGame: React.FC = () => {
           hero.autoBuyPotions,
           hero.gold,
           hero.goldUpgrades,
-          hero.traits
+          hero.traits,
+          Date.now() < (hero.speedElixirActiveUntil ?? 0),
+          Date.now() < (hero.expCharmActiveUntil ?? 0)
         );
       }
     });
