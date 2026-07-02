@@ -458,8 +458,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
         ];
       case 'shop':
         return [
-          { id: 'summon', label: language === 'vi' ? 'Triệu Hồi' : 'Summon' },
-          { id: 'shop', label: language === 'vi' ? 'Cửa Hàng' : 'Store' }
+          { id: 'shop', label: language === 'vi' ? 'Cửa Hàng' : 'Store' },
+          { id: 'summon', label: language === 'vi' ? 'Triệu Hồi' : 'Summon' }
         ];
       default:
         return [];
@@ -1028,7 +1028,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                     if (tab === 'hero') setActiveSubTab('character');
                     else if (tab === 'dungeon') setActiveSubTab('dungeon');
                     else if (tab === 'forge') setActiveSubTab('forge');
-                    else if (tab === 'shop') setActiveSubTab('summon');
+                    else if (tab === 'shop') setActiveSubTab('shop');
                   }}
                   className={`flex-grow flex-1 flex justify-center py-2 text-2xl transition cursor-pointer active:scale-90 ${activeTab === tab
                     ? 'text-blue-400 scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
