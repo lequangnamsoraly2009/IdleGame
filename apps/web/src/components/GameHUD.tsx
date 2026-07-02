@@ -260,7 +260,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     } else if (activeTab === 'forge') {
       setActiveSubTab('forge');
     } else if (activeTab === 'shop') {
-      setActiveSubTab('summon');
+      setActiveSubTab('shop');
     }
   }, [activeTab]);
 
