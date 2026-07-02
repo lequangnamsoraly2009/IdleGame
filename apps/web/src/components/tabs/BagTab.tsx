@@ -1,20 +1,71 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../../stores/gameStore';
-import { EquipmentItem, calculateDismantleRewards } from '@idle-rpg/shared';
+import { useLanguageStore } from '../../stores/languageStore';
+import { EquipmentItem, calculateDismantleRewards, calculateItemCP } from '@idle-rpg/shared';
 import { useTranslation } from '../../utils/i18n';
 import { ItemGraphic } from '../ItemGraphic';
 
 export const BagTab: React.FC = () => {
   const { saveData, dismantleMultipleEquipment, setActiveInspectItemId } = useGameStore();
   const { t } = useTranslation();
+  const { language } = useLanguageStore();
 
   // Bulk dismantle states
   const [isBulkDismantleMode, setIsBulkDismantleMode] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
+  // Sort and Filter states
+  const [filterClass, setFilterClass] = useState<'all' | 'knight' | 'mage' | 'assassin'>('all');
+  const [filterSlot, setFilterSlot] = useState<'all' | 'weapon' | 'armor' | 'helmet' | 'boots' | 'ring' | 'gloves'>('all');
+  const [sortBy, setSortBy] = useState<'rarity-desc' | 'rarity-asc' | 'level-desc' | 'level-asc' | 'cp-desc' | 'cp-asc'>('rarity-desc');
+  const [isSortModalOpen, setIsSortModalOpen] = useState(false);
+
   if (!saveData) return null;
 
   const { inventory } = saveData;
+
+  const RARITY_VALUES: Record<string, number> = {
+    common: 1,
+    uncommon: 2,
+    rare: 3,
+    epic: 4,
+    legendary: 5,
+  };
+
+  const filteredSortedInventory = [...inventory]
+    .filter(item => {
+      // 1. Filter by allowed class
+      if (filterClass !== 'all') {
+        if (item.allowedClass && item.allowedClass !== filterClass) {
+          return false;
+        }
+      }
+      // 2. Filter by slot type
+      if (filterSlot !== 'all') {
+        if (item.slot !== filterSlot) {
+          return false;
+        }
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'rarity-desc':
+          return (RARITY_VALUES[b.rarity] || 0) - (RARITY_VALUES[a.rarity] || 0);
+        case 'rarity-asc':
+          return (RARITY_VALUES[a.rarity] || 0) - (RARITY_VALUES[b.rarity] || 0);
+        case 'level-desc':
+          return b.level - a.level;
+        case 'level-asc':
+          return a.level - b.level;
+        case 'cp-desc':
+          return calculateItemCP(b) - calculateItemCP(a);
+        case 'cp-asc':
+          return calculateItemCP(a) - calculateItemCP(b);
+        default:
+          return 0;
+      }
+    });
 
   const getRarityUIStyles = (item: EquipmentItem) => {
     // Corrupted overrides outline color with glowing red
@@ -156,7 +207,8 @@ export const BagTab: React.FC = () => {
   };
 
   const totalSlots = 50;
-  const blankSlotsCount = Math.max(0, totalSlots - inventory.length);
+  const isFiltering = filterClass !== 'all' || filterSlot !== 'all';
+  const blankSlotsCount = isFiltering ? 0 : Math.max(0, totalSlots - filteredSortedInventory.length);
   const blankSlots = Array.from({ length: blankSlotsCount });
 
   return (
@@ -170,6 +222,15 @@ export const BagTab: React.FC = () => {
             </h3>
             <div className="flex items-center gap-2">
               <button
+                onClick={() => setIsSortModalOpen(true)}
+                className="text-xs font-extrabold px-3 py-1.5 rounded-lg border bg-slate-900 border-slate-800 text-slate-350 hover:bg-slate-850 hover:text-white transition active:scale-[0.98] cursor-pointer flex items-center gap-1.5 relative select-none"
+              >
+                <span>🔍 {language === 'vi' ? 'Sắp Xếp' : 'Sort & Filter'}</span>
+                {(filterClass !== 'all' || filterSlot !== 'all' || sortBy !== 'rarity-desc') && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                )}
+              </button>
+              <button
                 onClick={() => {
                   setIsBulkDismantleMode(!isBulkDismantleMode);
                   setSelectedItemIds([]);
@@ -179,7 +240,7 @@ export const BagTab: React.FC = () => {
                   : 'bg-purple-650/25 border-purple-600/40 text-purple-300 hover:bg-purple-600/40'
                   }`}
               >
-                {isBulkDismantleMode ? '❌ Hủy Phân Rã' : '♻️ Phân Rã Hàng Loạt'}
+                {isBulkDismantleMode ? '❌ Hủy' : '♻️ Phân Rã'}
               </button>
               <span className="text-xs font-semibold px-2 py-1.5 bg-slate-950/80 border border-slate-800 rounded-lg text-slate-400">
                 {inventory.length} / {totalSlots} {t('inventory_capacity')}
@@ -262,7 +323,7 @@ export const BagTab: React.FC = () => {
 
           {/* Grid View */}
           <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 gap-2 overflow-y-auto flex-1 min-h-[180px] pr-1">
-            {inventory.map((item) => {
+            {filteredSortedInventory.map((item) => {
               const ui = getRarityUIStyles(item);
               const isSelected = isBulkDismantleMode && selectedItemIds.includes(item.id);
 
@@ -427,6 +488,187 @@ export const BagTab: React.FC = () => {
                 HỦY BỎ
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {isSortModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[999] select-none animate-fade-in">
+          <div className="bg-slate-900 border-2 border-slate-800 rounded-3xl p-5 w-[92%] max-w-xs shadow-2xl absolute top-1/2 left-1/2 flex flex-col max-h-[85vh] overflow-hidden animate-success-pop">
+
+            {/* Close button X */}
+            <button
+              onClick={() => setIsSortModalOpen(false)}
+              className="absolute top-4 right-4 w-7 h-7 rounded-full bg-slate-950 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs transition cursor-pointer active:scale-90 font-bold z-20 shadow-md"
+            >
+              ✕
+            </button>
+
+            {/* Header Title */}
+            <div className="flex items-center gap-2 mb-4 shrink-0">
+              <span className="text-xl">🔍</span>
+              <h3 className="text-sm font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-400 to-purple-400 font-display">
+                {language === 'vi' ? 'Sắp Xếp & Lọc Trang Bị' : 'Filter & Sort Gear'}
+              </h3>
+            </div>
+
+            {/* Glowing divider line */}
+            <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-slate-800 to-transparent shrink-0 mb-4" />
+
+            {/* Body content */}
+            <div className="flex-grow overflow-y-auto space-y-4 pr-1 text-xs">
+
+              {/* SECTION 1: LỌC THEO CLASS */}
+              <div className="space-y-2">
+                <span className="font-extrabold text-slate-450 uppercase tracking-widest text-[9.5px] block">
+                  🛡️ {language === 'vi' ? 'Lọc Theo Lớp (Class)' : 'Filter by Class'}
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { id: 'all', label: language === 'vi' ? 'Tất cả' : 'All Classes' },
+                    { id: 'knight', label: language === 'vi' ? '🛡️ Hiệp Sĩ' : '🛡️ Knight' },
+                    { id: 'mage', label: language === 'vi' ? '🔮 Pháp Sư' : '🔮 Mage' },
+                    { id: 'assassin', label: language === 'vi' ? '🗡️ Sát Thủ' : '🗡️ Assassin' }
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setFilterClass(opt.id)}
+                      className={`py-2 px-3 rounded-xl border text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer text-center ${filterClass === opt.id
+                        ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]'
+                        : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-white'
+                        }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* SECTION 2: LỌC THEO LOẠI TRANG BỊ */}
+              <div className="space-y-2">
+                <span className="font-extrabold text-slate-450 uppercase tracking-widest text-[9.5px] block">
+                  ⚔️ {language === 'vi' ? 'Lọc Theo Loại Trang Bị' : 'Filter by Slot'}
+                </span>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    { id: 'all', label: language === 'vi' ? 'Tất cả' : 'All' },
+                    { id: 'weapon', label: language === 'vi' ? 'Vũ khí' : 'Weapon' },
+                    { id: 'armor', label: language === 'vi' ? 'Giáp' : 'Armor' },
+                    { id: 'helmet', label: language === 'vi' ? 'Mũ' : 'Helmet' },
+                    { id: 'boots', label: language === 'vi' ? 'Giày' : 'Boots' },
+                    { id: 'ring', label: language === 'vi' ? 'Nhẫn' : 'Ring' },
+                    { id: 'gloves', label: language === 'vi' ? 'Găng' : 'Gloves' }
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setFilterSlot(opt.id)}
+                      className={`py-1.5 rounded-lg border text-[10px] font-black uppercase transition-all cursor-pointer text-center ${filterSlot === opt.id
+                        ? 'bg-indigo-600 border-indigo-400 text-white shadow-[0_0_8px_rgba(99,102,241,0.3)]'
+                        : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-white'
+                        }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* SECTION 3: SẮP XẾP */}
+              <div className="space-y-2">
+                <span className="font-extrabold text-slate-455 uppercase tracking-widest text-[9.5px] block">
+                  ⚡ {language === 'vi' ? 'Sắp Xếp Theo' : 'Sort Criteria'}
+                </span>
+                <div className="space-y-2">
+                  {/* Option Group: Rarity */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSortBy('rarity-desc')}
+                      className={`flex-1 py-2 px-2.5 rounded-xl border text-[10px] font-bold uppercase transition cursor-pointer text-center ${sortBy === 'rarity-desc'
+                        ? 'bg-purple-650 border-purple-400 text-white'
+                        : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-white'
+                        }`}
+                    >
+                      💎 {language === 'vi' ? 'Phẩm Chất 🌟 (Cao)' : 'Rarity 🌟 (High)'}
+                    </button>
+                    <button
+                      onClick={() => setSortBy('rarity-asc')}
+                      className={`flex-1 py-2 px-2.5 rounded-xl border text-[10px] font-bold uppercase transition cursor-pointer text-center ${sortBy === 'rarity-asc'
+                        ? 'bg-purple-650 border-purple-400 text-white'
+                        : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-white'
+                        }`}
+                    >
+                      💎 {language === 'vi' ? 'Phẩm Chất (Thấp)' : 'Rarity (Low)'}
+                    </button>
+                  </div>
+
+                  {/* Option Group: Level */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSortBy('level-desc')}
+                      className={`flex-1 py-2 px-2.5 rounded-xl border text-[10px] font-bold uppercase transition cursor-pointer text-center ${sortBy === 'level-desc'
+                        ? 'bg-amber-600/35 border-amber-500 text-amber-300 font-extrabold'
+                        : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-white'
+                        }`}
+                    >
+                      🚀 {language === 'vi' ? 'Cường Hóa 📈 (Cao)' : 'Enhancement 📈 (High)'}
+                    </button>
+                    <button
+                      onClick={() => setSortBy('level-asc')}
+                      className={`flex-1 py-2 px-2.5 rounded-xl border text-[10px] font-bold uppercase transition cursor-pointer text-center ${sortBy === 'level-asc'
+                        ? 'bg-amber-600/35 border-amber-500 text-amber-300 font-extrabold'
+                        : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-white'
+                        }`}
+                    >
+                      🚀 {language === 'vi' ? 'Cường Hóa (Thấp)' : 'Enhancement (Low)'}
+                    </button>
+                  </div>
+
+                  {/* Option Group: Combat Power CP */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSortBy('cp-desc')}
+                      className={`flex-1 py-2 px-2.5 rounded-xl border text-[10px] font-bold uppercase transition cursor-pointer text-center ${sortBy === 'cp-desc'
+                        ? 'bg-emerald-600/30 border-emerald-500 text-emerald-300 font-extrabold shadow-[0_0_8px_rgba(16,185,129,0.15)]'
+                        : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-white'
+                        }`}
+                    >
+                      ⚔️ {language === 'vi' ? 'Lực Chiến ⚔️ (Cao)' : 'Combat Power ⚔️ (High)'}
+                    </button>
+                    <button
+                      onClick={() => setSortBy('cp-asc')}
+                      className={`flex-1 py-2 px-2.5 rounded-xl border text-[10px] font-bold uppercase transition cursor-pointer text-center ${sortBy === 'cp-asc'
+                        ? 'bg-emerald-600/30 border-emerald-500 text-emerald-300 font-extrabold'
+                        : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-white'
+                        }`}
+                    >
+                      ⚔️ {language === 'vi' ? 'Lực Chiến (Thấp)' : 'Combat Power (Low)'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="mt-4 pt-3 border-t border-slate-850 flex gap-2 shrink-0">
+              <button
+                onClick={() => {
+                  setFilterClass('all');
+                  setFilterSlot('all');
+                  setSortBy('rarity-desc');
+                }}
+                className="flex-1 bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-white text-[10px] font-black uppercase py-2.5 rounded-xl transition cursor-pointer"
+              >
+                🔄 {language === 'vi' ? 'Đặt Lại' : 'Reset'}
+              </button>
+              <button
+                onClick={() => setIsSortModalOpen(false)}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[10px] font-black uppercase py-2.5 rounded-xl transition shadow-md cursor-pointer"
+              >
+                ✓ {language === 'vi' ? 'Áp Dụng' : 'Apply'}
+              </button>
+            </div>
+
           </div>
         </div>
       )}

@@ -177,10 +177,12 @@ export function generateStarterSave(
 }
 
 // Simulated Local Database State
-const STORAGE_KEYS = {
-  USERS: 'idle_rpg_users',
-  CURRENT_USER: 'idle_rpg_current_user',
-  SAVED_GAME: 'idle_rpg_save_'
+// Simulated In-Memory Database State
+const inMemoryStore = {
+  users: [] as MockUser[],
+  currentUser: null as MockUser | null,
+  saves: {} as Record<string, string>, // stored as JSON strings to simulate deep copies
+  questTemplates: null as QuestTemplate[] | null
 };
 
 interface MockUser {
@@ -193,17 +195,15 @@ type AuthCallback = (user: MockUser | null) => void;
 const authListeners = new Set<AuthCallback>();
 
 function getMockUsers(): MockUser[] {
-  const users = localStorage.getItem(STORAGE_KEYS.USERS);
-  return users ? JSON.parse(users) : [];
+  return inMemoryStore.users;
 }
 
 function saveMockUsers(users: MockUser[]) {
-  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+  inMemoryStore.users = users;
 }
 
 function getLoggedInUser(): MockUser | null {
-  const user = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-  return user ? JSON.parse(user) : null;
+  return inMemoryStore.currentUser;
 }
 
 function notifyAuthListeners(user: MockUser | null) {
@@ -223,7 +223,7 @@ export const mockAuth = {
     };
     users.push(newUser);
     saveMockUsers(users);
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(newUser));
+    inMemoryStore.currentUser = newUser;
     notifyAuthListeners(newUser);
     return newUser;
   },
@@ -240,18 +240,18 @@ export const mockAuth = {
       };
       users.push(newUser);
       saveMockUsers(users);
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(newUser));
+      inMemoryStore.currentUser = newUser;
       notifyAuthListeners(newUser);
       return newUser;
     }
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+    inMemoryStore.currentUser = user;
     notifyAuthListeners(user);
     return user;
   },
 
   signOut: async (): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 200));
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    inMemoryStore.currentUser = null;
     notifyAuthListeners(null);
   },
 
@@ -271,18 +271,18 @@ export const mockAuth = {
 
 export const mockDb = {
   saveGame: async (data: GameSaveData): Promise<void> => {
-    localStorage.setItem(STORAGE_KEYS.SAVED_GAME + data.userId, JSON.stringify(data));
+    inMemoryStore.saves[data.userId] = JSON.stringify(data);
   },
 
   loadGame: async (userId: string): Promise<GameSaveData | null> => {
-    const data = localStorage.getItem(STORAGE_KEYS.SAVED_GAME + userId);
-    const selectedClass = (localStorage.getItem('selected_class') || 'knight') as 'knight' | 'mage' | 'assassin';
-    const selectedName = localStorage.getItem('selected_name') || 'Hero';
+    const data = inMemoryStore.saves[userId];
+    const selectedClass = (sessionStorage.getItem('selected_class') || 'knight') as 'knight' | 'mage' | 'assassin';
+    const selectedName = sessionStorage.getItem('selected_name') || 'Hero';
     if (!data) {
       // New save initialization
       const starterSave = generateStarterSave(userId, selectedClass, selectedName);
-      localStorage.removeItem('selected_class'); // clean up
-      localStorage.removeItem('selected_name'); // clean up
+      sessionStorage.removeItem('selected_class'); // clean up
+      sessionStorage.removeItem('selected_name'); // clean up
       await mockDb.saveGame(starterSave);
       return starterSave;
     }
@@ -333,16 +333,10 @@ export const mockDb = {
   },
 
   loadQuestTemplates: async (): Promise<QuestTemplate[]> => {
-    const templatesStr = localStorage.getItem('idle_rpg_quest_templates');
-    if (!templatesStr) {
-      localStorage.setItem('idle_rpg_quest_templates', JSON.stringify(DEFAULT_QUEST_TEMPLATES));
-      return DEFAULT_QUEST_TEMPLATES;
+    if (!inMemoryStore.questTemplates) {
+      inMemoryStore.questTemplates = [...DEFAULT_QUEST_TEMPLATES];
     }
-    try {
-      return JSON.parse(templatesStr);
-    } catch {
-      return DEFAULT_QUEST_TEMPLATES;
-    }
+    return inMemoryStore.questTemplates;
   },
 
   saveQuestTemplate: async (template: QuestTemplate): Promise<void> => {
@@ -353,13 +347,13 @@ export const mockDb = {
     } else {
       templates.push(template);
     }
-    localStorage.setItem('idle_rpg_quest_templates', JSON.stringify(templates));
+    inMemoryStore.questTemplates = templates;
   },
 
   deleteQuestTemplate: async (templateId: string): Promise<void> => {
     const templates = await mockDb.loadQuestTemplates();
     const filtered = templates.filter(t => t.id !== templateId);
-    localStorage.setItem('idle_rpg_quest_templates', JSON.stringify(filtered));
+    inMemoryStore.questTemplates = filtered;
   }
 };
 

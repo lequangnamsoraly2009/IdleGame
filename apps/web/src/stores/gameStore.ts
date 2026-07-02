@@ -235,7 +235,7 @@ export const useGameStore = create<GameState>((set, get) => {
   return {
     user: null,
     saveData: null,
-    activeTab: 'hero',
+    activeTab: 'home',
     activeDungeonId: null,
     dungeonRewardGems: null,
     dungeonRewardGold: null,

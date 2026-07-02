@@ -37,8 +37,8 @@ export const AuthScreen: React.FC = () => {
           setError(t('auth_error_pass_length'));
           return;
         }
-        localStorage.setItem('selected_class', selectedClass);
-        localStorage.setItem('selected_name', characterName.trim());
+        sessionStorage.setItem('selected_class', selectedClass);
+        sessionStorage.setItem('selected_name', characterName.trim());
         await signUp(email, password);
       } else {
         await signIn(email, password);

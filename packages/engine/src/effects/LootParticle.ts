@@ -13,11 +13,13 @@ export class LootParticle extends Container {
   private speed: number = 4;
   private graphic: Graphics;
 
-  constructor(startX: number, startY: number, isCoin: boolean, color: number = 0xfacc15) {
+  constructor(startX: number, startY: number, isCoin: boolean, color: number = 0xfacc15, targetX?: number, targetY?: number) {
     super();
     this.x = startX;
     this.y = startY;
     this.startY = startY;
+    if (targetX !== undefined) this.targetX = targetX;
+    if (targetY !== undefined) this.targetY = targetY;
 
     // Scatter velocity
     this.vx = (Math.random() - 0.5) * 7;

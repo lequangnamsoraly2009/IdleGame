@@ -12,6 +12,28 @@ export const App: React.FC = () => {
   useEffect(() => {
     // Start listening to Auth (triggers either Mock Auth check or Firebase Auth SDK check)
     const unsubscribe = initializeAuth();
+
+    // Clean up legacy localStorage game keys to transition completely to online play
+    try {
+      localStorage.removeItem('idle_rpg_force_mock');
+      localStorage.removeItem('idle_rpg_users');
+      localStorage.removeItem('idle_rpg_current_user');
+      localStorage.removeItem('idle_rpg_quest_templates');
+      localStorage.removeItem('selected_class');
+      localStorage.removeItem('selected_name');
+      
+      // Remove any user specific save game keys
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('idle_rpg_save_')) {
+          localStorage.removeItem(key);
+          i--; // Adjust index since we removed a key
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to clear legacy game keys from localStorage:', e);
+    }
+
     return () => unsubscribe();
   }, [initializeAuth]);
 

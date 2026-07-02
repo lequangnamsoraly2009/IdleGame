@@ -256,7 +256,7 @@ export class GameEngine {
     }
     const blockIndex = Math.floor((this.currentStage - 1) / 5);
     const cycle = blockIndex % 6;
-    
+
     switch (cycle) {
       case 0: return '/battle_forest.png';
       case 1: return '/battle_cave.png';
@@ -599,7 +599,7 @@ export class GameEngine {
       for (let i = 0; i < 4; i++) {
         const minion = generateMonsterForStage(this.currentStage, this.heroLevel, undefined, 1);
         minion.id = `${minion.id}_minion_${i}`;
-        minion.name = this.language === 'vi' 
+        minion.name = this.language === 'vi'
           ? `${minion.name} ${String.fromCharCode(65 + i)} (Tinh Anh)`
           : `${minion.name} ${String.fromCharCode(65 + i)} (Elite)`;
         minion.rank = 'elite';
@@ -713,7 +713,7 @@ export class GameEngine {
       const goldMax = template.goldRewardRange[1];
       const goldReward = Math.floor(Math.random() * (goldMax - goldMin + 1)) + goldMin;
       const diamondReward = Math.random() < 0.1 ? Math.floor(Math.random() * 3) + 1 : 0;
-      
+
       const itemsDropped: any[] = [];
       if (Math.random() < template.dropChance && template.dropPool.length > 0) {
         const rolledId = template.dropPool[Math.floor(Math.random() * template.dropPool.length)];
@@ -748,9 +748,9 @@ export class GameEngine {
     this.isBattleActive = true;
 
     const logText = isStageBoss
-      ? (this.language === 'vi' 
-          ? `Stage ${this.currentStage}: Boss ${monster.name} cùng 4 tay sai Tinh Anh xuất hiện!`
-          : `Stage ${this.currentStage}: Boss ${monster.name} appeared with 4 Elite minions!`)
+      ? (this.language === 'vi'
+        ? `Stage ${this.currentStage}: Boss ${monster.name} cùng 4 tay sai Tinh Anh xuất hiện!`
+        : `Stage ${this.currentStage}: Boss ${monster.name} appeared with 4 Elite minions!`)
       : `Stage ${this.currentStage}: A wave of ${count} ${monster.name}(s) appeared!`;
 
     this.onEvent({
@@ -2008,10 +2008,13 @@ export class GameEngine {
   }
 
   private spawnLootParticles(startX: number, startY: number, goldAmount: number, items: any[]) {
+    const targetX = this.app?.screen?.width ? this.app.screen.width - 140 : 360;
+    const targetY = 10;
+
     // Spawn 6 coins normally
     const coinCount = Math.min(8, Math.max(3, Math.floor(goldAmount / 8) || 3));
     for (let i = 0; i < coinCount; i++) {
-      const coin = new LootParticle(startX, startY, true);
+      const coin = new LootParticle(startX, startY, true, 0xfacc15, targetX, targetY);
       this.effectLayer.addChild(coin);
       this.lootParticles.push(coin);
     }
@@ -2024,7 +2027,7 @@ export class GameEngine {
       else if (item.rarity === 'epic') color = 0xa855f7;
       else if (item.rarity === 'legendary') color = 0xf59e0b;
 
-      const itemOrb = new LootParticle(startX, startY, false, color);
+      const itemOrb = new LootParticle(startX, startY, false, color, targetX, targetY);
       this.effectLayer.addChild(itemOrb);
       this.lootParticles.push(itemOrb);
     });
@@ -2050,7 +2053,7 @@ export class GameEngine {
       try {
         this.effectLayer.removeChild(p);
         p.destroy();
-      } catch (e) {}
+      } catch (e) { }
     });
     this.lootParticles = [];
 

@@ -145,32 +145,34 @@ export const GuideModal: React.FC<GuideModalProps> = ({ topic, onClose }) => {
         return null;
     }
   };
+
   return (
-    <div className="bg-slate-950/85 backdrop-blur-[10px] z-[98] select-none bg-slate-900 border-2 border-slate-805 rounded-3xl p-5 w-[92%] max-w-xs shadow-2xl absolute top-[70%] left-[90%] -translate-x-1/2 -translate-y-1/2 flex flex-col max-h-[85%] overflow-hidden animate-success-pop">
-      {/* Close button X */}
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 w-7 h-7 rounded-full bg-slate-950 border border-slate-805 text-slate-400 hover:text-white flex items-center justify-center text-xs transition cursor-pointer active:scale-90 font-bold z-20 shadow-md"
-      >
-        ✕
-      </button>
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[999] select-none">
+      <div className="bg-slate-900 border-2 border-slate-805 rounded-3xl p-5 w-[92%] max-w-xs shadow-2xl absolute top-1/2 left-1/2 flex flex-col max-h-[85%] overflow-hidden animate-success-pop">
+        {/* Close button X */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-7 h-7 rounded-full bg-slate-950 border border-slate-805 text-slate-400 hover:text-white flex items-center justify-center text-xs transition cursor-pointer active:scale-90 font-bold z-20 shadow-md"
+        >
+          ✕
+        </button>
 
-      {/* Header info icon & Title */}
-      <div className="flex items-center gap-2 mb-4 shrink-0">
-        <span className="text-xl">📖</span>
-        <h3 className="text-[11px] font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-400 to-purple-400 font-display">
-          {isVi ? 'HƯỚNG DẪN CHI TIẾT' : 'GAMEPLAY GUIDE'}
-        </h3>
-      </div>
+        {/* Header info icon & Title */}
+        <div className="flex items-center gap-2 mb-4 shrink-0">
+          <span className="text-xl">📖</span>
+          <h3 className="text-[11px] font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-400 to-purple-400 font-display">
+            {isVi ? 'HƯỚNG DẪN CHI TIẾT' : 'GAMEPLAY GUIDE'}
+          </h3>
+        </div>
 
-      {/* Glowing line divider */}
-      <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-slate-800 to-transparent shrink-0 mb-4" />
+        {/* Glowing line divider */}
+        <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-slate-800 to-transparent shrink-0 mb-4" />
 
-      {/* Guide contents body */}
-      <div className="flex-grow overflow-y-auto space-y-4 text-xs pr-1">
-        {renderGuideContent()}
+        {/* Guide contents body */}
+        <div className="flex-grow overflow-y-auto space-y-4 text-xs pr-1">
+          {renderGuideContent()}
+        </div>
       </div>
     </div>
-    // </div>
   );
 };
