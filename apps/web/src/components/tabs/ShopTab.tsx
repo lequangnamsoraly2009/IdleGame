@@ -223,15 +223,14 @@ export const ShopTab: React.FC = () => {
                     </button>
                     <button
                       onClick={() => openBulkModal('potion_gold', language === 'vi' ? 'Bình Máu' : 'Health Potion', 200, 'gold', <PotionIcon className="w-5 h-5" />)}
-                      disabled={hero.gold < 200 || (hero.dailyPurchases?.potion_gold_bulk || 0) >= 100}
-                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-black py-2.5 px-3 rounded-lg border border-slate-750/50 flex flex-col items-center justify-center text-[10px] sm:text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap animate-green-glow"
+                      disabled={hero.gold < 200}
+                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-black py-2.5 px-3 rounded-lg border border-slate-750/50 flex items-center justify-center text-[10px] sm:text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap animate-green-glow"
                     >
-                      <span>{language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}</span>
-                      <span className="text-[7.5px] opacity-75 font-mono">({language === 'vi' ? 'Còn' : 'Left'}: {100 - (hero.dailyPurchases?.potion_gold_bulk || 0)}/100)</span>
+                      {language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}
                     </button>
                   </div>
                 </div>
- 
+
                 {/* Card 2: 5 Potions */}
                 <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-2.5 flex flex-col justify-between hover:bg-slate-900/80 hover:border-slate-700/60 transition duration-200">
                   <div className="flex flex-col items-center text-center">
@@ -266,7 +265,7 @@ export const ShopTab: React.FC = () => {
                     <span className="text-[7.5px] opacity-75 font-mono mt-0.5">({language === 'vi' ? 'Còn' : 'Left'}: {100 - (hero.dailyPurchases?.potion_5 || 0)}/100)</span>
                   </button>
                 </div>
- 
+
                 {/* Card 3: 10 Potions */}
                 <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-2.5 flex flex-col justify-between hover:bg-slate-900/80 hover:border-slate-700/60 transition duration-200">
                   <div className="flex flex-col items-center text-center">
@@ -357,11 +356,10 @@ export const ShopTab: React.FC = () => {
                     </button>
                     <button
                       onClick={() => openBulkModal('gold_pack', language === 'vi' ? 'Gói Vàng' : 'Gold Pack', 15, 'diamonds', <GoldPackIcon />)}
-                      disabled={hero.diamonds < 15 || (hero.dailyPurchases?.gold_pack_bulk || 0) >= 100}
-                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-black py-2.5 px-3 rounded-lg border border-slate-750/50 flex flex-col items-center justify-center text-[10px] sm:text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap animate-green-glow"
+                      disabled={hero.diamonds < 15}
+                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-black py-2.5 px-3 rounded-lg border border-slate-750/50 flex items-center justify-center text-[10px] sm:text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap animate-green-glow"
                     >
-                      <span>{language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}</span>
-                      <span className="text-[7.5px] opacity-75 font-mono">({language === 'vi' ? 'Còn' : 'Left'}: {100 - (hero.dailyPurchases?.gold_pack_bulk || 0)}/100)</span>
+                      {language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}
                     </button>
                   </div>
                 </div>
@@ -434,11 +432,10 @@ export const ShopTab: React.FC = () => {
                     </button>
                     <button
                       onClick={() => openBulkModal('speed_elixir', language === 'vi' ? 'Thuốc Tốc Độ' : 'Speed Elixir', 10, 'diamonds', <SpeedElixirIcon />)}
-                      disabled={hero.diamonds < 10 || (hero.dailyPurchases?.speed_elixir_bulk || 0) >= 100}
-                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-black py-2.5 px-3 rounded-lg border border-slate-750/50 flex flex-col items-center justify-center text-[10px] sm:text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap animate-green-glow"
+                      disabled={hero.diamonds < 10}
+                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-black py-2.5 px-3 rounded-lg border border-slate-750/50 flex items-center justify-center text-[10px] sm:text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap animate-green-glow"
                     >
-                      <span>{language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}</span>
-                      <span className="text-[7.5px] opacity-75 font-mono">({language === 'vi' ? 'Còn' : 'Left'}: {100 - (hero.dailyPurchases?.speed_elixir_bulk || 0)}/100)</span>
+                      {language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}
                     </button>
                   </div>
                 </div>
@@ -471,11 +468,10 @@ export const ShopTab: React.FC = () => {
                     </button>
                     <button
                       onClick={() => openBulkModal('exp_charm', language === 'vi' ? 'Bùa EXP' : 'EXP Charm', 10, 'diamonds', <ExpCharmIcon />)}
-                      disabled={hero.diamonds < 10 || (hero.dailyPurchases?.exp_charm_bulk || 0) >= 100}
-                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-black py-2.5 px-3 rounded-lg border border-slate-750/50 flex flex-col items-center justify-center text-[10px] sm:text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap animate-green-glow"
+                      disabled={hero.diamonds < 10}
+                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-black py-2.5 px-3 rounded-lg border border-slate-750/50 flex items-center justify-center text-[10px] sm:text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap animate-green-glow"
                     >
-                      <span>{language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}</span>
-                      <span className="text-[7.5px] opacity-75 font-mono">({language === 'vi' ? 'Còn' : 'Left'}: {100 - (hero.dailyPurchases?.exp_charm_bulk || 0)}/100)</span>
+                      {language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}
                     </button>
                   </div>
                 </div>
@@ -869,11 +865,10 @@ export const ShopTab: React.FC = () => {
                   <button
                     key={qty}
                     onClick={() => setBulkQty(qty)}
-                    className={`flex-1 py-1.5 text-[10px] font-extrabold rounded-lg border transition cursor-pointer active:scale-95 ${
-                      bulkQty === qty
+                    className={`flex-1 py-1.5 text-[10px] font-extrabold rounded-lg border transition cursor-pointer active:scale-95 ${bulkQty === qty
                         ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm'
                         : 'bg-slate-950/60 border-slate-850 text-slate-450 hover:text-slate-200'
-                    }`}
+                      }`}
                   >
                     +{qty}
                   </button>
@@ -889,7 +884,7 @@ export const ShopTab: React.FC = () => {
                     {bulkItem.currency === 'gold' ? 'G' : '💎'}
                   </span>
                 </div>
-                
+
                 <button
                   disabled={isLimitExceeded}
                   onClick={() => {

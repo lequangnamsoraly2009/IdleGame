@@ -1311,8 +1311,6 @@ export const useGameStore = create<GameState>((set, get) => {
           limitKey = 'potion_5';
         } else if (quantity === 10) {
           limitKey = 'potion_10';
-        } else if (quantity > 1 && quantity !== 5 && quantity !== 10) {
-          limitKey = 'potion_gold_bulk';
         }
       } else {
         if (quantity === 30) {
@@ -1399,34 +1397,13 @@ export const useGameStore = create<GameState>((set, get) => {
         return;
       }
 
-      // Check daily purchase limit for bulk buys
-      const dailyPurchases = hero.dailyPurchases || {};
-      let limitKey = '';
-      if (quantity > 1) {
-        limitKey = type === 'speed_elixir' ? 'speed_elixir_bulk' : 'exp_charm_bulk';
-      }
-
-      if (limitKey) {
-        const currentCount = dailyPurchases[limitKey] || 0;
-        if (currentCount + quantity > 100) {
-          state.addLogMessage(useLanguageStore.getState().language === 'vi' ? '❌ Đã vượt quá giới hạn mua 100/ngày!' : '❌ Exceeded daily limit of 100/day!', 'system');
-          return;
-        }
-      }
-
-      const nextDailyPurchases = { ...dailyPurchases };
-      if (limitKey) {
-        nextDailyPurchases[limitKey] = (dailyPurchases[limitKey] || 0) + quantity;
-      }
-
       const nextSave = {
         ...state.saveData,
         hero: {
           ...hero,
           diamonds: hero.diamonds - cost,
           speedElixirs: type === 'speed_elixir' ? (hero.speedElixirs ?? 0) + quantity : (hero.speedElixirs ?? 0),
-          expCharms: type === 'exp_charm' ? (hero.expCharms ?? 0) + quantity : (hero.expCharms ?? 0),
-          dailyPurchases: nextDailyPurchases
+          expCharms: type === 'exp_charm' ? (hero.expCharms ?? 0) + quantity : (hero.expCharms ?? 0)
         }
       };
 
@@ -1721,32 +1698,11 @@ export const useGameStore = create<GameState>((set, get) => {
         return;
       }
 
-      // Check daily purchase limit for bulk buys
-      const dailyPurchases = saveData.hero.dailyPurchases || {};
-      let limitKey = '';
-      if (quantity > 1) {
-        limitKey = 'gold_pack_bulk';
-      }
-
-      if (limitKey) {
-        const currentCount = dailyPurchases[limitKey] || 0;
-        if (currentCount + quantity > 100) {
-          get().addLogMessage(useLanguageStore.getState().language === 'vi' ? '❌ Đã vượt quá giới hạn mua 100/ngày!' : '❌ Exceeded daily limit of 100/day!', 'system');
-          return;
-        }
-      }
-
-      const nextDailyPurchases = { ...dailyPurchases };
-      if (limitKey) {
-        nextDailyPurchases[limitKey] = (dailyPurchases[limitKey] || 0) + quantity;
-      }
-
       const goldGained = 800 * saveData.activeStage * quantity;
       const hero = {
         ...saveData.hero,
         diamonds: saveData.hero.diamonds - cost,
-        gold: saveData.hero.gold + goldGained,
-        dailyPurchases: nextDailyPurchases
+        gold: saveData.hero.gold + goldGained
       };
 
       get().addLogMessage(tStore('log_bought_gold', { cost, gold: goldGained }), 'loot');
