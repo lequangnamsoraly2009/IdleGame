@@ -71,66 +71,19 @@ export const HeroTab: React.FC = () => {
 
   const renderCharacterSVG = (heroClass: string) => {
     const cls = heroClass || 'knight';
-
-    if (cls === 'knight') {
-      return (
-        <svg viewBox="0 0 100 110" className="w-24 h-24 sm:w-28 sm:h-28 drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
-          <path d="M 50 15 Q 65 0 75 12 Q 60 16 50 15" fill="#ef4444" stroke="#991b1b" strokeWidth="0.8" />
-          <circle cx="28" cy="74" r="6" fill="#94a3b8" stroke="#334155" strokeWidth="1.5" />
-          <circle cx="72" cy="74" r="6" fill="#94a3b8" stroke="#334155" strokeWidth="1.5" />
-          <circle cx="50" cy="76" r="18" fill="#cbd5e1" stroke="#334155" strokeWidth="1.8" />
-          <rect x="48" y="66" width="4" height="20" fill="#f59e0b" />
-          <rect x="40" y="74" width="20" height="4" fill="#f59e0b" />
-          <circle cx="41" cy="94" r="5" fill="#475569" stroke="#1e293b" strokeWidth="1.5" />
-          <circle cx="59" cy="94" r="5" fill="#475569" stroke="#1e293b" strokeWidth="1.5" />
-          <circle cx="50" cy="42" r="22" fill="#94a3b8" stroke="#334155" strokeWidth="2" />
-          <rect x="34" y="34" width="32" height="9" rx="3.5" fill="#1e293b" />
-          <circle cx="43" cy="38.5" r="2.5" fill="#60a5fa" className="animate-pulse" />
-          <circle cx="57" cy="38.5" r="2.5" fill="#60a5fa" className="animate-pulse" />
-          <rect x="42" y="46" width="1.5" height="7" fill="#475569" />
-          <rect x="47" y="46" width="1.5" height="7" fill="#475569" />
-          <rect x="52" y="46" width="1.5" height="7" fill="#475569" />
-          <rect x="57" y="46" width="1.5" height="7" fill="#475569" />
-        </svg>
-      );
-    }
-
+    let imgUrl = '/hero_knight.png';
     if (cls === 'mage') {
-      return (
-        <svg viewBox="0 0 100 110" className="w-24 h-24 sm:w-28 sm:h-28 drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
-          <rect x="70" y="32" width="3.5" height="55" rx="1" fill="#78350f" />
-          <circle cx="72" cy="27" r="5.5" fill="#22d3ee" className="animate-pulse" />
-          <circle cx="50" cy="76" r="18" fill="#6b21a8" stroke="#3b0764" strokeWidth="1.8" />
-          <circle cx="44" cy="74" r="1.8" fill="#facc15" />
-          <circle cx="54" cy="80" r="1.8" fill="#facc15" />
-          <circle cx="48" cy="84" r="1.2" fill="#facc15" />
-          <circle cx="41" cy="94" r="5" fill="#475569" stroke="#1e293b" strokeWidth="1.5" />
-          <circle cx="59" cy="94" r="5" fill="#475569" stroke="#1e293b" strokeWidth="1.5" />
-          <rect x="22" y="43" width="56" height="4.5" rx="2" fill="#581c87" stroke="#3b0764" strokeWidth="1.5" />
-          <path d="M 30 43 L 70 43 L 50 12 Z" fill="#581c87" stroke="#3b0764" strokeWidth="1.5" />
-          <rect x="31.5" y="39" width="37" height="4" fill="#eab308" />
-          <circle cx="43" cy="53" r="2.5" fill="#c084fc" className="animate-pulse" />
-          <circle cx="57" cy="53" r="2.5" fill="#c084fc" className="animate-pulse" />
-        </svg>
-      );
+      imgUrl = '/hero_mage.png';
+    } else if (cls === 'assassin') {
+      imgUrl = '/hero_assassin.png';
     }
 
     return (
-      <svg viewBox="0 0 100 110" className="w-24 h-24 sm:w-28 sm:h-28 drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
-        <rect x="22" y="65" width="2.5" height="6" fill="#78350f" />
-        <rect x="21" y="71" width="4.5" height="12" fill="#94a3b8" stroke="#334155" strokeWidth="0.5" />
-        <rect x="75.5" y="65" width="2.5" height="6" fill="#78350f" />
-        <rect x="74.5" y="71" width="4.5" height="12" fill="#94a3b8" stroke="#334155" strokeWidth="0.5" />
-        <circle cx="50" cy="76" r="18" fill="#374151" stroke="#111827" strokeWidth="1.8" />
-        <rect x="40" y="73" width="20" height="3.5" fill="#ef4444" />
-        <circle cx="41" cy="94" r="5" fill="#475569" stroke="#1e293b" strokeWidth="1.5" />
-        <circle cx="59" cy="94" r="5" fill="#475569" stroke="#1e293b" strokeWidth="1.5" />
-        <circle cx="50" cy="42" r="21" fill="#111827" stroke="#1f2937" strokeWidth="1.8" />
-        <ellipse cx="50" cy="44.5" rx="12" ry="9" fill="#ffedd5" />
-        <path d="M 38 45 A 12 12 0 0 0 62 45 Z" fill="#1f2937" />
-        <circle cx="44" cy="43" r="2.2" fill="#ef4444" className="animate-pulse" />
-        <circle cx="56" cy="43" r="2.2" fill="#ef4444" className="animate-pulse" />
-      </svg>
+      <img
+        src={imgUrl}
+        alt={cls}
+        className="w-24 h-24 sm:w-28 sm:h-28 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)] select-none"
+      />
     );
   };
 
