@@ -334,6 +334,19 @@ export const mockDb = {
         if (!parsed.hero.currentStats) parsed.hero.currentStats = starter.hero.currentStats;
         if (!parsed.hero.heroClass) parsed.hero.heroClass = 'knight';
         if (!parsed.hero.goldUpgrades) parsed.hero.goldUpgrades = starter.hero.goldUpgrades || { attack: 0, hp: 0, hpRecovery: 0, critDamage: 0 };
+        // Normalize equippedBoosters array
+        const rawBoosters = parsed.hero.equippedBoosters;
+        let cleanBoosters: (string | null)[] = ['potion', null, null, null, null, null, null];
+        if (Array.isArray(rawBoosters)) {
+          for (let i = 0; i < 7; i++) {
+            cleanBoosters[i] = rawBoosters[i] !== undefined ? rawBoosters[i] : null;
+          }
+        } else if (rawBoosters && typeof rawBoosters === 'object') {
+          for (let i = 0; i < 7; i++) {
+            cleanBoosters[i] = rawBoosters[i] !== undefined ? rawBoosters[i] : null;
+          }
+        }
+        parsed.hero.equippedBoosters = cleanBoosters;
       }
       if (!parsed.inventory) parsed.inventory = starter.inventory;
       if (!parsed.quests) parsed.quests = starter.quests;

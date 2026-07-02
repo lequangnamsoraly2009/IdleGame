@@ -149,6 +149,19 @@ if (isFirebaseConfigured) {
             if (!parsed.hero.baseStats) parsed.hero.baseStats = starter.hero.baseStats;
             if (!parsed.hero.currentStats) parsed.hero.currentStats = starter.hero.currentStats;
             if (!parsed.hero.heroClass) parsed.hero.heroClass = 'knight';
+            // Normalize equippedBoosters array
+            const rawBoosters = parsed.hero.equippedBoosters;
+            let cleanBoosters: (string | null)[] = ['potion', null, null, null, null, null, null];
+            if (Array.isArray(rawBoosters)) {
+              for (let i = 0; i < 7; i++) {
+                cleanBoosters[i] = rawBoosters[i] !== undefined ? rawBoosters[i] : null;
+              }
+            } else if (rawBoosters && typeof rawBoosters === 'object') {
+              for (let i = 0; i < 7; i++) {
+                cleanBoosters[i] = rawBoosters[i] !== undefined ? rawBoosters[i] : null;
+              }
+            }
+            parsed.hero.equippedBoosters = cleanBoosters;
           }
           parsed.inventory = normalizeArray<EquipmentItem>(parsed.inventory || starter.inventory);
           parsed.quests = normalizeArray<QuestState>(parsed.quests || starter.quests);
