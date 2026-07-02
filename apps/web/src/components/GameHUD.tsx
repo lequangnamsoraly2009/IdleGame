@@ -875,6 +875,10 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                       return;
                     }
                     setActiveTab(tab);
+                    if (tab === 'hero') setActiveSubTab('character');
+                    else if (tab === 'dungeon') setActiveSubTab('dungeon');
+                    else if (tab === 'forge') setActiveSubTab('forge');
+                    else if (tab === 'shop') setActiveSubTab('summon');
                   }}
                   className={`flex-grow flex-1 flex justify-center py-2 text-2xl transition cursor-pointer active:scale-90 ${activeTab === tab
                     ? 'text-blue-400 scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
