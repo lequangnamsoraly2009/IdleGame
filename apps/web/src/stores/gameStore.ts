@@ -1315,8 +1315,9 @@ export const useGameStore = create<GameState>((set, get) => {
       } else {
         if (quantity === 30) {
           limitKey = 'potion_30';
+          addedQty = 1;
         } else if (quantity > 30) {
-          limitKey = 'potion_diamonds_bulk';
+          limitKey = 'potion_30';
           addedQty = quantity / 30; // quantity is 30 * bulkQty, so addedQty is bulkQty
         }
       }
