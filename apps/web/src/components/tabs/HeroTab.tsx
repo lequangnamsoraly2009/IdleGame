@@ -1,9 +1,74 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { useLanguageStore } from '../../stores/languageStore';
 import { calculatePrestigePoints, calculateHeroCP, GAME_ICONS, getFinalItemStats } from '@idle-rpg/shared';
 import { useTranslation, getTranslatedItemName } from '../../utils/i18n';
 import { ItemGraphic } from '../ItemGraphic';
+
+const TransparentImage: React.FC<{
+  src: string;
+  alt: string;
+  className?: string;
+}> = ({ src, alt, className }) => {
+  const [processedSrc, setProcessedSrc] = useState<string>('');
+
+  useEffect(() => {
+    if (!src) return;
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = src;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+
+        const bgR = data[0];
+        const bgG = data[1];
+        const bgB = data[2];
+
+        const isWhiteBg = bgR > 200 && bgG > 200 && bgB > 200;
+        if (isWhiteBg) {
+          const tolerance = 48;
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+
+            const dist = Math.sqrt(
+              Math.pow(r - bgR, 2) +
+              Math.pow(g - bgG, 2) +
+              Math.pow(b - bgB, 2)
+            );
+
+            if (dist < tolerance) {
+              data[i + 3] = 0;
+            }
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+        setProcessedSrc(canvas.toDataURL());
+      }
+    };
+    img.onerror = (err) => {
+      console.error("Failed to load image in TransparentImage:", src, err);
+      setProcessedSrc(src);
+    };
+  }, [src]);
+
+  return (
+    <img
+      src={processedSrc || src}
+      alt={alt}
+      className={`${className} transition-opacity duration-200 ${processedSrc ? 'opacity-100' : 'opacity-0'}`}
+    />
+  );
+};
 
 export const HeroTab: React.FC = () => {
   const { saveData, triggerPrestige, setActiveInspectItemId } = useGameStore();
@@ -79,7 +144,7 @@ export const HeroTab: React.FC = () => {
     }
 
     return (
-      <img
+      <TransparentImage
         src={imgUrl}
         alt={cls}
         className="w-24 h-24 sm:w-28 sm:h-28 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)] select-none"
