@@ -1,102 +1,189 @@
 # Hệ Thống Tính Năng Chi Tiết (Detailed Features Specification)
 
-Tài liệu này liệt kê toàn bộ các tính năng của game Idle RPG, được phân chia theo trạng thái hoàn thành:
-* `[x]` Đã hoàn thành (Completed)
-* `[/]` Đang phát triển/Cần tối ưu thêm (In Progress / Optimization Needed)
-* `[ ]` Lên kế hoạch sắp làm (Planned)
+Tài liệu này đặc tả chi tiết toàn bộ cấu trúc dữ liệu, thuật toán công thức, và trạng thái triển khai của game **Idle RPG**.
 
 ---
 
-## 1. Hệ Thống Chiến Đấu & Cốt Lõi (Core Combat & Stage System)
-* `[x]` **Vòng Lặp Chiến Đấu Tự Động (Auto Combat Loop):** Người chơi tự động tấn công quái vật theo chu kỳ giây, tính toán sát thương, thuộc tính chí mạng và né tránh.
-* `[x]` **Tiến Trình Ải (Stage Progression):** Vượt qua đủ số lượng quái vật yêu cầu ở mỗi ải để mở khóa nút khiêu chiến Ải tiếp theo hoặc tự động qua ải.
-* `[x]` **Tích Lũy Kinh Nghiệm & Lên Cấp (Level & Experience Scaling):** Hệ thống tăng cấp độ nhân vật khi đủ điểm kinh nghiệm, gia tăng thuộc tính cơ bản tùy theo phân lớp.
-* `[x]` **Nhật Ký Chiến Đấu (Visual Battle Feed):** Bảng ghi logs thời gian thực chia làm các bộ lọc: Tất cả (All), Chiến đấu (Combat), Nhặt đồ (Loot).
-* `[/]` **Tích Lũy Ngoại Tuyến (Offline Idle Gains):** Nhận tài nguyên (Vàng, EXP, Trang bị) tương ứng với thời gian ngoại tuyến. *Cần tối ưu giao diện tổng kết tài nguyên khi đăng nhập lại.*
-* `[x]` **Trùng Sinh / Chuyển Sinh (Prestige System):** Đặt lại cấp độ và ải về 1 để nhận Điểm Trùng Sinh, dùng để tăng vĩnh viễn các chỉ số sát thương, máu và lượng vàng rơi ra.
+## 1. Công Thức & Thuật Toán Cốt Lõi (Core Mathematical Formulas)
+
+Hệ thống tính toán toàn bộ chỉ số nhân vật, lực chiến (CP) và phần thưởng dựa trên các công thức dưới đây:
+
+### A. Công Thức Tính Lực Chiến (CP Calculation Formula)
+Quy định trong [formulas.ts](file:///e:/Code/IdleGame/packages/shared/src/formulas.ts#L1132-L1215):
+* **Lực chiến vật phẩm (Item CP):**
+  $$\text{Item CP} = \text{ATK} \times 6.0 + \text{M.ATK} \times 6.0 + \text{HP} \times 0.5 + \text{DEF} \times 4.0 + \text{M.RES} \times 4.0 + \text{SPD} \times 5.0 + \text{CRIT\_Rate}\% \times 15.0 + \text{CRIT\_Dmg}\% \times 8.0 + \text{Lifesteal}\% \times 10.0 + \text{SpellVamp}\% \times 10.0 + \text{Evasion}\% \times 12.0 + \text{Block}\% \times 12.0 + \text{Rarity\_Bonus} + (\text{Gems} \times 100)$$
+  * *Rarity Bonus:* Thường (0), Đặc biệt (50), Hiếm (150), Sử Thi (400), Huyền Thoại (1000).
+  * *Gems:* Cộng thêm 100 điểm CP cho mỗi ô đã khảm ngọc thuộc tính.
+* **Lực chiến nhân vật (Hero CP):**
+  $$\text{Hero CP} = \text{Final Stats CP} + \sum \text{Equipped Items CP}$$
+
+### B. Công Thức Tạo Chỉ Số Quái Vật Theo Ải (Monster Scaling Formula)
+Quy định trong [formulas.ts](file:///e:/Code/IdleGame/packages/shared/src/formulas.ts#L903-L1130):
+* **Cấp độ Quái vật (Level):**
+  $$\text{Level} = \text{Base Species Level} + (\text{Stage} - 1) + \lfloor\text{Stage} - 10\rfloor \times 0.1 + \text{World Modifier} + \text{Rank Modifier}$$
+* **Thuộc tính cơ bản của quái vật:**
+  $$\text{Max HP} = \text{Round}\left(120 \times 1.15^{\text{Level} - 1} \times \text{Species HP Mult} \times \text{Rank HP Mult} \times (1 + \text{Mutation Bonus})\right)$$
+  $$\text{Attack} = \text{Round}\left(6 \times 1.08^{\text{Level} - 1} \times \text{Species Atk Mult} \times \text{Rank Atk Mult}\right)$$
+  $$\text{Defense} = \text{Round}\left(2 \times 1.05^{\text{Level} - 1} \times \text{Species Def Mult} \times \text{Rank Def Mult}\right)$$
+  $$\text{Attack Speed (Speed)} = 80 + \min(50, \text{Level} \times 0.5)$$
+* **Phần thưởng nhận được:**
+  $$\text{EXP Reward} = \text{Round}\left(8 \times 1.11^{\text{Stage} - 1} \times \text{Species HP Mult} \times \text{Rank Mult}\right)$$
+  $$\text{Gold Drop (Min)} = \text{Round}\left(6 \times 1.12^{\text{Stage} - 1} \times \text{Species Atk Mult} \times \text{Rank Mult}\right)$$
+  * *Biến dị (Mutated):* Tăng 3x HP, 2x Công, 4x Vàng rơi ra.
+
+### C. Công Thức Rèn Ngọc & Cường Hóa (Forge Formulas)
+Quy định trong [ForgeTab.tsx](file:///e:/Code/IdleGame/apps/web/src/components/tabs/ForgeTab.tsx#L70-L87):
+* **Ghép Ngọc thuộc tính:**
+  * Nguyên liệu: 3x Ngọc cùng Loại và cùng Cấp độ $\rightarrow$ 1x Ngọc Cấp độ + 1. Chi phí: 500 Vàng.
+  * Tỉ lệ thành công theo Cấp độ ngọc nguồn:
+    * Cấp 1 ➡️ Cấp 2: **100%**
+    * Cấp 2 ➡️ Cấp 3: **50%**
+    * Cấp 3 ➡️ Cấp 4: **10%**
+    * Cấp 4 ➡️ Cấp 5: **1%**
+* **Thu hồi phân tách trang bị (Dismantle Reward):**
+  $$\text{Aether Shards} = \text{Round}\left(\text{Base Rarity Shards} \times (1 + (\text{Item Level} - 1) \times 0.1) \times \text{Kill Count Bonus}\right)$$
+  * *Base Shards:* Đặc biệt (3), Hiếm (10), Sử Thi (30), Huyền Thoại (100).
+  * *Kill Count Bonus:* Cộng thêm 0.2 nếu diệt $\ge 10.000$ quái; cộng thêm 0.5 nếu diệt $\ge 100.000$ quái.
 
 ---
 
-## 2. Lớp Nhân Vật & Thuộc Tính (Hero Classes & Attributes)
-* `[x]` **Phân Lớp Nhân Vật (Hero Classes):** Lựa chọn 1 trong 3 class khi khởi tạo:
-  * **Hiệp Sĩ (Knight):** Trọng máu, thủ cao, tốc độ trung bình.
-  * **Pháp Sư (Mage):** Công phép mạnh, chí mạng cao, máu giấy.
-  * **Sát Thủ (Assassin):** Tốc độ đánh cực nhanh, tỉ lệ chí mạng và sát thương chí mạng vượt trội.
-* `[x]` **Cường Hóa Chỉ Số Bằng Vàng (Gold Upgrades):** Tiêu vàng để cộng điểm nâng cấp chỉ số cơ bản trực tiếp: Tấn công (Attack), HP, Hồi HP (HP Recovery), Sát thương Chí mạng (Crit Damage).
-* `[x]` **Hệ Thống Thiên Phú (Hero Traits System):**
-  * Tối đa 5 dòng thiên phú ngẫu nhiên từ phẩm chất C đến SS.
-  * Hỗ trợ **Khóa dòng thiên phú** để giữ lại các chỉ số tốt khi quay (Roll) lại các dòng còn lại.
-  * Tích hợp tính toán các kích hoạt kích duyên thiên phú đồng bộ để cộng thêm chỉ số cộng dồn.
-* `[x]` **Bộ Đệm Trạng Thái Bổ Trợ (Active Buff Tracker):** Hiển thị danh sách các thuốc/bùa đang kích hoạt (Thuốc Tốc Độ, Bùa EXP) kèm đồng hồ đếm ngược thời gian hiệu lực trực tiếp trên tab thuộc tính.
+## 2. Giao Diện Trạng Thái & Cấu Trúc Schema Dữ Liệu (TypeScript Types)
+
+Các cấu trúc cốt lõi định nghĩa trạng thái lưu trữ của nhân vật và vật phẩm trong [game.ts](file:///e:/Code/IdleGame/packages/shared/src/types/game.ts):
+
+```typescript
+export interface BaseStats {
+  maxHp: number;
+  attack: number;
+  defense: number;
+  speed: number;        // Tốc độ đánh
+  critRate: number;     // Tỉ lệ chí mạng (0 - 1)
+  critDamage: number;   // Sát thương chí mạng (ví dụ 1.5 đại diện cho 150%)
+  lifesteal?: number;   // Hút máu vật lý (0 - 1)
+  spellVamp?: number;   // Hút máu phép thuật (0 - 1)
+  evasion?: number;     // Tỉ lệ né tránh (0 - 1)
+  block?: number;       // Tỉ lệ đỡ đòn (0 - 1)
+  magicAttack?: number; // Công phép thuật
+  magicResist?: number; // Kháng phép
+  hpRecovery?: number;  // Hồi máu mỗi giây
+}
+
+export interface EquipmentItem {
+  id: string;           // Instance ID duy nhất sinh ra ngẫu nhiên
+  templateId: string;   // Liên kết với ItemTemplate
+  name: string;
+  slot: EquipmentSlot;  // 'weapon' | 'armor' | 'helmet' | 'boots' | 'ring' | 'gloves'
+  rarity: ItemRarity;   // 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
+  stats: BaseStats;
+  quality?: number;     // Độ thuần khiết ngẫu nhiên (Common: 80-100%, Legendary: 110-160%)
+  level: number;        // Cấp độ cường hóa (+1, +2, ...)
+  upgradeCost: number;  // Giá vàng để nâng cấp
+  equipped: boolean;    // Đã mặc lên người hay chưa
+  affixes?: ItemAffix[];// Dòng thuộc tính phụ ngẫu nhiên (Prefix/Suffix)
+  isIdentified?: boolean; // Đã giám định hay chưa (5% chưa giám định khi nhặt)
+  isCorrupted?: boolean;  // Bị hỏng/Biến dị (0.2% cơ hội nhận thuộc tính lớn nhưng khóa nâng cấp)
+  isCursed?: boolean;     // Bị nguyền rủa (1% cơ hội làm giảm chỉ số)
+  sockets?: Array<string | null>; // Các ô khảm ngọc thuộc tính
+}
+
+export interface HeroState {
+  name?: string;
+  level: number;
+  exp: number;
+  maxExp: number;
+  baseStats: BaseStats;
+  currentStats: BaseStats;
+  currentHp: number;
+  gold: number;
+  diamonds: number;
+  aetherShards?: number;
+  prestigePoints: number;
+  prestigeCount: number;
+  heroClass?: 'knight' | 'mage' | 'assassin';
+  potions?: number;
+  autoUsePotion?: boolean;
+  speedElixirs?: number;
+  expCharms?: number;
+  equippedBoosters?: (string | null)[]; // Mảng 7 ô phím tắt chứa: 'potion', 'speed_elixir', 'exp_charm', null
+  speedElixirActiveUntil?: number;       // Thời gian hết hạn của thuốc tốc độ (Timestamp ms)
+  expCharmActiveUntil?: number;          // Thời gian hết hạn của bùa tăng EXP (Timestamp ms)
+  goldUpgrades?: {
+    attack?: number;
+    hp?: number;
+    hpRecovery?: number;
+    critDamage?: number;
+  };
+  traits?: Array<{
+    id: number;
+    grade: 'C' | 'B' | 'A' | 'S' | 'SS';
+    stat: 'atk' | 'hp' | 'crit' | 'gold';
+    value: number;
+    locked: boolean;
+  }>;
+}
+```
 
 ---
 
-## 3. Hòm Đồ & Trang Bị (Inventory & Equipment)
-* `[x]` **6 Ô Trang Bị Nhân Vật:** Vũ Khí (Weapon), Áo Giáp (Armor), Mũ (Helmet), Giày (Boots), Nhẫn (Ring), Găng Tay (Gloves).
-* `[x]` **Phân Cấp Phẩm Chất (Rarity Tiers):** Thường (Common), Đặc Biệt (Uncommon), Hiếm (Rare), Sử Thi (Epic), Huyền Thoại (Legendary).
-* `[x]` **Chỉ Số Theo Độ Thuần Khiết (Quality Scaling):** Chỉ số trang bị được scale ngẫu nhiên từ 1% đến 100% độ thuần khiết (Quality).
-* `[x]` **Phân Tách Trang Bị (Dismantle):** Phân tách các trang bị không dùng tới thành vàng và Thần Khí Aether Shards.
-* `[x]` **Tự Động Phân Tách (Auto Dismantle Switches):** Cấu hình tự động phân tách ngay lập tức các trang bị Thường, Đặc biệt, hoặc Hiếm khi nhặt được để tránh đầy rương.
-* `[x]` **Khóa Rương Đầy Cảnh Báo:** Ngăn chặn nhặt thêm trang bị hoặc triệu hồi khi hòm đồ đã đạt giới hạn tối đa.
+## 3. Quy Tắc Bảo Mật Cơ Sở Dữ Liệu (Firebase Security Rules)
+
+Cấu hình phân quyền đọc/ghi và xác thực kiểm tra kiểu dữ liệu trong [database.rules.json](file:///e:/Code/IdleGame/firebase/database.rules.json):
+
+```json
+{
+  "rules": {
+    "idleRpg": {
+      "users": {
+        "$uid": {
+          ".read": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && auth.uid == $uid",
+          "hero": {
+            ".validate": "newData.hasChildren(['level', 'exp', 'maxExp', 'gold', 'diamonds'])",
+            "speedElixirs": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "expCharms": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "speedElixirActiveUntil": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "expCharmActiveUntil": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "equippedBoosters": {
+              "$index": {
+                ".validate": "newData.val() == null || newData.val() == 'potion' || newData.val() == 'speed_elixir' || newData.val() == 'exp_charm'"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
 
 ---
 
-## 4. Thanh Phím Tắt Trận Đấu (Battle Action Bar & Shortcut Slots)
-* `[x]` **7 Ô Phím Tắt Tùy Chỉnh (7 Customizable Shortcut Slots):** Người chơi có thể tự do gán bất kỳ vật phẩm tiêu hao nào vào các ô này.
-* `[x]` **Chế Độ Chỉnh Sửa (Edit Mode):** Nút chỉnh sửa tròn (✏️ / ✓) để bật/tắt chế độ quản lý phím tắt:
-  * Khi bật: Hiển thị nút đỏ dấu trừ (`-`) trên mỗi ô để gỡ bỏ nhanh. Click vào ô trống hiển thị danh sách trang bị sẵn có để lắp.
-* `[x]` **Hiển Thị Số Lượng Rõ Ràng (Badge Quantity):** Badge số lượng màu nền đỏ/tím/hoàng kim tương phản cao, căn giữa dưới vòng tròn phím tắt giúp người chơi dễ nhìn con số.
-* `[x]` **Vòng Cooldown SVG Chuyển Động (Dynamic SVG Ring):** Hiển thị đếm ngược thời gian hoạt động của thuốc hoặc bùa hiệu ứng thông qua vòng tròn vẽ SVG mịn màng, loại bỏ các viền đúp xấu xí.
-* `[x]` **Hiệu Ứng Làm Mờ & Gạch Chéo Khi Hết (Depletion Indicators):** Khi số lượng vật phẩm bằng 0, phím tắt sẽ bị vô hiệu hóa, hình ảnh icon mờ đi 20% kèm một đường gạch chéo màu đỏ để hiển thị trực quan trạng thái hết hàng.
-* `[x]` **Vòng Sáng Nhấp Nháy Sẵn Sàng (Ready Pulsing Halo Glow):** Ô phím tắt có lượng vật phẩm > 0 và đã hồi chiêu sẽ có vòng sáng nhịp thở nhấp nháy (Đỏ cho Máu, Vàng cho Thuốc Tốc Độ, Tím cho Bùa EXP) nhằm kích thích người chơi nhấn sử dụng.
+## 4. Đặc Tả Chi Tiết Trạng Thái Triển Khai Tính Năng (Detailed Features Checklists)
 
----
+### A. Hệ Thống Thanh Phím Tắt Trận Đấu (Action Bar System)
+* `[x]` **Trang Bị Bất Kỳ Cứu Thương/Bổ Trợ:** Lắp bình HP máu, thuốc tốc độ, bùa EXP vào bất kỳ ô nào trong 7 ô phím tắt.
+* `[x]` **Chế độ Chỉnh Sửa Trực Quan:** Bật tắt Edit Mode bằng nút tròn bút chì. Khi bật, xuất hiện nút đỏ dấu trừ `-` định vị tuyệt đối `top-[-3px] right-[-3px]` trên mỗi ô để unequip tức thì. Bấm vào ô trống mở Popup lựa chọn các vật phẩm đang có sẵn trong túi đồ.
+* `[x]` **SVG Hiển Thị Hồi Chiêu & Sử Dụng:**
+  * Vẽ vòng tròn tiến trình chạy thông qua thuộc tính `strokeDashoffset` của phần tử `<circle r="18" />`.
+  * Hết hiệu lực cooldown làm mờ icon đi còn `opacity-35` và hiển thị nhãn đếm ngược thời gian (Ví dụ: `14m`).
+* `[x]` **Hình Ảnh Khi Kiệt Quệ Dữ Liệu (Depleted visual overlay):** Khi số lượng vật phẩm trong túi bằng 0, phím tắt hiển thị dấu gạch chéo chéo màu đỏ vẽ bằng thẻ SVG `<line x1="8" y1="30" x2="30" y2="8" stroke="#ef4444" strokeWidth="2" />` và biểu tượng icon chuyển thang màu xám (grayscale) với độ mờ cực cao để người chơi biết cần vào Shop mua thêm.
+* `[x]` **Vòng Sáng Nhấp Nháy (Halo Pulsing Glow):** Khi vật phẩm có sẵn số lượng > 0 và trạng thái rảnh (không cooldown), hệ thống tạo vòng sáng màu nền thở nhịp điệu (pulse animation) tương ứng với từng hệ màu của vật phẩm để thu hút sự chú ý.
 
-## 5. Cửa Hàng & Triệu Hồi (Shop & Summon System)
-* `[x]` **Shop Vàng (Gold Shop):** Mua gói vàng tăng trưởng quy đổi bằng Kim cương (quy mô vàng nhận được tăng dần theo tiến trình Ải hiện tại).
-* `[x]` **Shop Kim Cương (Diamond Shop):**
-  * **Rương Bình Máu:** Mở khóa 30 Bình HP tự động hồi phục.
-  * **Thuốc Tốc Độ (Speed Elixir):** Tăng 50% tốc độ đánh trong 15 phút.
-  * **Bùa EXP (EXP Charm):** Nhân đôi lượng kinh nghiệm nhận được từ quái vật trong 15 phút.
-* `[x]` **Mua Nhiều (Bulk Purchase Modal):** 
-  * Cửa sổ popup mua nhiều tích hợp nút tăng giảm nhanh (`+` / `-`) hoặc cho phép nhập trực tiếp số lượng tùy chỉnh.
-  * Phím tắt chọn nhanh số lượng gợi ý sẵn: `10`, `20`, `50`, `100`.
-  * Tự động tính toán tổng số tiền tiêu hao và kiểm tra số dư của người chơi.
-  * Được thiết kế xếp dọc gọn gàng giúp giao diện thông thoáng, không bị khuất chữ.
-* `[x]` **Triệu Hồi Thần Khí (Sacred Summon):** Tiêu kim cương để gacha mở khóa các trang bị ngẫu nhiên (Vũ khí, Giáp, Giày, Nhẫn) từ Thường đến Huyền Thoại với bảng tỷ lệ rơi công khai.
+### B. Hệ Thống Cửa Hàng & Mua Nhiều (Bulk Shop System)
+* `[x]` **Xếp Dọc Toàn Bộ Nút Giao Dịch:** Nút Mua mặc định và nút Mua Nhiều được xếp chồng dọc để giải quyết triệt để lỗi khuất chữ và vỡ khung layout trên màn hình nhỏ.
+* `[x]` **Giao Diện Mua Nhiều Cao Cấp:**
+  * Cho phép người chơi tăng/giảm số lượng thông qua phím bấm cộng trừ hoặc click trực tiếp vào ô input để nhập con số tùy thích.
+  * Phím chọn nhanh thiết lập trước số lượng: `10`, `20`, `50`, `100` để tiết kiệm thao tác.
+  * Tự động hiển thị và cập nhật tổng chi phí theo thời gian thực.
+  * Nút xác nhận tự động vô hiệu hóa nếu số dư Vàng/Kim Cương của người chơi không đủ để giao dịch.
 
----
-
-## 6. Lò Rèn & Khảm Ngọc (Forge & Gem Crafting)
-* `[x]` **Lò Ghép Ngọc (Gem Crafting Formula):** Ghép 3 viên ngọc cùng loại và cùng cấp độ để nâng lên cấp độ tiếp theo (Tối đa Cấp 5). Tỉ lệ ghép thành công giảm dần theo cấp độ ngọc (100%, 50%, 10%, 1%).
-* `[x]` **Ngọc Thuộc Tính (Attribute Gems):** Có 5 hệ ngọc:
-  * **Hồng Ngọc (Ruby):** Tăng Công (ATK).
-  * **Hoàng Ngọc (Topaz):** Tăng Công Phép (M.ATK).
-  * **Lục Bảo (Emerald):** Tăng HP.
-  * **Lam Bảo (Sapphire):** Tăng Giáp (DEF).
-  * **Thạch Anh (Amethyst):** Tăng Chí Mạng (CRIT).
-* `[x]` **Cường Hóa Thiết Bị (Quick Reforge):** Nâng cấp cấp độ cường hóa của các trang bị đang mặc trên người (+1, +2, ...) tiêu tốn lượng Vàng tăng dần.
-
----
-
-## 7. Phó Bản & Hầm Ngục (Dungeon Challenge Portal)
-* `[x]` **Bốn Cổng Phó Bản Phân Loại:**
-  * Phó bản Ngọc Thuộc Tính (Gem Dungeon).
-  * Phó bản Vàng (Gold Dungeon).
-  * Phó bản Kim Cương (Diamond Dungeon).
-  * Phó bản Trang Bị (Gear Dungeon).
-* `[x]` **Độ Khó Cấp Độ Yêu Cầu (Level Gate & Bosses):** Mỗi cổng gồm 3 độ khó: Dễ (Easy), Thường (Normal), Khó (Hard) yêu cầu cấp độ nhân vật khác nhau và sở hữu các Boss riêng biệt với lượng máu khủng.
-* `[x]` **Hệ Thống Vé Vào Cổng (Dungeon Tickets):** Tiêu tốn 1 vé mỗi lượt đi, hỗ trợ mua thêm vé bằng vàng trực tiếp ngay tại header của phó bản.
-
----
-
-## 8. Bang Hội & Đột Kích Boss (Guild & Raid System)
-* `[x]` **Điểm Danh Hàng Ngày (Guild Check-In):** Quyên góp Vàng hoặc Kim Cương để nhận điểm cống hiến đóng đóng góp nâng cấp cấp độ Bang Hội.
-* `[x]` **Thành Viên Đội Raid (Raid Team CP calculation):** Hiển thị lực chiến tổng hợp của bản thân và các thành viên AI trong Bang Hội để cùng nhau khiêu chiến.
-* `[x]` **Đột Kích Boss Bang (Guild Raid Boss):** Khiêu chiến Rồng Hư Không Void Behemoth sở hữu 25.000.000 HP cùng cả Bang Hội để nhận các phần thưởng cao cấp.
-
----
-
-## 9. Sổ Tay Lữ Khách (Traveler Wiki / Guide)
-* `[x]` **Bảng Tra Cứu Tỉ Lệ (Drop Tables):** Tra cứu tỉ lệ rơi phẩm chất, tỉ lệ nâng cấp ngọc thuộc tính chi tiết.
-* `[x]` **Hướng Dẫn Thuộc Tính (Attributes Guide):** Giải thích cặn kẽ ý nghĩa các chỉ số thuộc tính trong game để hỗ trợ người chơi xây dựng nhân vật tối ưu.
+### C. Đồng Bộ & Chuẩn Hóa Save Tải Game (Firebase Array Restoration)
+* `[x]` **Phục Hồi Dữ Liệu Mảng Thưa:** Firebase Realtime DB chuyển đổi các mảng chứa null thành đối tượng JSON keys khi lưu trữ. Tại [client.ts](file:///e:/Code/IdleGame/packages/firebase/src/client.ts#L150-L163) và [mockDb.ts](file:///e:/Code/IdleGame/packages/firebase/src/mockDb.ts#L335-L348), hàm khôi phục dữ liệu sẽ tự động chuyển đổi định dạng `{ "0": "potion", "2": "speed_elixir" }` về mảng 7 phần tử tuần tự chuẩn nhằm ngăn ngừa lỗi crash giao diện map/filter ở phía Client.

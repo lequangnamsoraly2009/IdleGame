@@ -1,103 +1,158 @@
 # Lộ Trình Phát Triển Game Chi Tiết (Detailed Game Development Roadmap)
 
-Lộ trình này vạch ra các định hướng thiết kế và phát triển kỹ thuật cho dự án **Idle RPG** trong vòng 4 tháng tới, giúp tối ưu hóa hiệu năng, cải thiện trải nghiệm người chơi (UX), và mở rộng quy mô tính năng (Endgame Content).
+Lộ trình này vạch ra danh sách các công việc cụ thể (Tasks), tệp cần sửa (Target Files), và thuật toán triển khai cho dự án **Idle RPG** trong vòng 4 tháng tới.
 
 ---
 
-## 📅 THÁNG 1: TỐI ƯU HÓA HỆ THỐNG, CÂN BẰNG & TRẢI NGHIỆM CHƠI (QoL)
+## 📅 THÁNG 1: TỐI ƯU HÓA HIỆU NĂNG, CÂN BẰNG HỆ THỐNG & QoL
 
-Trọng tâm tháng đầu tiên là cải tiến hiệu năng render, hoàn thiện các tính năng cốt lõi đang có và cân bằng chỉ số giữa các phân lớp nhân vật.
-
-### 1. Nâng Cấp Hệ Thống Chiến Đấu & Render
-* **Vòng lặp PixiJS:** Tối ưu hóa chu kỳ render của PixiJS trong [PixiGame.tsx](file:///e:/Code/IdleGame/apps/web/src/components/PixiGame.tsx). Tự động tắt/giảm tần suất dựng hình (FPS throttling) khi tab trình duyệt bị ẩn hoặc người chơi chuyển sang tab khác (ví dụ: mở Hòm đồ, Cửa hàng) để giảm tải CPU/GPU.
-* **Bộ đệm sát thương hiển thị (Damage Popups Pooling):** Triển khai đối tượng tái sử dụng (Object Pool) cho các hiệu ứng chữ số nhảy sát thương crít, né tránh trên màn hình Canvas nhằm triệt tiêu hiện tượng giật lag khi tốc độ đánh của nhân vật tăng cao.
-
-### 2. Tinh Chỉnh Cân Bằng Chỉ Số (Class Balancing)
-* **Chỉ số Pháp Sư (Mage):** Điều chỉnh chỉ số phòng thủ và tỉ lệ né tránh để cân bằng lại độ sinh tồn cực thấp trong các ải Boss phó bản khó.
-* **Cơ chế Hút Máu (Life Steal):** Thêm thuộc tính Hút máu (chỉ số phần trăm hồi máu dựa trên sát thương gây ra) vào trang bị nhẫn/vũ khí để tạo thêm sự phong phú khi build trang bị.
-
-### 3. Tối Ưu Hóa Trải Nghiệm Hòm Đồ (UX Bag Tab)
-* **Khóa trang bị (Item Lock):** Thêm tính năng bấm khóa trang bị trong [BagTab.tsx](file:///e:/Code/IdleGame/apps/web/src/components/tabs/BagTab.tsx) để bảo vệ các món đồ quý hiếm khỏi việc vô tình bị phân tách hàng loạt.
-* **Bộ lọc nâng cao (Advanced Filters):** Hỗ trợ lọc trang bị theo chỉ số chính (Ví dụ: Tìm vũ khí có dòng % Công cao nhất) và phân loại cấp độ cường hóa.
-
----
-
-## 📅 THÁNG 2: HỆ THỐNG THÚ CƯNG, HOẠT ẢNH NGOẠI TUYẾN & THẦN KHÍ PHỤC CỔ
-
-Mở rộng chiều sâu chiến thuật bằng cách đưa vào hệ sinh thái đồng hành và cơ chế lưu trữ ngoại tuyến trực quan.
+Mục tiêu chính là tối ưu hóa CPU/GPU khi chạy auto treo máy lâu dài và cân bằng chỉ số giữa các class.
 
 ```mermaid
-graph TD
-    A[Nhân Vật Chính] --> B(Lắp Trang Bị Cường Hóa)
-    A --> C(Khảm Ngọc Thuộc Tính)
-    A --> D(Đồng Hành: Thú Cưng)
-    D --> D1[Pet Tấn Công: Thêm Sát Thương]
-    D --> D2[Pet Hỗ Trợ: Hồi HP / Tăng Giáp]
-    D --> D3[Pet Tiện Ích: Tăng % Vàng / EXP]
+gantt
+    title Kế hoạch phát triển Tháng 1
+    dateFormat  YYYY-MM-DD
+    section Tối ưu hiệu năng
+    Throttling FPS PixiJS          :active, 2026-07-01, 7d
+    Damage Popup Pooling           : 7d
+    section Cân bằng & Tính năng phụ
+    Điều chỉnh class Mage          : 5d
+    Thêm thuộc tính Hút Máu (Lifesteal) : 5d
+    Khóa vật phẩm & Lọc túi đồ     : 6d
 ```
 
-### 1. Hệ Thống Thú Cưng Đồng Hành (Companion/Pet System)
-* **Gacha Pet & Tiến Hóa:** Mở tab triệu hồi Thú Cưng trong Shop, tiêu tốn Kim Cương để nhận Pet từ phẩm chất Thường đến Huyền thoại.
-* **Kỹ năng bổ trợ của Pet:** Pet đi theo nhân vật trên màn hình chiến đấu Canvas, tự động tấn công hỗ trợ hoặc kích hoạt kỹ năng đặc biệt (ví dụ: Cứ mỗi 10 giây hồi 5% HP, hoặc tăng 15% Tốc độ di chuyển/đánh).
+### 1. Tối Ưu Tần Suất Dựng Hình Trình Duyệt (FPS Throttling)
+* **Mục tiêu:** Giảm mức tiêu thụ pin và tài nguyên phần cứng khi người chơi treo máy ở tab khác hoặc ẩn tab trình duyệt.
+* **Tệp cần sửa:** [PixiGame.tsx](file:///e:/Code/IdleGame/apps/web/src/components/PixiGame.tsx)
+* **Hướng dẫn chi tiết:**
+  1. Đăng ký bộ lắng nghe sự kiện thay đổi trạng thái ẩn hiện của trang web:
+     ```typescript
+     useEffect(() => {
+       const handleVisibilityChange = () => {
+         if (document.hidden) {
+           // Giảm FPS của Pixi ticker xuống còn 2 FPS khi ẩn tab
+           app.ticker.maxFPS = 2;
+         } else {
+           // Khôi phục FPS tiêu chuẩn 60 FPS khi quay lại
+           app.ticker.maxFPS = 60;
+         }
+       };
+       document.addEventListener("visibilitychange", handleVisibilityChange);
+       return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+     }, [app]);
+     ```
 
-### 2. Bảng Tổng Kết Tài Nguyên Ngoại Tuyến (Offline Gains Screen)
-* **Báo cáo trực quan (Visual Report Modal):** Khi người chơi mở game sau một khoảng thời gian ngoại tuyến, hệ thống sẽ hiển thị một Popup tổng kết vô cùng bắt mắt:
-  * Tổng thời gian treo máy ngoại tuyến (Ví dụ: `08 giờ 45 phút`).
-  * Tổng lượng Vàng và EXP tích lũy được (có hiệu ứng chạy số tăng dần).
-  * Danh sách các trang bị quý hiếm nhặt được, kèm theo thống kê số lượng trang bị rác đã tự động phân tách thành Aether Shards.
+### 2. Tái Sử Dụng Hiệu Ứng Sát Thương (Damage Popups Object Pooling)
+* **Mục tiêu:** Loại bỏ hoàn toàn hành vi khởi tạo/hủy phần tử DOM hoặc đối tượng Pixi Text liên tục gây ra rò rỉ bộ nhớ (Garbage Collection lag spikes).
+* **Tệp cần sửa:** [PixiGame.tsx](file:///e:/Code/IdleGame/apps/web/src/components/PixiGame.tsx)
+* **Hướng dẫn chi tiết:**
+  1. Tạo lớp `DamagePopupPool` quản lý tối đa 50 đối tượng `PIXI.Text`.
+  2. Khi nhân vật hoặc quái gây sát thương, lấy đối tượng rảnh từ Pool, gán vị trí $(x, y)$, nội dung hiển thị, hiệu ứng màu (Đỏ cho chí mạng, Trắng cho sát thương thường) và kích hoạt hiệu ứng bay lên rồi ẩn đi. Khi kết thúc hiệu ứng, đưa đối tượng trở lại trạng thái rảnh trong Pool thay vì hủy bỏ (`destroy`).
 
-### 3. Ô Trang Bị Thần Khí Đặc Biệt (Artifact Artifact Slots)
-* Thêm 2 ô trang bị mới: **Cổ Vật (Relic)** và **Pháp Bảo (Artifact)**. Các vật phẩm này không thể rèn thông thường mà chỉ có thể săn được ở phó bản Khó hoặc rớt ngẫu nhiên từ Boss thế giới với các dòng chỉ số độc nhất vô nhị (Ví dụ: "Tăng 20% sát thương lên quái hệ Ám").
+### 3. Điều Chỉnh Chỉ Số Cân Bằng Class Pháp Sư (Mage Class Balancing)
+* **Mục tiêu:** Nâng cao khả năng sinh tồn của Pháp sư ở giai đoạn đầu game.
+* **Tệp cần sửa:** [formulas.ts](file:///e:/Code/IdleGame/packages/shared/src/formulas.ts) và [mockDb.ts](file:///e:/Code/IdleGame/packages/firebase/src/mockDb.ts)
+* **Hướng dẫn chi tiết:**
+  1. Tại hàm `generateStarterSave` của class `mage`, tăng nhẹ chỉ số HP cơ bản từ 85 lên 100, tăng thủ cơ bản từ 3 lên 5.
+  2. Tại hàm `recalculateHeroStats`, bổ sung chỉ số cộng thêm: nếu class là `mage`, tự động kích hoạt buff tăng 10% kháng hiệu ứng khống chế của quái vật phó bản.
+
+### 4. Triển Khai Chỉ Số Hút Máu (Lifesteal Mechanics)
+* **Mục tiêu:** Cho phép hồi lại máu khi nhân vật gây sát thương vật lý lên quái vật.
+* **Tệp cần sửa:** [Engine.ts](file:///e:/Code/IdleGame/packages/engine/src/Engine.ts) và [formulas.ts](file:///e:/Code/IdleGame/packages/shared/src/formulas.ts)
+* **Hướng dẫn chi tiết:**
+  1. Trong vòng lặp combat của `Engine.ts`, sau khi tính toán sát thương thực tế gây ra cho quái vật:
+     $$\text{Sát thương thực tế} = \max(1, \text{Sát thương gây ra} - \text{Giáp quái})$$
+  2. Lấy chỉ số `hero.lifesteal` nhân với sát thương thực tế để tính toán lượng máu hồi lại:
+     $$\text{HP Hồi phục} = \text{Round}(\text{Sát thương thực tế} \times \text{Lifesteal})$$
+  3. Cộng lượng máu này vào `hero.currentHp` nhưng không vượt quá `hero.maxHp`.
 
 ---
 
-## 📅 THÁNG 3: BANG HỘI TOÀN DIỆN, ĐẤU TRƯỜNG PVP & KHÔNG GIAN HỢP TÁC
+## 📅 THÁNG 2: THÚ CƯNG ĐỒNG HÀNH, BẢNG BÁO CÁO NGOẠI TUYẾN & CỔ VẬT
 
-Đưa game từ trải nghiệm chơi đơn thuần túy sang môi trường tương tác xã hội nhiều người chơi.
+Tập trung vào phát triển tính năng tương tác đồng hành và gia tăng tài nguyên thu được khi ngoại tuyến.
 
-### 1. Mở Rộng Tính Năng Bang Hội (Guild Expansion)
-* **Kỹ năng Bang Hội (Guild Skills):** Điểm cống hiến đóng góp của thành viên sẽ được Bang chủ dùng để mở khóa các Buff thụ động dùng chung cho toàn bộ thành viên trong bang (Ví dụ: +5% Sát thương Boss, +10% Vàng nhận được).
-* **Kho Bang Hội (Guild Warehouse):** Nơi các thành viên có thể quyên góp trang bị dư thừa của mình và dùng điểm cống hiến để đổi lấy các trang bị do người khác quyên góp.
+### 1. Hệ Thống Thú Cưng Đồng Hành (Companion System)
+* **Tệp cần tạo mới:** `apps/web/src/components/tabs/PetTab.tsx`
+* **Tệp cần sửa:** [game.ts](file:///e:/Code/IdleGame/packages/shared/src/types/game.ts) (Thêm kiểu dữ liệu `PetState` và danh sách Pet sở hữu), [gameStore.ts](file:///e:/Code/IdleGame/apps/web/src/stores/gameStore.ts) (Thêm hàm triệu hồi Pet bằng Kim Cương).
+* **Hướng dẫn chi tiết:**
+  1. Khai báo interface cho Pet:
+     ```typescript
+     export interface PetInstance {
+       id: string;
+       templateId: string;
+       name: string;
+       rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+       level: number;
+       exp: number;
+       statBonus: Partial<BaseStats>;
+     }
+     ```
+  2. Bổ sung Pet đồng hành vẽ trực tiếp trên màn hình Canvas PixiJS. Pet sẽ di chuyển bám đuổi theo nhân vật chính bằng thuật toán nội suy Lerp:
+     $$x_{\text{pet}} = x_{\text{pet}} + (x_{\text{hero}} - x_{\text{pet}}) \times 0.1$$
+     $$y_{\text{pet}} = y_{\text{pet}} + (y_{\text{hero}} - y_{\text{pet}}) \times 0.1$$
 
-### 2. Đấu Trường PVP Xếp Hạng (PVP Arena System)
-* **Đấu trường bất đối xứng (Asynchronous PVP):** Người chơi sắp xếp đội hình phím tắt và chỉ số để thách đấu với bóng dữ liệu (Shadow Data) của người chơi khác. Trận đấu diễn ra hoàn toàn tự động dựa trên chỉ số thực tế của hai bên.
-* **Bảng xếp hạng mùa giải (Season Leaderboards):** Nhận danh hiệu độc quyền và phần thưởng Kim cương hàng tuần dựa trên thứ hạng rank (Đồng, Bạc, Vàng, Bạch Kim, Kim Cương, Thách Đấu).
-
-### 3. Phó Bản Hợp Tác Liên Quân (Cooperative Multi-dungeons)
-* Cho phép 2-3 người chơi lập tổ đội thời gian thực để cùng khiêu chiến các phó bản cực khó, yêu cầu sự kết hợp giữa các lớp nhân vật (Ví dụ: Hiệp Sĩ thu hút sát thương của Boss, Pháp Sư và Sát Thủ đứng sau gây sát thương tối đa).
-
----
-
-## 📅 THÁNG 4: NỘI DUNG CUỐI GAME (ENDGAME) & CÂY THIÊN PHÚ TRÙNG SINH
-
-Giai đoạn giữ chân người chơi lâu dài bằng các thử thách vô hạn và hệ thống phát triển kỹ năng phân nhánh cực sâu.
-
-```
-[Trùng Sinh Cấp 1] ──> Mở khóa Cây Thiên Phú (Prestige Tree)
-                           ├── Phân nhánh Cuồng Chiến (Tập trung Tấn công, Chí mạng)
-                           ├── Phân nhánh Bất Tử (Tập trung Máu, Hồi phục, Kháng chí mạng)
-                           └── Phân nhánh Thợ Săn (Tập trung Tốc độ đánh, Vàng, EXP)
-```
-
-### 1. Cây Tài Năng Trùng Sinh Phân Nhánh (Prestige Talent Tree)
-* Thay thế hệ thống cộng chỉ số trùng sinh đơn giản hiện tại bằng một Cây Tài Năng (Talent Tree) đồ sộ:
-  * Điểm Trùng Sinh dùng để nâng cấp các nút kỹ năng đặc biệt (Ví dụ: "Đòn đánh thường có 10% cơ hội kích hoạt chuỗi sét lan gây 150% sát thương phép").
-  * Người chơi có thể reset cây tài năng miễn phí hoặc tiêu tốn lượng nhỏ kim cương để thay đổi lối chơi.
-
-### 2. Thử Thách Tháp Vô Hạn (Infinity Void Tower)
-* Chế độ leo tháp không giới hạn số tầng. Mỗi tầng có các bùa hại (Debuffs) ngẫu nhiên thử thách người chơi (Ví dụ: Tầng 50: Giảm 30% tốc độ đánh của nhân vật; Tầng 60: Boss hồi phục 2% HP mỗi giây).
-* Cung cấp phần thưởng nguyên liệu quý hiếm để nâng cấp Thần Khí Aether ở các cấp bậc huyền thoại tối thượng.
-
-### 3. Boss Thế Giới (Global World Boss Event)
-* Hoạt động định kỳ hàng ngày, toàn bộ người chơi trên máy chủ sẽ cùng nhau tấn công một siêu Boss khổng lồ có lượng máu vô hạn trong vòng 15 phút.
-* Xếp hạng và trao thưởng rương trang bị thần thoại dựa trên tổng lượng sát thương (DPS) mà người chơi đóng góp.
+### 2. Thiết Kế Màn Hình Tổng Kết Ngoại Tuyến (Offline Gains Screen)
+* **Tệp cần sửa:** [gameStore.ts](file:///e:/Code/IdleGame/apps/web/src/stores/gameStore.ts) (Tính toán thời gian chênh lệch khi đăng nhập)
+* **Hướng dẫn chi tiết:**
+  1. Khi người chơi đăng nhập, so sánh thời gian hiện tại với thời gian lưu trữ cuối cùng (`lastSavedTime`).
+  2. Nếu thời gian chênh lệch $\Delta t \ge 5\text{ phút}$:
+     * Số Vàng nhận được: $\text{Gold} = \Delta t_{\text{giây}} \times \text{Lượng vàng rơi trung bình của Ải hiện tại} \times 0.6$ (Giới hạn tối đa 12 giờ ngoại tuyến).
+     * EXP nhận được: $\text{EXP} = \Delta t_{\text{giây}} \times \text{EXP trung bình của Ải} \times 0.6$.
+     * Hiển thị Popup Modal `OfflineReportModal` tổng hợp số tiền, kinh nghiệm nhận được và số lượng trang bị tự động phân tách bằng màu sắc vàng/tím lấp lánh.
 
 ---
 
-## 🛠️ LỘ TRÌNH PHÁT TRIỂN CÔNG NGHỆ (TECHNICAL ARCHITECTURE ROADMAP)
+## 📅 THÁNG 3: BANG HỘI CHI TIẾT, ĐẤU TRƯỜNG PVP & PHÓ BẢN HỢP TÁC
 
-Để đáp ứng các tính năng trên, nền tảng hệ thống cần được nâng cấp tương ứng:
+Nâng cấp các tương tác mạng và phát triển tính năng nhiều người chơi cùng chiến đấu.
 
-1. **Chuyển đổi lưu trữ sang Realtime Database Transactions:** Sử dụng lệnh `runTransaction` của Firebase khi cộng/trừ tiền tệ (vàng, kim cương) để triệt tiêu hoàn toàn lỗi bất đồng bộ số dư hoặc gian lận dữ liệu do mất kết nối mạng đột ngột.
-2. **Cơ chế nén dữ liệu lưu trữ (Save Compression):** Nén dữ liệu save game bằng thuật toán nhẹ trước khi lưu lên Database nhằm tiết kiệm dung lượng truyền tải mạng và tối ưu chi phí hạ tầng Firebase.
-3. **Mã hóa kết nối WebSocket:** Bảo vệ luồng thông tin kết nối đa người chơi thời gian thực của Đấu trường và Phó bản Co-op, phòng chống mã độc can thiệp chỉnh sửa chỉ số nhân vật ở phía Client.
+### 1. Kỹ Năng Bang Hội & Kho Bang Hội (Guild Buffs & Warehouse)
+* **Tệp cần sửa:** [GuildTab.tsx](file:///e:/Code/IdleGame/apps/web/src/components/tabs/GuildTab.tsx)
+* **Hướng dẫn chi tiết:**
+  1. Thêm tab phụ "Kỹ Năng Bang" (Guild Skills) trong giao diện Bang hội.
+  2. Sử dụng quỹ tài nguyên cống hiến đóng góp chung của các thành viên để thăng cấp các nút kỹ năng: *Vanguard Strength (Tăng Công cả Bang), Iron Bulwark (Tăng Thủ cả Bang)*.
+  3. Cập nhật hàm `recalculateHeroStats` trong formulas để cộng thêm chỉ số tương ứng từ cấp độ nâng cấp của bang hội đang tham gia.
+
+### 2. Thiết Kế Đấu Trường PVP Xếp Hạng (Asynchronous PVP Arena)
+* **Tệp cần tạo mới:** `apps/web/src/components/tabs/ArenaTab.tsx`
+* **Tệp cần sửa:** [client.ts](file:///e:/Code/IdleGame/packages/firebase/src/client.ts) (Tải danh sách các đối thủ xung quanh thứ hạng)
+* **Hướng dẫn chi tiết:**
+  1. Tải về thông tin 3 người chơi có thứ hạng gần kề với người chơi từ Realtime Database.
+  2. Khi bắt đầu chiến đấu, hệ thống khởi chạy công thức so tài mô phỏng tự động giữa chỉ số thực tế của bạn và đối thủ. Sau mỗi trận đấu thắng sẽ được cộng điểm Rank, thua bị trừ điểm Rank.
+
+---
+
+## 📅 THÁNG 4: NỘI DUNG CUỐI GAME (ENDGAME EXPANSION) & CÂY THIÊN PHÚ
+
+Thiết lập hệ thống giữ chân người chơi có cấp độ cao bằng các nội dung khiêu chiến vô hạn.
+
+### 1. Cây Kỹ Năng Trùng Sinh Phân Nhánh (Prestige Talent Tree)
+* **Tệp cần tạo mới:** `apps/web/src/components/PrestigeTalentTree.tsx`
+* **Tệp cần sửa:** [formulas.ts](file:///e:/Code/IdleGame/packages/shared/src/formulas.ts) (Tính toán chỉ số từ cây tài năng)
+* **Hướng dẫn chi tiết:**
+  1. Thiết kế cây thiên phú chia làm 3 hướng:
+     - **Tấn công (Offense Branch):** Tăng % Tấn công, sát thương chí mạng, hồi chiêu kỹ năng nhanh.
+     - **Phòng thủ (Defense Branch):** Tăng % Máu, giáp, tỉ lệ đỡ đòn, phản sát thương nhận vào.
+     - **Thu thập (Utility Branch):** Tăng % Vàng rơi ra, kinh nghiệm nhận được và tăng độ thuần khiết của trang bị rơi ra.
+  2. Điểm Trùng Sinh nhận được sau mỗi lần Trùng Sinh được dùng để mở khóa các nhánh này.
+
+### 2. Chế Độ Vượt Tháp Hư Không Vô Hạn (Void Tower Challenge)
+* **Tệp cần sửa:** [DungeonTab.tsx](file:///e:/Code/IdleGame/apps/web/src/components/tabs/DungeonTab.tsx)
+* **Hướng dẫn chi tiết:**
+  1. Thêm cổng khiêu chiến "Tháp Hư Không".
+  2. Mỗi tầng tháp sẽ nâng chỉ số quái lên thêm 20%, đồng thời áp đặt các bùa hại ngẫu nhiên lên người chơi (Ví dụ: Giảm 50% khả năng hồi máu, hoặc mất hoàn toàn tỉ lệ chí mạng).
+  3. Người chơi leo tháp càng cao càng nhận được nhiều Aether Crystals cao cấp dùng để cường hóa trang bị vượt mốc giới hạn.
+
+---
+
+## 🛠️ CHI TIẾT LỘ TRÌNH CÔNG NGHỆ (TECHNICAL ARCHITECTURE TASKLIST)
+
+Để hỗ trợ lộ trình phát triển trên, cơ sở hạ tầng mạng cần được nâng cấp qua các bước cụ thể:
+
+1. **Giao dịch Firebase chống trùng lặp (Anti-duplication Transactions):**
+   * Thay thế các câu lệnh `set` hoặc `update` số dư đơn giản bằng phương thức `runTransaction` tại [client.ts](file:///e:/Code/IdleGame/packages/firebase/src/client.ts) khi thực hiện giao dịch mua bán vật phẩm, tránh việc người chơi cố ý ngắt mạng để nhân bản tài nguyên (dupe gold/diamonds).
+2. **Nén dữ liệu lưu trữ (Save Compression):**
+   * Sử dụng thư viện nén nhẹ như `lz-string` để mã hóa và nén chuỗi JSON save game trước khi đẩy lên Firebase Database. Điều này giảm thiểu dung lượng băng thông sử dụng và tăng tốc độ lưu game lên tới 400%.
+3. **Mã hóa và xác thực dữ liệu phía Server (Firebase Functions Validation):**
+   * Triển khai bộ xác thực chỉ số lực chiến CP ở phía Server để phát hiện và tự động khóa (ban) các tài khoản cố tình can thiệp chỉnh sửa tệp tin LocalStorage/RAM chỉ số công thủ nhằm phá hoại bảng xếp hạng PVP Arena.
