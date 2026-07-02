@@ -226,7 +226,7 @@ export const ShopTab: React.FC = () => {
                       className="w-full bg-gradient-to-r from-slate-800 to-slate-700 hover:brightness-110 active:scale-[0.98] transition-all text-white font-black h-10 px-2.5 rounded-lg border border-slate-750/70 flex justify-between items-center text-[9px] sm:text-[10px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
                     >
                       <span>{language === 'vi' ? 'MUA' : 'BUY'}</span>
-                      <span className="bg-slate-950/40 text-yellow-450 px-1.5 py-0.2 rounded border border-yellow-500/20 font-black font-mono">200 G</span>
+                      <span className="text-yellow-450 font-black font-mono">200 {GAME_ICONS.GOLD}</span>
                     </button>
                   </div>
                 </div>
@@ -264,9 +264,7 @@ export const ShopTab: React.FC = () => {
                       className="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:brightness-110 active:scale-[0.98] transition-all text-slate-950 font-black h-10 px-2.5 rounded-lg border border-amber-450/30 flex justify-between items-center text-[9px] sm:text-[10px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer animate-green-glow"
                     >
                       <span>{language === 'vi' ? 'MUA' : 'BUY'}</span>
-                      <span className="bg-slate-950/40 text-amber-955 px-1.5 py-0.2 rounded border border-amber-500/10 font-black font-mono">
-                        900 G
-                      </span>
+                      <span className="text-amber-955 font-black font-mono">900 {GAME_ICONS.GOLD}</span>
                     </button>
                   </div>
                 </div>
@@ -305,9 +303,7 @@ export const ShopTab: React.FC = () => {
                       className="w-full bg-gradient-to-r from-purple-650 to-indigo-650 hover:brightness-110 active:scale-[0.98] transition-all text-white font-black h-10 px-2.5 rounded-lg border border-purple-500/25 flex justify-between items-center text-[9px] sm:text-[10px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer animate-green-glow"
                     >
                       <span>{language === 'vi' ? 'MUA' : 'BUY'}</span>
-                      <span className="bg-slate-950/40 text-purple-300 px-1.5 py-0.2 rounded border border-purple-500/10 font-black font-mono">
-                        1,700 G
-                      </span>
+                      <span className="text-purple-300 font-black font-mono">1,700 {GAME_ICONS.GOLD}</span>
                     </button>
                   </div>
                 </div>
@@ -369,7 +365,7 @@ export const ShopTab: React.FC = () => {
                       className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:brightness-110 active:scale-[0.98] transition-all text-slate-950 font-black h-10 px-2.5 rounded-lg border border-yellow-455/30 flex justify-between items-center text-[9px] sm:text-[10px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
                     >
                       <span>{language === 'vi' ? 'ĐỔI' : 'BUY'}</span>
-                      <span className="bg-slate-950/40 text-amber-955 px-1.5 py-0.2 rounded border border-yellow-500/20 font-black font-mono">15 💎</span>
+                      <span className="text-amber-955 font-black font-mono">15 {GAME_ICONS.DIAMOND}</span>
                     </button>
                   </div>
                 </div>
@@ -409,8 +405,8 @@ export const ShopTab: React.FC = () => {
                       disabled={hero.diamonds < 40 || (hero.dailyPurchases?.potion_30 || 0) + 1 > 100}
                       className="w-full bg-gradient-to-r from-purple-650 to-indigo-650 hover:brightness-110 active:scale-[0.98] transition-all text-white font-black h-10 px-2.5 rounded-lg border border-purple-500/25 flex justify-between items-center text-[9px] sm:text-[10px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer animate-green-glow"
                     >
-                      <span>{language === 'vi' ? 'MỞ RƯƠNG' : 'OPEN'}</span>
-                      <span className="bg-slate-950/40 text-purple-300 px-1.5 py-0.2 rounded border border-purple-500/10 font-black font-mono">40 💎</span>
+                      <span>{language === 'vi' ? 'MỞ' : 'OPEN'}</span>
+                      <span className="text-purple-300 font-black font-mono">40 {GAME_ICONS.DIAMOND}</span>
                     </button>
                   </div>
                 </div>
@@ -446,7 +442,7 @@ export const ShopTab: React.FC = () => {
                       className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:brightness-110 active:scale-[0.98] transition-all text-white font-black h-10 px-2.5 rounded-lg border border-blue-500/25 flex justify-between items-center text-[9px] sm:text-[10px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
                     >
                       <span>{language === 'vi' ? 'MUA' : 'BUY'}</span>
-                      <span className="bg-slate-950/40 text-blue-300 px-1.5 py-0.2 rounded border border-blue-500/10 font-black font-mono">10 💎</span>
+                      <span className="text-blue-300 font-black font-mono">10 {GAME_ICONS.DIAMOND}</span>
                     </button>
                   </div>
                 </div>
@@ -482,7 +478,7 @@ export const ShopTab: React.FC = () => {
                       className="w-full bg-gradient-to-r from-purple-650 to-pink-650 hover:brightness-110 active:scale-[0.98] transition-all text-white font-black h-10 px-2.5 rounded-lg border border-purple-500/25 flex justify-between items-center text-[9px] sm:text-[10px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
                     >
                       <span>{language === 'vi' ? 'MUA' : 'BUY'}</span>
-                      <span className="bg-slate-950/40 text-purple-300 px-1.5 py-0.2 rounded border border-purple-500/10 font-black font-mono">10 💎</span>
+                      <span className="text-purple-300 font-black font-mono">10 {GAME_ICONS.DIAMOND}</span>
                     </button>
                   </div>
                 </div>
