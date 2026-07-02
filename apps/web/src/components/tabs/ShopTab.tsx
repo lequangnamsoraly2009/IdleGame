@@ -223,14 +223,15 @@ export const ShopTab: React.FC = () => {
                     </button>
                     <button
                       onClick={() => openBulkModal('potion_gold', language === 'vi' ? 'Bình Máu' : 'Health Potion', 200, 'gold', <PotionIcon className="w-5 h-5" />)}
-                      disabled={hero.gold < 200}
-                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-extrabold py-1.2 px-2 rounded-lg border border-slate-750/50 flex items-center justify-center text-[8.5px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap"
+                      disabled={hero.gold < 200 || (hero.dailyPurchases?.potion_gold_bulk || 0) >= 100}
+                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-black py-2.5 px-3 rounded-lg border border-slate-750/50 flex flex-col items-center justify-center text-[10px] sm:text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap animate-green-glow"
                     >
-                      {language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}
+                      <span>{language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}</span>
+                      <span className="text-[7.5px] opacity-75 font-mono">({language === 'vi' ? 'Còn' : 'Left'}: {100 - (hero.dailyPurchases?.potion_gold_bulk || 0)}/100)</span>
                     </button>
                   </div>
                 </div>
-
+ 
                 {/* Card 2: 5 Potions */}
                 <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-2.5 flex flex-col justify-between hover:bg-slate-900/80 hover:border-slate-700/60 transition duration-200">
                   <div className="flex flex-col items-center text-center">
@@ -253,16 +254,19 @@ export const ShopTab: React.FC = () => {
                   </div>
                   <button
                     onClick={() => buyPotion(5, 'gold')}
-                    disabled={hero.gold < 900}
-                    className="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:brightness-110 active:scale-[0.98] transition-all text-slate-950 font-black py-1.5 px-2 rounded-lg border border-amber-450/30 flex justify-between items-center text-[9px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                    disabled={hero.gold < 900 || (hero.dailyPurchases?.potion_5 || 0) + 5 > 100}
+                    className="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:brightness-110 active:scale-[0.98] transition-all text-slate-950 font-black py-2 px-2 rounded-lg border border-amber-450/30 flex flex-col items-center justify-center disabled:opacity-40 disabled:pointer-events-none cursor-pointer animate-green-glow"
                   >
-                    <span>{language === 'vi' ? 'MUA' : 'BUY'}</span>
-                    <span className="bg-slate-950/40 text-amber-955 px-1 py-0.2 rounded border border-amber-500/10 font-black font-mono">
-                      900 G
-                    </span>
+                    <div className="w-full flex justify-between items-center text-[9px] sm:text-[10px]">
+                      <span>{language === 'vi' ? 'MUA' : 'BUY'}</span>
+                      <span className="bg-slate-950/40 text-amber-955 px-1 py-0.2 rounded border border-amber-500/10 font-black font-mono">
+                        900 G
+                      </span>
+                    </div>
+                    <span className="text-[7.5px] opacity-75 font-mono mt-0.5">({language === 'vi' ? 'Còn' : 'Left'}: {100 - (hero.dailyPurchases?.potion_5 || 0)}/100)</span>
                   </button>
                 </div>
-
+ 
                 {/* Card 3: 10 Potions */}
                 <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-2.5 flex flex-col justify-between hover:bg-slate-900/80 hover:border-slate-700/60 transition duration-200">
                   <div className="flex flex-col items-center text-center">
@@ -286,13 +290,16 @@ export const ShopTab: React.FC = () => {
                   </div>
                   <button
                     onClick={() => buyPotion(10, 'gold')}
-                    disabled={hero.gold < 1700}
-                    className="w-full bg-gradient-to-r from-purple-650 to-indigo-650 hover:brightness-110 active:scale-[0.98] transition-all text-white font-extrabold py-1.5 px-2 rounded-lg border border-purple-500/25 flex justify-between items-center text-[9px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                    disabled={hero.gold < 1700 || (hero.dailyPurchases?.potion_10 || 0) + 10 > 100}
+                    className="w-full bg-gradient-to-r from-purple-650 to-indigo-650 hover:brightness-110 active:scale-[0.98] transition-all text-white font-black py-2 px-2 rounded-lg border border-purple-500/25 flex flex-col items-center justify-center disabled:opacity-40 disabled:pointer-events-none cursor-pointer animate-green-glow"
                   >
-                    <span>{language === 'vi' ? 'MUA' : 'BUY'}</span>
-                    <span className="bg-slate-950/40 text-purple-300 px-1 py-0.2 rounded border border-purple-500/10 font-black font-mono">
-                      1,700 G
-                    </span>
+                    <div className="w-full flex justify-between items-center text-[9px] sm:text-[10px]">
+                      <span>{language === 'vi' ? 'MUA' : 'BUY'}</span>
+                      <span className="bg-slate-950/40 text-purple-300 px-1 py-0.2 rounded border border-purple-500/10 font-black font-mono">
+                        1,700 G
+                      </span>
+                    </div>
+                    <span className="text-[7.5px] opacity-75 font-mono mt-0.5">({language === 'vi' ? 'Còn' : 'Left'}: {100 - (hero.dailyPurchases?.potion_10 || 0)}/100)</span>
                   </button>
                 </div>
               </div>
@@ -350,10 +357,11 @@ export const ShopTab: React.FC = () => {
                     </button>
                     <button
                       onClick={() => openBulkModal('gold_pack', language === 'vi' ? 'Gói Vàng' : 'Gold Pack', 15, 'diamonds', <GoldPackIcon />)}
-                      disabled={hero.diamonds < 15}
-                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-extrabold py-1.2 px-2 rounded-lg border border-slate-750/50 flex items-center justify-center text-[8.5px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap"
+                      disabled={hero.diamonds < 15 || (hero.dailyPurchases?.gold_pack_bulk || 0) >= 100}
+                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-black py-2.5 px-3 rounded-lg border border-slate-750/50 flex flex-col items-center justify-center text-[10px] sm:text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap animate-green-glow"
                     >
-                      {language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}
+                      <span>{language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}</span>
+                      <span className="text-[7.5px] opacity-75 font-mono">({language === 'vi' ? 'Còn' : 'Left'}: {100 - (hero.dailyPurchases?.gold_pack_bulk || 0)}/100)</span>
                     </button>
                   </div>
                 </div>
@@ -378,18 +386,22 @@ export const ShopTab: React.FC = () => {
                   <div className="flex flex-col gap-1.5 mt-auto w-full select-none">
                     <button
                       onClick={() => buyPotion(30, 'diamonds')}
-                      disabled={hero.diamonds < 40}
-                      className="w-full bg-gradient-to-r from-purple-650 to-indigo-650 hover:brightness-110 active:scale-[0.98] transition-all text-white font-extrabold py-1.5 px-2 rounded-lg border border-purple-500/25 flex justify-between items-center text-[9px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                      disabled={hero.diamonds < 40 || (hero.dailyPurchases?.potion_30 || 0) + 1 > 100}
+                      className="w-full bg-gradient-to-r from-purple-650 to-indigo-650 hover:brightness-110 active:scale-[0.98] transition-all text-white font-black py-2 px-2 rounded-lg border border-purple-500/25 flex flex-col items-center justify-center disabled:opacity-40 disabled:pointer-events-none cursor-pointer animate-green-glow"
                     >
-                      <span>{language === 'vi' ? 'MỞ' : 'OPEN'}</span>
-                      <span className="bg-slate-950/40 text-purple-300 px-1.5 py-0.2 rounded border border-purple-500/10 font-black font-mono">40 💎</span>
+                      <div className="w-full flex justify-between items-center text-[9px] sm:text-[10px]">
+                        <span>{language === 'vi' ? 'MỞ RƯƠNG' : 'OPEN'}</span>
+                        <span className="bg-slate-950/40 text-purple-300 px-1.5 py-0.2 rounded border border-purple-500/10 font-black font-mono">40 💎</span>
+                      </div>
+                      <span className="text-[7.5px] opacity-75 font-mono mt-0.5">({language === 'vi' ? 'Còn' : 'Left'}: {100 - (hero.dailyPurchases?.potion_30 || 0)}/100)</span>
                     </button>
                     <button
                       onClick={() => openBulkModal('potion_diamonds', language === 'vi' ? 'Rương Bình Máu' : 'Potion Chest', 40, 'diamonds', <PotionChestIcon />)}
-                      disabled={hero.diamonds < 40}
-                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-extrabold py-1.2 px-2 rounded-lg border border-slate-750/50 flex items-center justify-center text-[8.5px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap"
+                      disabled={hero.diamonds < 40 || (hero.dailyPurchases?.potion_diamonds_bulk || 0) >= 100}
+                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-black py-2.5 px-3 rounded-lg border border-slate-750/50 flex flex-col items-center justify-center text-[10px] sm:text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap animate-green-glow"
                     >
-                      {language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}
+                      <span>{language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}</span>
+                      <span className="text-[7.5px] opacity-75 font-mono">({language === 'vi' ? 'Còn' : 'Left'}: {100 - (hero.dailyPurchases?.potion_diamonds_bulk || 0)}/100)</span>
                     </button>
                   </div>
                 </div>
@@ -422,10 +434,11 @@ export const ShopTab: React.FC = () => {
                     </button>
                     <button
                       onClick={() => openBulkModal('speed_elixir', language === 'vi' ? 'Thuốc Tốc Độ' : 'Speed Elixir', 10, 'diamonds', <SpeedElixirIcon />)}
-                      disabled={hero.diamonds < 10}
-                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-extrabold py-1.2 px-2 rounded-lg border border-slate-750/50 flex items-center justify-center text-[8.5px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap"
+                      disabled={hero.diamonds < 10 || (hero.dailyPurchases?.speed_elixir_bulk || 0) >= 100}
+                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-black py-2.5 px-3 rounded-lg border border-slate-750/50 flex flex-col items-center justify-center text-[10px] sm:text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap animate-green-glow"
                     >
-                      {language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}
+                      <span>{language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}</span>
+                      <span className="text-[7.5px] opacity-75 font-mono">({language === 'vi' ? 'Còn' : 'Left'}: {100 - (hero.dailyPurchases?.speed_elixir_bulk || 0)}/100)</span>
                     </button>
                   </div>
                 </div>
@@ -458,10 +471,11 @@ export const ShopTab: React.FC = () => {
                     </button>
                     <button
                       onClick={() => openBulkModal('exp_charm', language === 'vi' ? 'Bùa EXP' : 'EXP Charm', 10, 'diamonds', <ExpCharmIcon />)}
-                      disabled={hero.diamonds < 10}
-                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-extrabold py-1.2 px-2 rounded-lg border border-slate-750/50 flex items-center justify-center text-[8.5px] disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap"
+                      disabled={hero.diamonds < 10 || (hero.dailyPurchases?.exp_charm_bulk || 0) >= 100}
+                      className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white font-black py-2.5 px-3 rounded-lg border border-slate-750/50 flex flex-col items-center justify-center text-[10px] sm:text-xs disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition active:scale-95 whitespace-nowrap animate-green-glow"
                     >
-                      {language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}
+                      <span>{language === 'vi' ? 'MUA NHIỀU' : 'BUY BULK'}</span>
+                      <span className="text-[7.5px] opacity-75 font-mono">({language === 'vi' ? 'Còn' : 'Left'}: {100 - (hero.dailyPurchases?.exp_charm_bulk || 0)}/100)</span>
                     </button>
                   </div>
                 </div>
@@ -783,117 +797,144 @@ export const ShopTab: React.FC = () => {
       </div>
 
       {/* Bulk Purchase Modal */}
-      {bulkItem && (
-        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 w-80 max-w-full shadow-2xl relative select-none animate-in fade-in zoom-in-95 duration-150">
-            {/* Close Button */}
-            <button
-              onClick={() => setBulkItem(null)}
-              className="absolute top-2.5 right-2.5 text-slate-500 hover:text-white cursor-pointer w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-800 transition font-bold"
-            >
-              ✕
-            </button>
+      {bulkItem && (() => {
+        const dailyPurchases = hero.dailyPurchases || {};
+        let limitKey = '';
+        if (bulkItem.id === 'potion_gold') {
+          limitKey = 'potion_gold_bulk';
+        } else if (bulkItem.id === 'potion_diamonds') {
+          limitKey = 'potion_diamonds_bulk';
+        } else if (bulkItem.id === 'speed_elixir') {
+          limitKey = 'speed_elixir_bulk';
+        } else if (bulkItem.id === 'exp_charm') {
+          limitKey = 'exp_charm_bulk';
+        } else if (bulkItem.id === 'gold_pack') {
+          limitKey = 'gold_pack_bulk';
+        }
 
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-2xl bg-slate-950/95 border border-slate-850 flex items-center justify-center text-xl shadow-inner mb-3">
-                {bulkItem.icon}
+        const currentCount = limitKey ? (dailyPurchases[limitKey] || 0) : 0;
+        const isLimitExceeded = limitKey ? (currentCount + bulkQty > 100) : false;
+
+        return (
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 w-80 max-w-full shadow-2xl relative select-none animate-in fade-in zoom-in-95 duration-150">
+              {/* Close Button */}
+              <button
+                onClick={() => setBulkItem(null)}
+                className="absolute top-2.5 right-2.5 text-slate-500 hover:text-white cursor-pointer w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-800 transition font-bold"
+              >
+                ✕
+              </button>
+
+              <div className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 rounded-2xl bg-slate-950/95 border border-slate-850 flex items-center justify-center text-xl shadow-inner mb-3">
+                  {bulkItem.icon}
+                </div>
+                <h4 className="text-xs font-black uppercase text-slate-200 tracking-wider mb-0.5 leading-none">
+                  {language === 'vi' ? 'Mua Nhiều' : 'Buy Bulk'}
+                </h4>
+                <p className="text-[11px] font-black text-amber-500 mt-1.5 uppercase tracking-wide">
+                  {bulkItem.name}
+                </p>
               </div>
-              <h4 className="text-xs font-black uppercase text-slate-200 tracking-wider mb-0.5 leading-none">
-                {language === 'vi' ? 'Mua Nhiều' : 'Buy Bulk'}
-              </h4>
-              <p className="text-[11px] font-black text-amber-500 mt-1.5 uppercase tracking-wide">
-                {bulkItem.name}
-              </p>
-            </div>
 
-            {/* Input & Adjuster Buttons */}
-            <div className="mt-4 flex items-center justify-between bg-slate-950 border border-slate-850 rounded-xl p-1.5 w-full">
-              <button
-                onClick={() => setBulkQty(prev => Math.max(1, prev - 1))}
-                className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-extrabold flex items-center justify-center cursor-pointer active:scale-90 transition select-none"
-              >
-                -
-              </button>
-              <input
-                type="number"
-                value={bulkQty}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value);
-                  setBulkQty(isNaN(val) ? 1 : Math.max(1, val));
-                }}
-                className="bg-transparent text-center font-mono font-black text-sm text-white w-20 outline-none focus:ring-0"
-              />
-              <button
-                onClick={() => setBulkQty(prev => prev + 1)}
-                className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-extrabold flex items-center justify-center cursor-pointer active:scale-90 transition select-none"
-              >
-                +
-              </button>
-            </div>
-
-            {/* Presets Row */}
-            <div className="mt-3.5 flex justify-between gap-1.5">
-              {[10, 20, 50, 100].map(qty => (
+              {/* Input & Adjuster Buttons */}
+              <div className="mt-4 flex items-center justify-between bg-slate-950 border border-slate-850 rounded-xl p-1.5 w-full">
                 <button
-                  key={qty}
-                  onClick={() => setBulkQty(qty)}
-                  className={`flex-1 py-1.5 text-[10px] font-extrabold rounded-lg border transition cursor-pointer active:scale-95 ${
-                    bulkQty === qty
-                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm'
-                      : 'bg-slate-950/60 border-slate-850 text-slate-450 hover:text-slate-200'
-                  }`}
+                  onClick={() => setBulkQty(prev => Math.max(1, prev - 1))}
+                  className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-extrabold flex items-center justify-center cursor-pointer active:scale-90 transition select-none"
                 >
-                  +{qty}
+                  -
                 </button>
-              ))}
-            </div>
-
-            {/* Cost & Submit Button */}
-            <div className="mt-5 pt-3.5 border-t border-slate-850/60 flex flex-col gap-2.5">
-              <div className="flex justify-between items-center text-[10.5px] font-black uppercase text-slate-400">
-                <span>{language === 'vi' ? 'Tổng Chi Phí:' : 'Total Cost:'}</span>
-                <span className="text-white font-mono font-extrabold text-xs">
-                  {Number(bulkItem.unitPrice * bulkQty).toLocaleString()}{' '}
-                  {bulkItem.currency === 'gold' ? 'G' : '💎'}
-                </span>
+                <input
+                  type="number"
+                  value={bulkQty}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    setBulkQty(isNaN(val) ? 1 : Math.max(1, val));
+                  }}
+                  className="bg-transparent text-center font-mono font-black text-sm text-white w-20 outline-none focus:ring-0"
+                />
+                <button
+                  onClick={() => setBulkQty(prev => prev + 1)}
+                  className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-extrabold flex items-center justify-center cursor-pointer active:scale-90 transition select-none"
+                >
+                  +
+                </button>
               </div>
-              
-              <button
-                onClick={() => {
-                  const cost = bulkItem.unitPrice * bulkQty;
-                  if (bulkItem.currency === 'gold') {
-                    if (hero.gold < cost) {
-                      addLogMessage(language === 'vi' ? '❌ Không đủ Vàng!' : '❌ Insufficient Gold!', 'system');
-                      return;
-                    }
-                  } else {
-                    if (hero.diamonds < cost) {
-                      addLogMessage(language === 'vi' ? '❌ Không đủ Kim Cương!' : '❌ Insufficient Diamonds!', 'system');
-                      return;
-                    }
-                  }
 
-                  if (bulkItem.id === 'potion_gold') {
-                    buyPotion(bulkQty, 'gold');
-                  } else if (bulkItem.id === 'potion_diamonds') {
-                    buyPotion(bulkQty * 30, 'diamonds');
-                  } else if (bulkItem.id === 'speed_elixir') {
-                    buyBooster('speed_elixir', bulkQty);
-                  } else if (bulkItem.id === 'exp_charm') {
-                    buyBooster('exp_charm', bulkQty);
-                  } else if (bulkItem.id === 'gold_pack') {
-                    buyGoldPack(bulkQty);
-                  }
-                  setBulkItem(null);
-                }}
-                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 active:scale-98 transition-all text-white font-black py-2 rounded-xl border border-emerald-500/20 text-xs shadow-md cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                {language === 'vi' ? 'XÁC NHẬN MUA' : 'CONFIRM PURCHASE'}
-              </button>
+              {/* Presets Row */}
+              <div className="mt-3.5 flex justify-between gap-1.5">
+                {[10, 20, 50, 100].map(qty => (
+                  <button
+                    key={qty}
+                    onClick={() => setBulkQty(qty)}
+                    className={`flex-1 py-1.5 text-[10px] font-extrabold rounded-lg border transition cursor-pointer active:scale-95 ${
+                      bulkQty === qty
+                        ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm'
+                        : 'bg-slate-950/60 border-slate-850 text-slate-450 hover:text-slate-200'
+                    }`}
+                  >
+                    +{qty}
+                  </button>
+                ))}
+              </div>
+
+              {/* Cost & Submit Button */}
+              <div className="mt-5 pt-3.5 border-t border-slate-850/60 flex flex-col gap-2.5">
+                <div className="flex justify-between items-center text-[10.5px] font-black uppercase text-slate-400">
+                  <span>{language === 'vi' ? 'Tổng Chi Phí:' : 'Total Cost:'}</span>
+                  <span className="text-white font-mono font-extrabold text-xs">
+                    {Number(bulkItem.unitPrice * bulkQty).toLocaleString()}{' '}
+                    {bulkItem.currency === 'gold' ? 'G' : '💎'}
+                  </span>
+                </div>
+                
+                <button
+                  disabled={isLimitExceeded}
+                  onClick={() => {
+                    const cost = bulkItem.unitPrice * bulkQty;
+                    if (bulkItem.currency === 'gold') {
+                      if (hero.gold < cost) {
+                        addLogMessage(language === 'vi' ? '❌ Không đủ Vàng!' : '❌ Insufficient Gold!', 'system');
+                        return;
+                      }
+                    } else {
+                      if (hero.diamonds < cost) {
+                        addLogMessage(language === 'vi' ? '❌ Không đủ Kim Cương!' : '❌ Insufficient Diamonds!', 'system');
+                        return;
+                      }
+                    }
+
+                    if (bulkItem.id === 'potion_gold') {
+                      buyPotion(bulkQty, 'gold');
+                    } else if (bulkItem.id === 'potion_diamonds') {
+                      buyPotion(bulkQty * 30, 'diamonds');
+                    } else if (bulkItem.id === 'speed_elixir') {
+                      buyBooster('speed_elixir', bulkQty);
+                    } else if (bulkItem.id === 'exp_charm') {
+                      buyBooster('exp_charm', bulkQty);
+                    } else if (bulkItem.id === 'gold_pack') {
+                      buyGoldPack(bulkQty);
+                    }
+                    setBulkItem(null);
+                  }}
+                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 active:scale-98 transition-all text-white font-black py-2.5 rounded-xl border border-emerald-500/20 text-xs shadow-md cursor-pointer flex flex-col items-center justify-center gap-0.5 disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  <span>{language === 'vi' ? 'XÁC NHẬN MUA' : 'CONFIRM PURCHASE'}</span>
+                  {limitKey && (
+                    <span className="text-[8.5px] opacity-75 font-mono">
+                      {language === 'vi'
+                        ? `Giới hạn hôm nay: ${currentCount + bulkQty}/100`
+                        : `Daily Limit: ${currentCount + bulkQty}/100`}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

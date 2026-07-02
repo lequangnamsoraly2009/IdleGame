@@ -101,6 +101,7 @@ export interface HeroState {
     value: number;
     locked: boolean;
   }>;
+  dailyPurchases?: Record<string, number>;
 }
 
 export type DamageType = 'physical' | 'fire' | 'ice' | 'poison' | 'holy' | 'dark';

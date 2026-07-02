@@ -323,6 +323,10 @@ export const useGameStore = create<GameState>((set, get) => {
               const equipped = data.inventory.filter(i => i.equipped);
               data.hero.currentStats = recalculateHeroStats(data.hero.level, data.hero.prestigePoints, equipped, data.hero.heroClass, data.hero.shardUpgrades, data.hero.goldUpgrades, data.hero.traits);
               data.hero.currentHp = Math.min(data.hero.currentHp, data.hero.currentStats.maxHp);
+              
+              if (!data.hero.dailyPurchases) {
+                data.hero.dailyPurchases = {};
+              }
 
               // Synchronize quests from templates
               try {
@@ -434,6 +438,10 @@ export const useGameStore = create<GameState>((set, get) => {
                       endDate: t.endDate
                     });
                   }
+                }
+
+                if (dailyResetNeeded) {
+                  data.hero.dailyPurchases = {};
                 }
 
                 data.quests = playerQuests;
@@ -1283,7 +1291,7 @@ export const useGameStore = create<GameState>((set, get) => {
           return;
         }
       } else {
-        if (quantity === 10) cost = 15;
+        if (quantity === 10) cost = 15; // old single potion buy logic if any
         else if (quantity === 30) cost = 40;
         else cost = Math.ceil(quantity * 1.5);
         
@@ -1292,6 +1300,41 @@ export const useGameStore = create<GameState>((set, get) => {
           return;
         }
       }
+
+      // Check daily purchase limit
+      const dailyPurchases = hero.dailyPurchases || {};
+      let limitKey = '';
+      let addedQty = quantity;
+
+      if (currency === 'gold') {
+        if (quantity === 5) {
+          limitKey = 'potion_5';
+        } else if (quantity === 10) {
+          limitKey = 'potion_10';
+        } else if (quantity > 1 && quantity !== 5 && quantity !== 10) {
+          limitKey = 'potion_gold_bulk';
+        }
+      } else {
+        if (quantity === 30) {
+          limitKey = 'potion_30';
+        } else if (quantity > 30) {
+          limitKey = 'potion_diamonds_bulk';
+          addedQty = quantity / 30; // quantity is 30 * bulkQty, so addedQty is bulkQty
+        }
+      }
+
+      if (limitKey) {
+        const currentCount = dailyPurchases[limitKey] || 0;
+        if (currentCount + addedQty > 100) {
+          state.addLogMessage(useLanguageStore.getState().language === 'vi' ? '❌ Đã vượt quá giới hạn mua 100/ngày!' : '❌ Exceeded daily limit of 100/day!', 'system');
+          return;
+        }
+      }
+
+      const nextDailyPurchases = { ...dailyPurchases };
+      if (limitKey) {
+        nextDailyPurchases[limitKey] = (dailyPurchases[limitKey] || 0) + addedQty;
+      }
       
       const nextSave = {
         ...state.saveData,
@@ -1299,7 +1342,8 @@ export const useGameStore = create<GameState>((set, get) => {
           ...hero,
           gold: currency === 'gold' ? hero.gold - cost : hero.gold,
           diamonds: currency === 'diamonds' ? hero.diamonds - cost : hero.diamonds,
-          potions: (hero.potions ?? 5) + quantity
+          potions: (hero.potions ?? 5) + quantity,
+          dailyPurchases: nextDailyPurchases
         }
       };
       
@@ -1355,13 +1399,34 @@ export const useGameStore = create<GameState>((set, get) => {
         return;
       }
 
+      // Check daily purchase limit for bulk buys
+      const dailyPurchases = hero.dailyPurchases || {};
+      let limitKey = '';
+      if (quantity > 1) {
+        limitKey = type === 'speed_elixir' ? 'speed_elixir_bulk' : 'exp_charm_bulk';
+      }
+
+      if (limitKey) {
+        const currentCount = dailyPurchases[limitKey] || 0;
+        if (currentCount + quantity > 100) {
+          state.addLogMessage(useLanguageStore.getState().language === 'vi' ? '❌ Đã vượt quá giới hạn mua 100/ngày!' : '❌ Exceeded daily limit of 100/day!', 'system');
+          return;
+        }
+      }
+
+      const nextDailyPurchases = { ...dailyPurchases };
+      if (limitKey) {
+        nextDailyPurchases[limitKey] = (dailyPurchases[limitKey] || 0) + quantity;
+      }
+
       const nextSave = {
         ...state.saveData,
         hero: {
           ...hero,
           diamonds: hero.diamonds - cost,
           speedElixirs: type === 'speed_elixir' ? (hero.speedElixirs ?? 0) + quantity : (hero.speedElixirs ?? 0),
-          expCharms: type === 'exp_charm' ? (hero.expCharms ?? 0) + quantity : (hero.expCharms ?? 0)
+          expCharms: type === 'exp_charm' ? (hero.expCharms ?? 0) + quantity : (hero.expCharms ?? 0),
+          dailyPurchases: nextDailyPurchases
         }
       };
 
@@ -1656,10 +1721,33 @@ export const useGameStore = create<GameState>((set, get) => {
         return;
       }
 
+      // Check daily purchase limit for bulk buys
+      const dailyPurchases = saveData.hero.dailyPurchases || {};
+      let limitKey = '';
+      if (quantity > 1) {
+        limitKey = 'gold_pack_bulk';
+      }
+
+      if (limitKey) {
+        const currentCount = dailyPurchases[limitKey] || 0;
+        if (currentCount + quantity > 100) {
+          get().addLogMessage(useLanguageStore.getState().language === 'vi' ? '❌ Đã vượt quá giới hạn mua 100/ngày!' : '❌ Exceeded daily limit of 100/day!', 'system');
+          return;
+        }
+      }
+
+      const nextDailyPurchases = { ...dailyPurchases };
+      if (limitKey) {
+        nextDailyPurchases[limitKey] = (dailyPurchases[limitKey] || 0) + quantity;
+      }
+
       const goldGained = 800 * saveData.activeStage * quantity;
-      const hero = { ...saveData.hero };
-      hero.diamonds -= cost;
-      hero.gold += goldGained;
+      const hero = {
+        ...saveData.hero,
+        diamonds: saveData.hero.diamonds - cost,
+        gold: saveData.hero.gold + goldGained,
+        dailyPurchases: nextDailyPurchases
+      };
 
       get().addLogMessage(tStore('log_bought_gold', { cost, gold: goldGained }), 'loot');
       get().showToast(

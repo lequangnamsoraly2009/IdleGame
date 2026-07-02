@@ -74,6 +74,7 @@ export function generateStarterSave(
     equippedBoosters: ['potion', null, null, null, null, null, null],
     speedElixirActiveUntil: 0,
     expCharmActiveUntil: 0,
+    dailyPurchases: {},
     autoDismantleCommon: false,
     autoDismantleUncommon: false,
     autoDismantleRare: false,
