@@ -548,9 +548,10 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-900 border-b border-slate-850 text-slate-400 font-extrabold uppercase text-[9px] tracking-wider">
+                      <th className="py-3 px-4">{language === 'vi' ? 'Hình ảnh' : 'Icon'}</th>
                       <th className="py-3 px-4">Tên Loài</th>
                       <th className="py-3 px-4">Họ (Family)</th>
-                      <th className="py-3 px-4 text-center">Phân Loại</th>
+                      <th className="py-3 px-4 text-center">Phân Hạng (Tier)</th>
                       <th className="py-3 px-4 text-center">Ải Bắt Đầu</th>
                       <th className="py-3 px-4 text-center">Ải Kết Thúc</th>
                       <th className="py-3 px-4 text-right">Máu (HP)</th>
@@ -572,18 +573,51 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
                           dragon: 'text-orange-400'
                         }[species.family];
 
-                        const categoryColors = {
-                          normal: 'bg-slate-900 text-slate-400',
-                          boss: 'bg-red-500/10 text-red-400 border border-red-500/20',
-                          king: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-                          mystery: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20',
-                          extinct: 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                        }[species.category];
-
                         const isSingleStage = species.spawnMinStage === species.spawnMaxStage;
+
+                        const getMonsterImageUrl = (nameVi: string, nameEn: string) => {
+                          const lower = (nameVi + ' ' + nameEn).toLowerCase();
+                          if (lower.includes('golem') || lower.includes('vệ binh') || lower.includes('sentinel') || lower.includes('cổ tự')) {
+                            return '/boss_golem.png';
+                          } else if (lower.includes('demon') || lower.includes('quỷ') || lower.includes('archdemon') || lower.includes('mực') || lower.includes('hỏa')) {
+                            return '/boss_demon.png';
+                          } else if (lower.includes('dragon') || lower.includes('rồng') || lower.includes('behemoth')) {
+                            return '/boss_dragon.png';
+                          } else if (lower.includes('goblin') || lower.includes('thủ lĩnh')) {
+                            return '/boss_goblin.png';
+                          } else if (lower.includes('spider') || lower.includes('nhện')) {
+                            return '/boss_spider.png';
+                          } else if (lower.includes('chimera') || lower.includes('octopus') || lower.includes('leviathan') || lower.includes('quái thú') || lower.includes('thần thoại')) {
+                            return '/boss_octopus.png';
+                          } else if (lower.includes('knight') || lower.includes('hiệp sĩ')) {
+                            return '/boss_knight.png';
+                          }
+                          return '';
+                        };
+
+                        const monsterImgUrl = getMonsterImageUrl(species.nameVi, species.nameEn);
 
                         return (
                           <tr key={species.id} className="hover:bg-slate-900/30 transition-colors">
+                            <td className="py-2 px-4 shrink-0 align-middle">
+                              <div className="w-10 h-10 flex items-center justify-center relative bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
+                                {monsterImgUrl ? (
+                                  <img 
+                                    src={monsterImgUrl} 
+                                    alt={species.nameEn} 
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div
+                                    className="w-6 h-5 rounded-t-full border border-slate-950 shadow-sm"
+                                    style={{ backgroundColor: species.color }}
+                                  />
+                                )}
+                                {species.hasCrown && (
+                                  <span className="absolute top-0 right-0 text-[8px] bg-slate-950/80 p-0.5 rounded-bl">👑</span>
+                                )}
+                              </div>
+                            </td>
                             <td className="py-3 px-4">
                               <div className="flex flex-col">
                                 <span className="font-bold text-slate-200">
@@ -596,8 +630,25 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
                               {species.family}
                             </td>
                             <td className="py-3 px-4 text-center">
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase ${categoryColors}`}>
-                                {species.category}
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
+                                species.tier === 'normal' ? 'bg-slate-950/80 border-slate-800 text-slate-400' :
+                                species.tier === 'elite' ? 'bg-indigo-950/80 border-indigo-500/20 text-indigo-400' :
+                                species.tier === 'champion' ? 'bg-emerald-950/80 border-emerald-500/20 text-emerald-400' :
+                                species.tier === 'king' ? 'bg-amber-950/80 border-amber-500/20 text-amber-400' :
+                                species.tier === 'legend' ? 'bg-rose-950/80 border-rose-500/20 text-rose-400' :
+                                species.tier === 'mythic' ? 'bg-fuchsia-950/80 border-fuchsia-500/20 text-fuchsia-400' :
+                                species.tier === 'ancient' ? 'bg-cyan-950/80 border-cyan-500/20 text-cyan-400' :
+                                'bg-yellow-950/80 border-yellow-500/20 text-yellow-450'
+                              }`}>
+                                {language === 'vi' 
+                                  ? (species.tier === 'normal' ? 'Thường' :
+                                     species.tier === 'elite' ? 'Tinh Anh' :
+                                     species.tier === 'champion' ? 'Quán Quân' :
+                                     species.tier === 'king' ? 'Vua/Hoàng Gia' :
+                                     species.tier === 'legend' ? 'Truyền Thuyết' :
+                                     species.tier === 'mythic' ? 'Thần Thoại' :
+                                     species.tier === 'ancient' ? 'Cổ Đại' : 'Boss Thế Giới')
+                                  : species.tier.replace('-', ' ')}
                               </span>
                             </td>
                             <td className="py-3 px-4 text-center font-black text-indigo-400 font-display text-xs">

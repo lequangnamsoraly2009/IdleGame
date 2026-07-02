@@ -112,11 +112,42 @@ export const GuideModal: React.FC<GuideModalProps> = ({ topic, onClose }) => {
         );
       case 'guide':
         return (
-          <div className="space-y-3 leading-relaxed text-slate-350">
-            <h4 className="font-extrabold text-white text-xs">{isVi ? '📖 CẨM NANG WIKI:' : '📖 WIKI BOOK:'}</h4>
-            <ul className="list-disc pl-4 space-y-1.5 text-slate-400 text-[11px]">
-              <li>{isVi ? 'Sổ tay lưu trữ toàn bộ các thông tin sinh vật, chỉ số quái vật và các công thức tính CP.' : 'Contains the full bestiary dataset, monster stats, weakness details, and formula reference guide.'}</li>
-            </ul>
+          <div className="space-y-3 leading-relaxed text-slate-300">
+            <h4 className="font-extrabold text-white text-xs">{isVi ? '📖 SỔ TAY & BẢN ĐỒ PHÂN BỐ:' : '📖 BESTIARY & SPAWN MAP:'}</h4>
+            <div className="space-y-2 text-slate-400 text-[10.5px]">
+              <p>
+                {isVi 
+                  ? 'Sổ tay lưu trữ toàn bộ thông tin của 43 sinh vật, chỉ số quái vật và các khu vực xuất hiện của chúng.' 
+                  : 'Contains the complete database of 43 creatures, combat statistics, weaknesses, and spawn locations.'}
+              </p>
+              
+              <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-850">
+                <span className="font-bold text-slate-200 block text-[9.5px] mb-1">
+                  ⭐ {isVi ? '8 CẤP ĐỘ SỨC MẠNH (TIERS):' : '8 POWER RANKS (TIERS):'}
+                </span>
+                <ul className="list-disc pl-3.5 space-y-0.5 text-[9px]">
+                  <li><strong className="text-slate-300">Normal</strong> ({isVi ? 'Quái Thường' : 'Common'})</li>
+                  <li><strong className="text-indigo-400">Elite</strong> ({isVi ? 'Tinh Anh' : 'Elite'})</li>
+                  <li><strong className="text-emerald-400">Champion</strong> ({isVi ? 'Quán Quân' : 'Champion'})</li>
+                  <li><strong className="text-amber-400">King</strong> ({isVi ? 'Vua / Hoàng Gia' : 'Royal King'})</li>
+                  <li><strong className="text-rose-400">Legend</strong> ({isVi ? 'Truyền Thuyết' : 'Legendary'})</li>
+                  <li><strong className="text-fuchsia-400">Mythic</strong> ({isVi ? 'Thần Thoại' : 'Mythical'})</li>
+                  <li><strong className="text-cyan-400">Ancient</strong> ({isVi ? 'Cổ Đại' : 'Ancient Construct'})</li>
+                  <li><strong className="text-yellow-500">World Boss</strong> ({isVi ? 'Boss Thế Giới' : 'World Colossus'})</li>
+                </ul>
+              </div>
+
+              <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-850">
+                <span className="font-bold text-slate-200 block text-[9.5px] mb-1">
+                  🗺️ {isVi ? 'BẢN ĐỒ PHÂN BỐ XUẤT HIỆN:' : 'SPAWN DISTRIBUTION MAP:'}
+                </span>
+                <p className="text-[9px] leading-relaxed">
+                  {isVi
+                    ? 'Xem khu vực xuất hiện của quái vật theo 6 vùng địa hình (Thảo Nguyên, Đền Cổ, Đỉnh Băng, Vực Lửa, Hư Không, Thượng Giới). Nhấp vào quái vật để mở bảng Xem trước (Preview) chi tiết kỹ năng và truyền thuyết.'
+                    : 'Track monster spawns across 6 maps (Grassland, Stone Temple, Frost Peaks, Lava Rift, Void, Titan Realm). Click any row/icon for a detailed preview window.'}
+                </p>
+              </div>
+            </div>
           </div>
         );
       case 'summon':

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { useLanguageStore } from '../../stores/languageStore';
-import { calculatePrestigePoints, calculateHeroCP, GAME_ICONS } from '@idle-rpg/shared';
+import { calculatePrestigePoints, calculateHeroCP, GAME_ICONS, getFinalItemStats } from '@idle-rpg/shared';
 import { useTranslation, getTranslatedItemName } from '../../utils/i18n';
 import { ItemGraphic } from '../ItemGraphic';
 
@@ -193,12 +193,24 @@ export const HeroTab: React.FC = () => {
           <div className="hidden group-hover:block absolute bottom-full mb-2 w-32 sm:w-40 bg-slate-950 border border-slate-850 p-2 rounded-xl text-[9px] text-slate-300 z-30 shadow-2xl pointer-events-none font-sans">
             <span className="font-extrabold text-white block truncate">{getTranslatedItemName(t, item)}</span>
             <span className="text-slate-500 uppercase tracking-widest text-[7px] block mb-1 font-semibold">{item.rarity}</span>
-            {Object.entries(item.stats).map(([k, v]) => (
-              <div key={k} className="flex justify-between font-mono text-[8px] border-b border-slate-900 pb-0.5">
-                <span className="text-slate-450">{k.toUpperCase()}</span>
-                <span className="font-bold text-slate-100">+{v}</span>
-              </div>
-            ))}
+            {Object.entries(getFinalItemStats(item))
+              .filter(([_, v]) => v !== 0 && v !== undefined)
+              .map(([k, v]) => {
+                let formattedVal = `+${v}%`;
+                if (['critRate', 'critDamage', 'lifesteal', 'spellVamp', 'evasion', 'block'].includes(k)) {
+                  formattedVal = `+${Math.round(v * 100)}%`;
+                } else if (k === 'speed') {
+                  formattedVal = `+${v}%`;
+                }
+                return (
+                  <div key={k} className="flex justify-between font-mono text-[8px] border-b border-slate-900 pb-0.5">
+                    <span className="text-slate-450">
+                      {k === 'maxHp' ? 'HP' : k === 'magicAttack' ? 'M.ATK' : k === 'magicResist' ? 'M.RES' : k.toUpperCase()}
+                    </span>
+                    <span className="font-bold text-slate-100">{formattedVal}</span>
+                  </div>
+                );
+              })}
           </div>
         </div>
       );

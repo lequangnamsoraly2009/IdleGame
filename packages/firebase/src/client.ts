@@ -1,7 +1,7 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as fbSignOut, onAuthStateChanged as fbOnAuthStateChanged } from 'firebase/auth';
 import { getDatabase, ref, get, set, remove } from 'firebase/database';
-import { GameSaveData, DEFAULT_ITEM_TEMPLATES, calculateItemStats, calculateUpgradeCost, QuestTemplate, EquipmentItem, QuestState } from '@idle-rpg/shared';
+import { GameSaveData, DEFAULT_ITEM_TEMPLATES, calculateItemStats, calculateUpgradeCost, QuestTemplate, EquipmentItem, QuestState, scaleStatsByQuality } from '@idle-rpg/shared';
 import { mockAuth, mockDb, generateStarterSave } from './mockDb';
 
 export interface UserSession {
@@ -165,7 +165,8 @@ if (isFirebaseConfigured) {
               if (!item.stats) {
                 const template = DEFAULT_ITEM_TEMPLATES.find(t => t.id === item.templateId);
                 if (template) {
-                  item.stats = calculateItemStats(item.slot, item.rarity, item.level || 1);
+                  const baseStats = calculateItemStats(item.slot, item.rarity, item.level || 1);
+                  item.stats = scaleStatsByQuality(baseStats, item.quality || 100);
                 } else {
                   item.stats = { maxHp: 0, attack: 0, defense: 0, speed: 0, critRate: 0, critDamage: 1.5 };
                 }

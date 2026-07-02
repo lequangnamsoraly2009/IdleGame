@@ -723,7 +723,7 @@ export class GameEngine {
         const rolledId = template.dropPool[Math.floor(Math.random() * template.dropPool.length)];
         const itemTemplate = DEFAULT_ITEM_TEMPLATES.find(t => t.id === rolledId);
         if (itemTemplate) {
-          const itemLvl = Math.max(1, Math.floor(this.currentStage / 8));
+          const itemLvl = 1;
           const newItem = createItemInstance(itemTemplate, itemLvl);
           itemsDropped.push(newItem);
         }

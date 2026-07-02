@@ -1,5 +1,5 @@
 import { GameSaveData, HeroState, EquipmentItem, QuestState, QuestTemplate } from '@idle-rpg/shared';
-import { createItemInstance, DEFAULT_ITEM_TEMPLATES, calculateItemStats, calculateUpgradeCost } from '@idle-rpg/shared';
+import { createItemInstance, DEFAULT_ITEM_TEMPLATES, calculateItemStats, calculateUpgradeCost, scaleStatsByQuality } from '@idle-rpg/shared';
 
 // Predefined starting stats and equipment
 export function generateStarterSave(
@@ -335,14 +335,14 @@ export const mockDb = {
       if (parsed.activeStage === undefined) parsed.activeStage = starter.activeStage;
       if (!parsed.prestigeBonuses) parsed.prestigeBonuses = starter.prestigeBonuses;
 
-      // Ensure each item in the inventory is fully formed
       if (Array.isArray(parsed.inventory)) {
         parsed.inventory = parsed.inventory.map(item => {
           if (!item) return item;
           if (!item.stats) {
             const template = DEFAULT_ITEM_TEMPLATES.find(t => t.id === item.templateId);
             if (template) {
-              item.stats = calculateItemStats(item.slot, item.rarity, item.level || 1);
+              const baseStats = calculateItemStats(item.slot, item.rarity, item.level || 1);
+              item.stats = scaleStatsByQuality(baseStats, item.quality || 100);
             } else {
               item.stats = { maxHp: 0, attack: 0, defense: 0, speed: 0, critRate: 0, critDamage: 1.5 };
             }

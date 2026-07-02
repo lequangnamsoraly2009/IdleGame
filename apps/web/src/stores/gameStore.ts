@@ -309,6 +309,11 @@ export const useGameStore = create<GameState>((set, get) => {
                 ];
               }
 
+              // Recalculate stats during load
+              const equipped = data.inventory.filter(i => i.equipped);
+              data.hero.currentStats = recalculateHeroStats(data.hero.level, data.hero.prestigePoints, equipped, data.hero.heroClass, data.hero.shardUpgrades, data.hero.goldUpgrades, data.hero.traits);
+              data.hero.currentHp = Math.min(data.hero.currentHp, data.hero.currentStats.maxHp);
+
               // Synchronize quests from templates
               try {
                 const templates = await dbService.loadQuestTemplates();

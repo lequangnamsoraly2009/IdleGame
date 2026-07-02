@@ -31,6 +31,38 @@ export const ItemInfoModal: React.FC = () => {
   const stats = getFinalItemStats(item);
   const hero = saveData.hero;
 
+  const renderStatValue = (key: string, colorClass = "text-blue-400") => {
+    if (!stats || !item) return null;
+    const finalVal = (stats as any)[key] || 0;
+    const baseVal = (item.stats as any)?.[key] || 0;
+    const addedVal = finalVal - baseVal;
+
+    const format = (v: number) => {
+      if (['critRate', 'critDamage', 'lifesteal', 'spellVamp', 'evasion', 'block'].includes(key)) {
+        return `${Math.round(v * 100)}%`;
+      }
+      return `${Math.round(v * 100) / 100}%`;
+    };
+
+    if (addedVal !== 0) {
+      const sign = addedVal > 0 ? '+' : '-';
+      const absAdded = Math.abs(addedVal);
+      const mainSign = finalVal >= 0 ? '+' : '';
+      
+      return (
+        <span className={colorClass}>
+          {mainSign}{format(finalVal)}{' '}
+          <span className="text-slate-550 text-[10px] font-semibold font-mono">
+            ({baseVal >= 0 ? '' : '-'}{format(Math.abs(baseVal))} {sign} <span className={addedVal > 0 ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>{format(absAdded)}</span>)
+          </span>
+        </span>
+      );
+    }
+
+    const mainSign = finalVal >= 0 ? '+' : '';
+    return <span className={colorClass}>{mainSign}{format(finalVal)}</span>;
+  };
+
   const getRarityUIStyles = (item: EquipmentItem) => {
     if (item.isCorrupted) {
       return {
@@ -308,71 +340,67 @@ export const ItemInfoModal: React.FC = () => {
                 {stats && stats.attack > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-450">{t('attack_power')}</span>
-                    <span className="text-blue-400">+{stats.attack}%</span>
+                    {renderStatValue('attack', 'text-blue-400')}
                   </div>
                 )}
                 {stats && stats.magicAttack !== undefined && stats.magicAttack > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-450">{t('magic_attack')}</span>
-                    <span className="text-violet-400">+{stats.magicAttack}%</span>
+                    {renderStatValue('magicAttack', 'text-violet-400')}
                   </div>
                 )}
                 {stats && stats.maxHp > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('max_health')}</span>
-                    <span className="text-emerald-400">+{stats.maxHp}%</span>
+                    {renderStatValue('maxHp', 'text-emerald-400')}
                   </div>
                 )}
                 {stats && stats.defense !== 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('defense_rating')}</span>
-                    <span className={stats.defense > 0 ? "text-indigo-400" : "text-purple-400"}>
-                      {stats.defense > 0 ? `+${stats.defense}%` : `${stats.defense}%`}
-                    </span>
+                    {renderStatValue('defense', stats.defense > 0 ? 'text-indigo-400' : 'text-purple-400')}
                   </div>
                 )}
                 {stats && stats.magicResist !== undefined && stats.magicResist !== 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('magic_resist')}</span>
-                    <span className={stats.magicResist > 0 ? "text-fuchsia-400" : "text-purple-400"}>
-                      {stats.magicResist > 0 ? `+${stats.magicResist}%` : `${stats.magicResist}%`}
-                    </span>
+                    {renderStatValue('magicResist', stats.magicResist > 0 ? 'text-fuchsia-400' : 'text-purple-400')}
                   </div>
                 )}
                 {stats && stats.speed > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('attack_speed')}</span>
-                    <span className="text-cyan-400">+{Math.round(stats.speed * 100) / 100}%</span>
+                    {renderStatValue('speed', 'text-cyan-400')}
                   </div>
                 )}
                 {stats && stats.critRate > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('critical_rate')}</span>
-                    <span className="text-amber-400">+{Math.round(stats.critRate * 100)}%</span>
+                    {renderStatValue('critRate', 'text-amber-400')}
                   </div>
                 )}
                 {stats && stats.lifesteal !== undefined && stats.lifesteal > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('lifesteal')}</span>
-                    <span className="text-red-400">+{Math.round(stats.lifesteal * 100)}%</span>
+                    {renderStatValue('lifesteal', 'text-red-400')}
                   </div>
                 )}
                 {stats && stats.spellVamp !== undefined && stats.spellVamp > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('spell_vamp')}</span>
-                    <span className="text-violet-400">+{Math.round(stats.spellVamp * 100)}%</span>
+                    {renderStatValue('spellVamp', 'text-violet-400')}
                   </div>
                 )}
                 {stats && stats.evasion !== undefined && stats.evasion > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('evasion')}</span>
-                    <span className="text-sky-400">+{Math.round(stats.evasion * 100)}%</span>
+                    {renderStatValue('evasion', 'text-sky-400')}
                   </div>
                 )}
                 {stats && stats.block !== undefined && stats.block > 0 && (
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-455">{t('block')}</span>
-                    <span className="text-amber-500">+{Math.round(stats.block * 100)}%</span>
+                    {renderStatValue('block', 'text-amber-500')}
                   </div>
                 )}
               </div>
