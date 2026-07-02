@@ -2,11 +2,18 @@ import { Container, Graphics, Text, TextStyle, Sprite, Texture } from 'pixi.js';
 
 const colorKeyedCache: Record<string, Texture> = {};
 
-function loadBossSprite(imageUrl: string, sprite: Sprite, targetWidth = 64, targetHeight = 64) {
-  if (colorKeyedCache[imageUrl]) {
-    sprite.texture = colorKeyedCache[imageUrl];
+function loadBossSprite(imageUrl: string, sprite: Sprite, targetWidth = 64, targetHeight = 64, flipHorizontal = false) {
+  const applyDimensions = () => {
     sprite.width = targetWidth;
     sprite.height = targetHeight;
+    if (flipHorizontal) {
+      sprite.scale.x = -Math.abs(sprite.scale.x);
+    }
+  };
+
+  if (colorKeyedCache[imageUrl]) {
+    sprite.texture = colorKeyedCache[imageUrl];
+    applyDimensions();
     return;
   }
 
@@ -53,10 +60,7 @@ function loadBossSprite(imageUrl: string, sprite: Sprite, targetWidth = 64, targ
       const texture = Texture.from(canvas);
       colorKeyedCache[imageUrl] = texture;
       sprite.texture = texture;
-
-      // Update dimensions after texture is set
-      sprite.width = targetWidth;
-      sprite.height = targetHeight;
+      applyDimensions();
     }
   };
   img.onerror = (err) => {
@@ -143,140 +147,24 @@ export class Entity extends Container {
     this.body.clear();
 
     if (this.isHero) {
+      this.body.removeChildren(); // clear any previous sprites
+      let heroImageUrl = '';
       if (this.heroClass === 'knight') {
-        // --- CHIBI KNIGHT ---
-        // 1. Helmet (Steel gray) - Offset vertically
-        this.body.circle(0, -18, 24);
-        this.body.fill({ color: 0x94a3b8 });
-        this.body.stroke({ width: 2.5, color: 0x334155 });
-
-        // Helmet Plume (Red feather)
-        this.body.moveTo(0, -42);
-        this.body.quadraticCurveTo(12, -58, 24, -46);
-        this.body.quadraticCurveTo(8, -42, 0, -42);
-        this.body.fill({ color: 0xef4444 });
-        this.body.stroke({ width: 1, color: 0x991b1b });
-
-        // Visor gap / mask
-        this.body.roundRect(-16, -24, 32, 8, 4);
-        this.body.fill({ color: 0x1e293b });
-
-        // Visor glowing eyes (Neon Blue)
-        this.body.circle(-7, -20, 2.5);
-        this.body.circle(7, -20, 2.5);
-        this.body.fill({ color: 0x60a5fa });
-
-        // Visor breathing grill lines
-        this.body.rect(-10, -12, 2, 8);
-        this.body.rect(-4, -12, 2, 8);
-        this.body.rect(2, -12, 2, 8);
-        this.body.rect(8, -12, 2, 8);
-        this.body.fill({ color: 0x475569 });
-
-        // 2. Chestplate Body (Light silver)
-        this.body.circle(0, 10, 20);
-        this.body.fill({ color: 0xcbd5e1 });
-        this.body.stroke({ width: 2.5, color: 0x334155 });
-
-        // Golden cross emblem on chest
-        this.body.rect(-2, 0, 4, 18);
-        this.body.rect(-8, 6, 16, 4);
-        this.body.fill({ color: 0xf59e0b });
-
-        // Shoulder pauldrons
-        this.body.circle(-21, 6, 6);
-        this.body.circle(21, 6, 6);
-        this.body.fill({ color: 0x94a3b8 });
-        this.body.stroke({ width: 2, color: 0x334155 });
+        heroImageUrl = '/hero_knight.png';
       } else if (this.heroClass === 'mage') {
-        // --- CHIBI MAGE ---
-        // 1. Wizard Robe Body (Deep Purple/Violet)
-        this.body.circle(0, 10, 20);
-        this.body.fill({ color: 0x6b21a8 });
-        this.body.stroke({ width: 2.5, color: 0x3b0764 });
-
-        // Magic Wand / Staff
-        this.body.rect(17, -15, 3.5, 36);
-        this.body.fill({ color: 0x78350f });
-        // Glowing cyan magic orb
-        this.body.circle(19, -19, 5);
-        this.body.fill({ color: 0x22d3ee });
-
-        // Golden stars/sparkles on robe
-        this.body.circle(-6, 8, 2);
-        this.body.circle(6, 14, 2);
-        this.body.fill({ color: 0xfacc15 });
-
-        // 2. Wizard Hat (Dark Purple)
-        // Hat brim
-        this.body.roundRect(-26, -18, 52, 5, 2.5);
-        this.body.fill({ color: 0x581c87 });
-        this.body.stroke({ width: 2, color: 0x3b0764 });
-
-        // Hat cap (triangle)
-        this.body.moveTo(-18, -18);
-        this.body.lineTo(18, -18);
-        this.body.lineTo(0, -48);
-        this.body.closePath();
-        this.body.fill({ color: 0x581c87 });
-        this.body.stroke({ width: 2, color: 0x3b0764 });
-
-        // Yellow belt band on hat
-        this.body.rect(-17, -22, 34, 4);
-        this.body.fill({ color: 0xeab308 });
-
-        // Glowing Violet Wizard Eyes
-        this.body.circle(-7, -7, 2.5);
-        this.body.circle(7, -7, 2.5);
-        this.body.fill({ color: 0xc084fc });
+        heroImageUrl = '/hero_mage.png';
       } else {
-        // --- CHIBI ASSASSIN ---
-        // 1. Leather Armor Body (Dark Charcoal)
-        this.body.circle(0, 10, 20);
-        this.body.fill({ color: 0x374151 });
-        this.body.stroke({ width: 2.5, color: 0x111827 });
-
-        // Dual Steel Daggers
-        // Left dagger handle + blade
-        this.body.rect(-20, 10, 3, 7);
-        this.body.fill({ color: 0x78350f });
-        this.body.rect(-21, 17, 5, 10);
-        this.body.fill({ color: 0x94a3b8 });
-
-        // Right dagger handle + blade
-        this.body.rect(17, 10, 3, 7);
-        this.body.fill({ color: 0x78350f });
-        this.body.rect(16, 17, 5, 10);
-        this.body.fill({ color: 0x94a3b8 });
-
-        // Red belt/scarf wrap
-        this.body.rect(-10, 6, 20, 4);
-        this.body.fill({ color: 0xef4444 });
-
-        // 2. Dark Hood (Black)
-        this.body.circle(0, -15, 23);
-        this.body.fill({ color: 0x111827 });
-        this.body.stroke({ width: 2, color: 0x1f2937 });
-
-        // Face skin showing
-        this.body.ellipse(0, -13, 14, 11);
-        this.body.fill({ color: 0xffedd5 });
-
-        // Face mask (covering lower face)
-        this.body.arc(0, -10, 14, 0, Math.PI, false);
-        this.body.fill({ color: 0x1f2937 });
-
-        // Sharp glowing red eyes (Neon Red)
-        this.body.circle(-6, -14, 2);
-        this.body.circle(6, -14, 2);
-        this.body.fill({ color: 0xef4444 });
+        heroImageUrl = '/hero_assassin.png';
       }
 
-      // Cute feet (little gray semi-circles at bottom) - Bottom edge exactly y = 32
-      this.body.circle(-10, 26, 6);
-      this.body.circle(10, 26, 6);
-      this.body.fill({ color: 0x475569 });
-      this.body.stroke({ width: 2, color: 0x1e293b });
+      const heroSprite = new Sprite();
+      heroSprite.anchor.set(0.5, 0.5);
+      heroSprite.y = -10; // Vertically center the sprite aligned with standard entity height
+      this.body.addChild(heroSprite);
+      
+      // Load and cache the high-fidelity generated character PNG asset
+      // Flip Mage sprite horizontally to face right towards monsters
+      loadBossSprite(heroImageUrl, heroSprite, 84, 84, this.heroClass === 'mage');
     } else {
       const lowerName = this.name.toLowerCase();
       let bossImageUrl = '';

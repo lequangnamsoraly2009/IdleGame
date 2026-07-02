@@ -14,7 +14,11 @@ import {
   IceCrystalEffect,
   ShieldEffect,
   BubbleEffect,
-  ApocalypseEffect
+  ApocalypseEffect,
+  MageBasicAttackEffect,
+  KnightBasicAttackEffect,
+  AssassinBasicAttackEffect,
+  MonsterBasicAttackEffect
 } from './effects/SkillEffects';
 
 function formatCP(cp: number): string {
@@ -1469,6 +1473,18 @@ export class GameEngine {
         }
       }
 
+      // Spawn basic attack visual effect
+      let basicEffect;
+      if (isMage) {
+        basicEffect = new MageBasicAttackEffect(attacker.entity.x, attacker.entity.y, target.entity.x, target.entity.y);
+      } else if (attacker.heroClass === 'knight') {
+        basicEffect = new KnightBasicAttackEffect(attacker.entity.x, attacker.entity.y, target.entity.x, target.entity.y);
+      } else {
+        basicEffect = new AssassinBasicAttackEffect(attacker.entity.x, attacker.entity.y, target.entity.x, target.entity.y);
+      }
+      this.effectLayer.addChild(basicEffect);
+      this.activeEffects.push(basicEffect);
+
       // Spawn text particle
       const dmgText = new DamageText(dmg.toString(), target.entity.x, target.entity.y - 10, isCrit);
       this.effectLayer.addChild(dmgText);
@@ -1809,6 +1825,13 @@ export class GameEngine {
           text: `🩸 [Vampire] ${attacker.template.name} drains hero for ${healAmt} HP!`,
           category: 'combat'
         });
+      }
+
+      // Spawn monster basic attack visual effect
+      if (!isUlt) {
+        const basicEffect = new MonsterBasicAttackEffect(attacker.entity.x, attacker.entity.y, target.entity.x, target.entity.y);
+        this.effectLayer.addChild(basicEffect);
+        this.activeEffects.push(basicEffect);
       }
 
       // Spawn damage text particle

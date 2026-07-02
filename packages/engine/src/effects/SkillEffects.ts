@@ -490,3 +490,227 @@ export class ApocalypseEffect extends Container implements VisualEffect {
     return this.life <= 0;
   }
 }
+
+// 9. MAGE BASIC ATTACK EFFECT (Magical cyan projectile)
+export class MageBasicAttackEffect extends Container implements VisualEffect {
+  private graphic: Graphics;
+  private startX: number;
+  private startY: number;
+  private targetX: number;
+  private targetY: number;
+  private progress = 0;
+  private exploded = false;
+  private explosionLife = 0.12;
+
+  constructor(startX: number, startY: number, targetX: number, targetY: number) {
+    super();
+    this.startX = startX;
+    this.startY = startY;
+    this.targetX = targetX;
+    this.targetY = targetY;
+    this.graphic = new Graphics();
+    this.addChild(this.graphic);
+  }
+
+  public update(dt: number) {
+    const sec = dt / 60;
+    this.graphic.clear();
+
+    if (!this.exploded) {
+      this.progress += sec * 3.5; // very fast
+      if (this.progress >= 1.0) {
+        this.progress = 1.0;
+        this.exploded = true;
+      }
+
+      const currentX = this.startX + (this.targetX - this.startX) * this.progress;
+      const currentY = this.startY + (this.targetY - this.startY) * this.progress;
+
+      // Draw shiny cyan magical orb with trail
+      this.graphic.circle(currentX, currentY, 5);
+      this.graphic.fill({ color: 0x06b6d4 });
+      this.graphic.circle(currentX - 5, currentY, 3);
+      this.graphic.fill({ color: 0x38bdf8, alpha: 0.6 });
+      this.graphic.circle(currentX - 10, currentY, 1.5);
+      this.graphic.fill({ color: 0x7dd3fc, alpha: 0.3 });
+    } else if (this.explosionLife > 0) {
+      this.explosionLife -= sec;
+      const expProgress = 1.0 - (this.explosionLife / 0.12);
+      // Small cyan magic ring pop
+      this.graphic.circle(this.targetX, this.targetY, 14 * expProgress);
+      this.graphic.stroke({ width: 2 * (1 - expProgress), color: 0x22d3ee, alpha: 1 - expProgress });
+    }
+  }
+
+  public isFinished() {
+    return this.exploded && this.explosionLife <= 0;
+  }
+}
+
+// 10. KNIGHT BASIC ATTACK EFFECT (Flying golden crescent wave)
+export class KnightBasicAttackEffect extends Container implements VisualEffect {
+  private graphic: Graphics;
+  private startX: number;
+  private startY: number;
+  private targetX: number;
+  private targetY: number;
+  private progress = 0;
+  private exploded = false;
+  private explosionLife = 0.12;
+
+  constructor(startX: number, startY: number, targetX: number, targetY: number) {
+    super();
+    this.startX = startX;
+    this.startY = startY;
+    this.targetX = targetX;
+    this.targetY = targetY;
+    this.graphic = new Graphics();
+    this.addChild(this.graphic);
+  }
+
+  public update(dt: number) {
+    const sec = dt / 60;
+    this.graphic.clear();
+
+    if (!this.exploded) {
+      this.progress += sec * 3.8; // extremely fast
+      if (this.progress >= 1.0) {
+        this.progress = 1.0;
+        this.exploded = true;
+      }
+
+      const currentX = this.startX + (this.targetX - this.startX) * this.progress;
+      const currentY = this.startY + (this.targetY - this.startY) * this.progress;
+
+      // Draw a flying golden crescent wave (doubled size)
+      this.graphic.moveTo(currentX, currentY - 16);
+      this.graphic.quadraticCurveTo(currentX + 12, currentY, currentX, currentY + 16);
+      this.graphic.quadraticCurveTo(currentX + 4, currentY, currentX, currentY - 16);
+      this.graphic.fill({ color: 0xfacc15 });
+    } else if (this.explosionLife > 0) {
+      this.explosionLife -= sec;
+      const expProgress = 1.0 - (this.explosionLife / 0.12);
+      // Golden slash spark (doubled size)
+      this.graphic.moveTo(this.targetX - 20, this.targetY - 20);
+      this.graphic.lineTo(this.targetX + 20, this.targetY + 20);
+      this.graphic.stroke({ width: 5 * (1 - expProgress), color: 0xfef08a, alpha: 1 - expProgress });
+    }
+  }
+
+  public isFinished() {
+    return this.exploded && this.explosionLife <= 0;
+  }
+}
+
+// 11. ASSASSIN BASIC ATTACK EFFECT (Flying dark purple shadow projectile)
+export class AssassinBasicAttackEffect extends Container implements VisualEffect {
+  private graphic: Graphics;
+  private startX: number;
+  private startY: number;
+  private targetX: number;
+  private targetY: number;
+  private progress = 0;
+  private exploded = false;
+  private explosionLife = 0.12;
+
+  constructor(startX: number, startY: number, targetX: number, targetY: number) {
+    super();
+    this.startX = startX;
+    this.startY = startY;
+    this.targetX = targetX;
+    this.targetY = targetY;
+    this.graphic = new Graphics();
+    this.addChild(this.graphic);
+  }
+
+  public update(dt: number) {
+    const sec = dt / 60;
+    this.graphic.clear();
+
+    if (!this.exploded) {
+      this.progress += sec * 4.0; // ultra fast
+      if (this.progress >= 1.0) {
+        this.progress = 1.0;
+        this.exploded = true;
+      }
+
+      const currentX = this.startX + (this.targetX - this.startX) * this.progress;
+      const currentY = this.startY + (this.targetY - this.startY) * this.progress;
+
+      // Draw a flying dark purple shadow projectile
+      this.graphic.moveTo(currentX, currentY - 6);
+      this.graphic.lineTo(currentX + 8, currentY);
+      this.graphic.lineTo(currentX, currentY + 6);
+      this.graphic.lineTo(currentX - 4, currentY);
+      this.graphic.closePath();
+      this.graphic.fill({ color: 0x8b5cf6 });
+    } else if (this.explosionLife > 0) {
+      this.explosionLife -= sec;
+      const expProgress = 1.0 - (this.explosionLife / 0.12);
+      // Small dark purple cross slash
+      this.graphic.moveTo(this.targetX - 10, this.targetY);
+      this.graphic.lineTo(this.targetX + 10, this.targetY);
+      this.graphic.moveTo(this.targetX, this.targetY - 10);
+      this.graphic.lineTo(this.targetX, this.targetY + 10);
+      this.graphic.stroke({ width: 2 * (1 - expProgress), color: 0xc084fc, alpha: 1 - expProgress });
+    }
+  }
+
+  public isFinished() {
+    return this.exploded && this.explosionLife <= 0;
+  }
+}
+
+// 12. MONSTER BASIC ATTACK EFFECT (Red/dark orange energy spike/orb projectile)
+export class MonsterBasicAttackEffect extends Container implements VisualEffect {
+  private graphic: Graphics;
+  private startX: number;
+  private startY: number;
+  private targetX: number;
+  private targetY: number;
+  private progress = 0;
+  private exploded = false;
+  private explosionLife = 0.12;
+
+  constructor(startX: number, startY: number, targetX: number, targetY: number) {
+    super();
+    this.startX = startX;
+    this.startY = startY;
+    this.targetX = targetX;
+    this.targetY = targetY;
+    this.graphic = new Graphics();
+    this.addChild(this.graphic);
+  }
+
+  public update(dt: number) {
+    const sec = dt / 60;
+    this.graphic.clear();
+
+    if (!this.exploded) {
+      this.progress += sec * 3.2; // fast
+      if (this.progress >= 1.0) {
+        this.progress = 1.0;
+        this.exploded = true;
+      }
+
+      const currentX = this.startX + (this.targetX - this.startX) * this.progress;
+      const currentY = this.startY + (this.targetY - this.startY) * this.progress;
+
+      // Draw red energy spike
+      this.graphic.circle(currentX, currentY, 4.5);
+      this.graphic.fill({ color: 0xd97706 });
+      this.graphic.circle(currentX, currentY, 2.5);
+      this.graphic.fill({ color: 0xef4444 });
+    } else if (this.explosionLife > 0) {
+      this.explosionLife -= sec;
+      const expProgress = 1.0 - (this.explosionLife / 0.12);
+      // Small red hit burst
+      this.graphic.circle(this.targetX, this.targetY, 12 * expProgress);
+      this.graphic.stroke({ width: 2 * (1 - expProgress), color: 0xd97706, alpha: 1 - expProgress });
+    }
+  }
+
+  public isFinished() {
+    return this.exploded && this.explosionLife <= 0;
+  }
+}
