@@ -92,6 +92,7 @@ export class GameEngine {
   private currentBackgroundUrl: string = '';
   private regenAccumulator: number = 0;
   private goldUpgrades?: { attack?: number; hp?: number; hpRecovery?: number; critDamage?: number };
+  private traits: any[] = [];
 
   // Pre-rolled Wave Rewards
   private accumulatedExp: number = 0;
@@ -465,7 +466,8 @@ export class GameEngine {
     autoUsePotion?: boolean,
     autoBuyPotions?: boolean,
     gold?: number,
-    goldUpgrades?: { attack?: number; hp?: number; hpRecovery?: number; critDamage?: number }
+    goldUpgrades?: { attack?: number; hp?: number; hpRecovery?: number; critDamage?: number },
+    traits?: any[]
   ) {
     this.heroLevel = level;
     this.prestigePoints = prestigePoints;
@@ -495,11 +497,14 @@ export class GameEngine {
     if (goldUpgrades) {
       this.goldUpgrades = goldUpgrades;
     }
+    if (traits) {
+      this.traits = traits;
+    }
     this.recalculateStats();
 
     if (this.heroEntity) {
       // Keep hero health capped to new max HP if it increased
-      const heroCP = calculateHeroCP(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass, this.shardUpgrades, this.goldUpgrades);
+      const heroCP = calculateHeroCP(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass, this.shardUpgrades, this.goldUpgrades, this.traits);
       const displayName = heroName
         ? `Lv.${this.heroLevel} ${heroName} (⚔️${formatCP(heroCP)})`
         : `Lv.${this.heroLevel} Hero (⚔️${formatCP(heroCP)})`;
@@ -547,7 +552,7 @@ export class GameEngine {
   }
 
   private recalculateStats() {
-    this.heroStats = recalculateHeroStats(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass, this.shardUpgrades, this.goldUpgrades);
+    this.heroStats = recalculateHeroStats(this.heroLevel, this.prestigePoints, this.equippedItems, this.heroClass, this.shardUpgrades, this.goldUpgrades, this.traits);
   }
 
   // Load a new battle scene

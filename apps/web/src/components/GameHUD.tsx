@@ -15,6 +15,7 @@ import { useTranslation, getTranslatedQuestTitle } from '../utils/i18n';
 import { useLanguageStore } from '../stores/languageStore';
 import { ItemInfoModal } from './ItemInfoModal';
 import { SummonResultOverlay } from './SummonResultOverlay';
+import { GuideModal } from './GuideModal';
 import { calculateHeroCP, calculateGoldUpgradeCost, GAME_ICONS } from '@idle-rpg/shared';
 
 const LEVEL_LOCKS = {
@@ -50,7 +51,9 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
     dungeonLoading,
     buyGoldUpgrade,
     claimQuestReward,
-    buyDungeonTicket
+    buyDungeonTicket,
+    rollHeroTraits,
+    toggleHeroTraitLock
   } = useGameStore();
 
   const { t } = useTranslation();
@@ -60,13 +63,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
   const [isAutoSkills, setIsAutoSkills] = useState(true);
   const [nameInput, setNameInput] = useState('');
   const [activeSubTab, setActiveSubTab] = useState<string>('character');
-  const [traits, setTraits] = useState<any[]>([
-    { id: 1, grade: 'SS', stat: 'atk', value: 300, locked: false },
-    { id: 2, grade: 'SS', stat: 'atk', value: 300, locked: false },
-    { id: 3, grade: 'S', stat: 'atk', value: 150, locked: false },
-    { id: 4, grade: 'A', stat: 'hp', value: 50, locked: false },
-    { id: 5, grade: 'C', stat: 'gold', value: 10, locked: false },
-  ]);
+  const [guideTopic, setGuideTopic] = useState<string | null>(null);
 
   // Sync sub-tab when main tab changes
   React.useEffect(() => {
@@ -310,72 +307,69 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
   };
 
   const renderTraitTab = () => {
-    const cost = traits.filter(t => t.locked).length * 15 + 30; // base 30, +15 per lock
-    const canRoll = hero.diamonds >= cost;
+    const currentTraits = saveData?.hero?.traits || [];
+    const cost = currentTraits.filter(t => t.locked).length * 15 + 30;
+    const canRoll = saveData.hero.diamonds >= cost;
 
-    const rollTraits = () => {
-      if (!canRoll) return;
+    // Calculate Synergy Resonance Levels
+    const statCounts = { atk: 0, hp: 0, crit: 0, gold: 0 };
+    const gradeCounts = { C: 0, B: 0, A: 0, S: 0, SS: 0 };
 
-      // Deduct diamonds
-      useGameStore.setState(state => {
-        if (state.saveData) {
-          state.saveData.hero.diamonds -= cost;
-        }
-        return { ...state };
-      });
+    currentTraits.forEach(t => {
+      if (t && t.stat) {
+        statCounts[t.stat] = (statCounts[t.stat] || 0) + 1;
+        gradeCounts[t.grade] = (gradeCounts[t.grade] || 0) + 1;
+      }
+    });
 
-      // Roll unlocked traits
-      setTraits(prev => prev.map(t => {
-        if (t.locked) return t;
+    const activeSynergies: Array<{ label: string; colorClass: string }> = [];
 
-        const roll = Math.random();
-        let grade: 'C' | 'B' | 'A' | 'S' | 'SS' = 'C';
-        if (roll < 0.01) grade = 'SS';
-        else if (roll < 0.05) grade = 'S';
-        else if (roll < 0.15) grade = 'A';
-        else if (roll < 0.40) grade = 'B';
+    // Check grade synergies
+    if (gradeCounts.SS >= 5) activeSynergies.push({ label: 'SS Lv.5', colorClass: 'bg-red-650/20 border-red-500/35 text-red-400' });
+    else if (gradeCounts.SS >= 3) activeSynergies.push({ label: 'SS Lv.3', colorClass: 'bg-red-650/15 border-red-500/20 text-red-400/90' });
 
-        const statsPool = ['atk', 'hp', 'crit', 'gold'] as const;
-        const stat = statsPool[Math.floor(Math.random() * statsPool.length)];
+    if (gradeCounts.S >= 5) activeSynergies.push({ label: 'S Lv.5', colorClass: 'bg-orange-650/20 border-orange-500/35 text-orange-400' });
+    else if (gradeCounts.S >= 3) activeSynergies.push({ label: 'S Lv.3', colorClass: 'bg-orange-650/15 border-orange-500/20 text-orange-400/90' });
 
-        let value = 10;
-        if (grade === 'SS') value = stat === 'crit' ? 300 : 300;
-        else if (grade === 'S') value = stat === 'crit' ? 150 : 150;
-        else if (grade === 'A') value = stat === 'crit' ? 50 : 50;
-        else if (grade === 'B') value = stat === 'crit' ? 25 : 25;
+    if (gradeCounts.A >= 5) activeSynergies.push({ label: 'A Lv.5', colorClass: 'bg-purple-650/20 border-purple-500/35 text-purple-400' });
+    else if (gradeCounts.A >= 3) activeSynergies.push({ label: 'A Lv.3', colorClass: 'bg-purple-650/15 border-purple-500/20 text-purple-400/90' });
 
-        return {
-          ...t,
-          grade,
-          stat,
-          value
-        };
-      }));
-    };
+    // Check stat synergies
+    if (statCounts.atk >= 5) activeSynergies.push({ label: 'ATK Lv.5', colorClass: 'bg-blue-650/20 border-blue-500/35 text-blue-400' });
+    else if (statCounts.atk >= 3) activeSynergies.push({ label: 'ATK Lv.3', colorClass: 'bg-blue-650/15 border-blue-500/20 text-blue-400/90' });
 
-    const toggleLock = (id: number) => {
-      setTraits(prev => prev.map(t => {
-        if (t.id === id) {
-          return { ...t, locked: !t.locked };
-        }
-        return t;
-      }));
-    };
+    if (statCounts.hp >= 5) activeSynergies.push({ label: 'HP Lv.5', colorClass: 'bg-emerald-650/20 border-emerald-500/35 text-emerald-400' });
+    else if (statCounts.hp >= 3) activeSynergies.push({ label: 'HP Lv.3', colorClass: 'bg-emerald-650/15 border-emerald-500/20 text-emerald-400/90' });
+
+    if (statCounts.crit >= 5) activeSynergies.push({ label: 'CRIT Lv.5', colorClass: 'bg-amber-650/20 border-amber-500/35 text-amber-450' });
+    else if (statCounts.crit >= 3) activeSynergies.push({ label: 'CRIT Lv.3', colorClass: 'bg-amber-650/15 border-amber-500/20 text-amber-450/90' });
+
+    if (statCounts.gold >= 5) activeSynergies.push({ label: 'GOLD Lv.5', colorClass: 'bg-yellow-600/20 border-yellow-500/35 text-yellow-400' });
+    else if (statCounts.gold >= 3) activeSynergies.push({ label: 'GOLD Lv.3', colorClass: 'bg-yellow-600/15 border-yellow-500/20 text-yellow-400/90' });
 
     return (
       <div className="flex flex-col h-full overflow-hidden select-none">
-        <div className="bg-slate-950/60 border border-slate-900 px-3 py-2 rounded-2xl flex items-center justify-between shrink-0 mb-3">
+        <div className="bg-slate-950/60 border border-slate-900 px-3 py-2 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between shrink-0 mb-3 gap-2">
           <div className="text-[10px] font-extrabold text-slate-350 flex items-center gap-1.5 leading-none">
             🧬 {language === 'vi' ? 'Hiệu Ứng Cộng Hưởng' : 'Synergy Effect'}
           </div>
-          <div className="flex gap-2">
-            <span className="text-[8px] bg-blue-650/20 border border-blue-500/30 text-blue-400 px-2 py-0.5 rounded font-black">SS Lv.3</span>
-            <span className="text-[8px] bg-purple-650/20 border border-purple-500/30 text-purple-400 px-2 py-0.5 rounded font-black">S Lv.1</span>
+          <div className="flex flex-wrap gap-1.5">
+            {activeSynergies.length === 0 ? (
+              <span className="text-[7.5px] text-slate-500 italic">
+                {language === 'vi' ? 'Không kích hoạt' : 'No active synergy'}
+              </span>
+            ) : (
+              activeSynergies.map((syn, idx) => (
+                <span key={idx} className={`text-[8.5px] px-2 py-0.5 rounded font-black border ${syn.colorClass}`}>
+                  {syn.label}
+                </span>
+              ))
+            )}
           </div>
         </div>
 
         <div className="flex-grow overflow-y-auto space-y-2 pr-1 pb-4">
-          {traits.map(t => {
+          {currentTraits.map(t => {
             const statLabel = t.stat === 'atk' ? (language === 'vi' ? 'Tấn Công ATK' : 'ATK Power')
               : t.stat === 'hp' ? (language === 'vi' ? 'Sinh Mệnh HP' : 'Max HP')
                 : t.stat === 'crit' ? (language === 'vi' ? 'Sát Thương Chí Mạng' : 'Critical Damage')
@@ -400,7 +394,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                   </div>
                 </div>
                 <button
-                  onClick={() => toggleLock(t.id)}
+                  onClick={() => toggleHeroTraitLock(t.id)}
                   className={`w-7 h-7 rounded-lg border flex items-center justify-center text-xs transition cursor-pointer active:scale-90 shrink-0 ${t.locked
                     ? 'bg-amber-600/20 border-amber-500 text-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
                     : 'bg-slate-950 border-slate-850 text-slate-500 hover:text-slate-350'
@@ -415,7 +409,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
         <div className="pt-2 border-t border-slate-850 bg-slate-900 flex gap-2 shrink-0 select-none pb-1">
           <button
-            onClick={rollTraits}
+            onClick={() => rollHeroTraits()}
             disabled={!canRoll}
             className={`flex-1 py-2 rounded-xl font-black uppercase text-[10px] tracking-wider flex items-center justify-center gap-1.5 active:scale-[0.98] transition cursor-pointer ${canRoll
               ? 'bg-gradient-to-r from-slate-800 to-slate-750 border border-slate-700 text-slate-200 shadow hover:brightness-110'
@@ -426,7 +420,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
           </button>
 
           <button
-            onClick={rollTraits}
+            onClick={() => rollHeroTraits()}
             disabled={!canRoll}
             className={`flex-1 py-2 rounded-xl font-black uppercase text-[10px] tracking-wider flex items-center justify-center gap-1.5 active:scale-[0.98] transition cursor-pointer ${canRoll
               ? 'bg-gradient-to-r from-amber-500 to-amber-600 border border-amber-400 text-slate-950 shadow hover:brightness-110'
@@ -482,6 +476,12 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
             </p>
           </div>
         </>
+      )}
+
+      {/* Cho phần modal guide nằm ở đây */}
+      {/* Guide Modal Overlay inside the sheets panel to prevent any browser flex offset/clipping */}
+      {guideTopic && (
+        <GuideModal topic={guideTopic} onClose={() => setGuideTopic(null)} />
       )}
 
       {/* Background glow overlay */}
@@ -616,7 +616,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
           <div className="w-full h-1/2 relative shrink-0 overflow-hidden bg-slate-950">
             <PixiGame />
 
-             {/* Floating Quest Tracker Overlay (Ultra-compact styling) */}
+            {/* Floating Quest Tracker Overlay (Ultra-compact styling) */}
             {(() => {
               const activeQuest = saveData.quests.find(q => !q.claimed);
               if (!activeQuest) return null;
@@ -745,15 +745,19 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
 
           {/* Legend of Slime Style Popup Modal Panel */}
           {activeTab !== 'home' && (
-            <div className="absolute inset-x-0 bottom-[56px] top-[0px] bg-slate-900 border-slate-800 rounded-t-3xl flex flex-col z-30 shadow-2xl overflow-hidden animate-fade-in duration-150">
-              
+            <div className="absolute inset-x-0 bottom-[56px] top-[0px] bg-slate-900 border-slate-800 rounded-t-xl flex flex-col z-30 shadow-2xl overflow-hidden animate-fade-in duration-150">
+
               {/* Popup Header */}
               <div className="px-4 py-2 flex justify-between items-center border-b border-slate-850 bg-slate-900 shrink-0">
                 <div className="flex items-center gap-2">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 font-display">
                     {getPopupTitle()}
                   </h3>
-                  <button className="w-4 h-4 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center text-[10px] text-slate-400 font-bold hover:text-white" title="Info">
+                  <button
+                    onClick={() => setGuideTopic(activeTab === 'quest' ? 'quest' : activeSubTab)}
+                    className="w-4 h-4 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center text-[10px] text-slate-400 font-bold hover:text-white cursor-pointer transition active:scale-90"
+                    title={language === 'vi' ? 'Hướng dẫn' : 'Guide'}
+                  >
                     ℹ️
                   </button>
 
@@ -796,7 +800,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Close Button with rounded border */}
                 <button
                   onClick={() => setActiveTab('home')}
@@ -832,7 +836,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({ onNavigate }) => {
                   })}
                 </div>
               )}
-
             </div>
           )}
 

@@ -128,7 +128,8 @@ export const PixiGame: React.FC = () => {
             hero.autoUsePotion,
             hero.autoBuyPotions,
             hero.gold,
-            hero.goldUpgrades
+            hero.goldUpgrades,
+            hero.traits
           );
         }
         
@@ -156,6 +157,7 @@ export const PixiGame: React.FC = () => {
      let lastEquippedIds = lastEquippedIdsVal;
      let lastGoldUpgrades = JSON.stringify(initialStoreState.saveData?.hero?.goldUpgrades || {});
      let lastShardUpgrades = JSON.stringify(initialStoreState.saveData?.hero?.shardUpgrades || {});
+     let lastTraits = JSON.stringify(initialStoreState.saveData?.hero?.traits || []);
 
      // Subscribe to Zustand store modifications
      const unsubscribe = useGameStore.subscribe((state) => {
@@ -169,6 +171,7 @@ export const PixiGame: React.FC = () => {
 
          const currentGoldUpgrades = JSON.stringify(state.saveData.hero?.goldUpgrades || {});
          const currentShardUpgrades = JSON.stringify(state.saveData.hero?.shardUpgrades || {});
+         const currentTraits = JSON.stringify(state.saveData.hero?.traits || []);
 
          const equippedChanged = currentEquippedIds !== lastEquippedIds;
          const levelChanged = state.saveData.hero?.level !== lastLevel;
@@ -179,8 +182,9 @@ export const PixiGame: React.FC = () => {
          const battleModeChanged = state.battleMode !== lastBattleMode;
          const goldUpgradesChanged = currentGoldUpgrades !== lastGoldUpgrades;
          const shardUpgradesChanged = currentShardUpgrades !== lastShardUpgrades;
+         const traitsChanged = currentTraits !== lastTraits;
 
-         if (equippedChanged || levelChanged || prestigeChanged || stageChanged || classChanged || nameChanged || battleModeChanged || goldUpgradesChanged || shardUpgradesChanged) {
+         if (equippedChanged || levelChanged || prestigeChanged || stageChanged || classChanged || nameChanged || battleModeChanged || goldUpgradesChanged || shardUpgradesChanged || traitsChanged) {
            const hero = state.saveData.hero;
            const activeStage = state.saveData.activeStage;
            const equipped = state.saveData.inventory?.filter(i => i?.equipped) || [];
@@ -196,6 +200,7 @@ export const PixiGame: React.FC = () => {
            lastEquippedIds = currentEquippedIds;
            lastGoldUpgrades = currentGoldUpgrades;
            lastShardUpgrades = currentShardUpgrades;
+           lastTraits = currentTraits;
            lastBattleMode = state.battleMode;
 
           if (battleModeChanged) {
@@ -269,7 +274,8 @@ export const PixiGame: React.FC = () => {
                 hero.autoUsePotion,
                 hero.autoBuyPotions,
                 hero.gold,
-                hero.goldUpgrades
+                hero.goldUpgrades,
+                hero.traits
               );
             }
 
@@ -303,7 +309,8 @@ export const PixiGame: React.FC = () => {
           hero.autoUsePotion,
           hero.autoBuyPotions,
           hero.gold,
-          hero.goldUpgrades
+          hero.goldUpgrades,
+          hero.traits
         );
       }
     });

@@ -60,6 +60,13 @@ export function generateStarterSave(
     aetherShards: 0,
     shardUpgrades: { attack: 0, magicAttack: 0, maxHp: 0 },
     goldUpgrades: { attack: 0, hp: 0, hpRecovery: 0, critDamage: 0 },
+    traits: [
+      { id: 1, grade: 'C', stat: 'atk', value: 10, locked: false },
+      { id: 2, grade: 'C', stat: 'hp', value: 10, locked: false },
+      { id: 3, grade: 'C', stat: 'crit', value: 10, locked: false },
+      { id: 4, grade: 'C', stat: 'gold', value: 10, locked: false },
+      { id: 5, grade: 'C', stat: 'atk', value: 10, locked: false }
+    ],
     potions: 5,
     autoUsePotion: false,
     autoDismantleCommon: false,

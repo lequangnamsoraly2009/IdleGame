@@ -229,7 +229,14 @@ export function recalculateHeroStats(
   equippedItems: EquipmentItem[],
   heroClass?: 'knight' | 'mage' | 'assassin',
   shardUpgrades?: { attack?: number; magicAttack?: number; maxHp?: number },
-  goldUpgrades?: { attack?: number; hp?: number; hpRecovery?: number; critDamage?: number }
+  goldUpgrades?: { attack?: number; hp?: number; hpRecovery?: number; critDamage?: number },
+  traits?: Array<{
+    id: number;
+    grade: 'C' | 'B' | 'A' | 'S' | 'SS';
+    stat: 'atk' | 'hp' | 'crit' | 'gold';
+    value: number;
+    locked: boolean;
+  }>
 ): BaseStats {
   // Shard Upgrades (each upgrade level gives +3% bonus)
   const shardHpPct = 1 + (shardUpgrades?.maxHp || 0) * 0.03;
@@ -324,6 +331,58 @@ export function recalculateHeroStats(
   let totalSpeed = baseStats.speed;
   let totalCritRate = baseStats.critRate;
   let totalCritDamage = baseStats.critDamage;
+
+  // Trait Stat & Grade Resonance Bonuses
+  let traitAtkBonus = 0;
+  let traitHpBonus = 0;
+  let traitCritBonus = 0;
+  
+  const statCounts = { atk: 0, hp: 0, crit: 0, gold: 0 };
+  const gradeCounts = { C: 0, B: 0, A: 0, S: 0, SS: 0 };
+
+  if (traits && Array.isArray(traits)) {
+    for (const t of traits) {
+      if (t && t.stat) {
+        statCounts[t.stat] = (statCounts[t.stat] || 0) + 1;
+        gradeCounts[t.grade] = (gradeCounts[t.grade] || 0) + 1;
+
+        if (t.stat === 'atk') traitAtkBonus += t.value / 100;
+        else if (t.stat === 'hp') traitHpBonus += t.value / 100;
+        else if (t.stat === 'crit') traitCritBonus += t.value / 100;
+      }
+    }
+  }
+
+  // Stat Synergy: +50% or +150%
+  let synergyAtk = 0;
+  let synergyHp = 0;
+  let synergyCrit = 0;
+  if (statCounts.atk >= 5) synergyAtk = 1.5;
+  else if (statCounts.atk >= 3) synergyAtk = 0.5;
+
+  if (statCounts.hp >= 5) synergyHp = 1.5;
+  else if (statCounts.hp >= 3) synergyHp = 0.5;
+
+  if (statCounts.crit >= 5) synergyCrit = 1.5;
+  else if (statCounts.crit >= 3) synergyCrit = 0.5;
+
+  // Grade Synergy: +25% or +75% all stats multiplier
+  let gradeBonusMultiplier = 0;
+  if (gradeCounts.SS >= 5) gradeBonusMultiplier += 0.75;
+  else if (gradeCounts.SS >= 3) gradeBonusMultiplier += 0.25;
+
+  if (gradeCounts.S >= 5) gradeBonusMultiplier += 0.45;
+  else if (gradeCounts.S >= 3) gradeBonusMultiplier += 0.15;
+
+  if (gradeCounts.A >= 5) gradeBonusMultiplier += 0.20;
+  else if (gradeCounts.A >= 3) gradeBonusMultiplier += 0.08;
+
+  eqAtkPct += traitAtkBonus + synergyAtk + gradeBonusMultiplier;
+  eqMagAtkPct += traitAtkBonus + synergyAtk + gradeBonusMultiplier;
+  eqHpPct += traitHpBonus + synergyHp + gradeBonusMultiplier;
+  eqDefPct += gradeBonusMultiplier;
+  eqMagResPct += gradeBonusMultiplier;
+  totalCritDamage += traitCritBonus + synergyCrit;
   let totalLifesteal = baseStats.lifesteal || 0;
   let totalSpellVamp = baseStats.spellVamp || 0;
   let totalEvasion = baseStats.evasion || 0;
@@ -1113,9 +1172,10 @@ export function calculateHeroCP(
   equippedItems: EquipmentItem[],
   heroClass?: 'knight' | 'mage' | 'assassin',
   shardUpgrades?: { attack?: number; magicAttack?: number; maxHp?: number },
-  goldUpgrades?: { attack?: number; hp?: number; hpRecovery?: number; critDamage?: number }
+  goldUpgrades?: { attack?: number; hp?: number; hpRecovery?: number; critDamage?: number },
+  traits?: any[]
 ): number {
-  const stats = recalculateHeroStats(level, prestigePoints, equippedItems, heroClass, shardUpgrades, goldUpgrades);
+  const stats = recalculateHeroStats(level, prestigePoints, equippedItems, heroClass, shardUpgrades, goldUpgrades, traits);
 
   // Calculate basic CP based on final stats
   let cp = stats.attack * 6.0 +

@@ -108,6 +108,8 @@ interface GameState {
   onDungeonVictory: (dungeonId: string) => void;
   onDungeonDefeat: () => void;
   claimDungeonRewards: () => void;
+  rollHeroTraits: () => void;
+  toggleHeroTraitLock: (id: number) => void;
   triggerDungeonDefeat: () => void;
   usePotionInDungeon: () => boolean;
   addLogMessage: (text: string, category: 'combat' | 'loot' | 'system') => void;
@@ -297,6 +299,15 @@ export const useGameStore = create<GameState>((set, get) => {
               if (data.hero.autoBuyPotions === undefined) data.hero.autoBuyPotions = false;
               if (data.hero.gems === undefined) data.hero.gems = {};
               if (data.hero.dungeonTickets === undefined) data.hero.dungeonTickets = 3;
+              if (data.hero.traits === undefined || !Array.isArray(data.hero.traits)) {
+                data.hero.traits = [
+                  { id: 1, grade: 'C', stat: 'atk', value: 10, locked: false },
+                  { id: 2, grade: 'C', stat: 'hp', value: 10, locked: false },
+                  { id: 3, grade: 'C', stat: 'crit', value: 10, locked: false },
+                  { id: 4, grade: 'C', stat: 'gold', value: 10, locked: false },
+                  { id: 5, grade: 'C', stat: 'atk', value: 10, locked: false }
+                ];
+              }
 
               // Synchronize quests from templates
               try {
@@ -565,7 +576,7 @@ export const useGameStore = create<GameState>((set, get) => {
         return item;
       });
 
-      // Calculate Gold Bonus multiplier from equipped gear (Lucky affix + Topaz gems)
+      // Calculate Gold Bonus multiplier from equipped gear (Lucky affix + Topaz gems) + traits
       let goldBonus = 0;
       const equipped = newInventory.filter(i => i.equipped && i.isIdentified !== false);
       equipped.forEach(item => {
@@ -582,6 +593,24 @@ export const useGameStore = create<GameState>((set, get) => {
           });
         }
       });
+
+      if (hero.traits) {
+        let traitGoldBonus = 0;
+        let goldCount = 0;
+        hero.traits.forEach(t => {
+          if (t && t.stat === 'gold') {
+            traitGoldBonus += t.value / 100;
+            goldCount++;
+          }
+        });
+        
+        let synergyGold = 0;
+        if (goldCount >= 5) synergyGold = 1.5;
+        else if (goldCount >= 3) synergyGold = 0.5;
+        
+        goldBonus += traitGoldBonus + synergyGold;
+      }
+
       const finalGoldGained = Math.round(goldGained * (1 + goldBonus));
 
       // Update gold, diamonds, exp
@@ -602,7 +631,7 @@ export const useGameStore = create<GameState>((set, get) => {
         get().addLogMessage(tStore('log_level_up', { level: hero.level }), 'system');
         // Recalculate stats
         const equippedNow = newInventory.filter(i => i.equipped);
-        hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equippedNow, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
+        hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equippedNow, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades, hero.traits);
         hero.currentHp = hero.currentStats.maxHp;
         
         // Audit Level Up quests
@@ -776,7 +805,7 @@ export const useGameStore = create<GameState>((set, get) => {
       // Recalculate Hero stats in case item is equipped
       const equipped = inventory.filter(i => i.equipped);
       const hero = { ...saveData.hero };
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades, hero.traits);
       hero.currentHp = get().battleMode === 'guild_boss' ? hero.currentHp : Math.min(hero.currentStats.maxHp, get().heroHp);
 
       // Audit upgrade equipment quests
@@ -828,7 +857,7 @@ export const useGameStore = create<GameState>((set, get) => {
       // Recalculate stats
       const equipped = inventory.filter(i => i.equipped);
       const hero = { ...saveData.hero };
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades, hero.traits);
       hero.currentHp = hero.currentStats.maxHp; // Refill HP on equip change
 
       get().addLogMessage(tStore('log_equipped_item', { name: itemToEquip.name }), 'system');
@@ -857,7 +886,7 @@ export const useGameStore = create<GameState>((set, get) => {
       // Recalculate stats
       const equipped = inventory.filter(i => i.equipped);
       const hero = { ...saveData.hero };
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades, hero.traits);
       hero.currentHp = Math.min(hero.currentHp, hero.currentStats.maxHp);
 
       const item = saveData.inventory.find(i => i.id === itemId);
@@ -952,7 +981,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Recalculate stats
       const equipped = saveData.inventory.filter(i => i.equipped);
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades, hero.traits);
       hero.currentHp = hero.currentStats.maxHp; // Heal to full
 
       const statName = stat === 'attack' ? 'Công Vật Lý' : stat === 'magicAttack' ? 'Công Phép Thuật' : 'HP Tối Đa';
@@ -965,7 +994,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Update Pixi engine if running
       if (get().engineInstance) {
-        get().engineInstance.updateState(hero.level, hero.prestigePoints, equipped, saveData.activeStage, hero.heroClass, hero.name || 'Hero', useLanguageStore.getState().language, hero.shardUpgrades, hero.potions, hero.autoUsePotion, hero.autoBuyPotions, hero.gold, hero.goldUpgrades);
+        get().engineInstance.updateState(hero.level, hero.prestigePoints, equipped, saveData.activeStage, hero.heroClass, hero.name || 'Hero', useLanguageStore.getState().language, hero.shardUpgrades, hero.potions, hero.autoUsePotion, hero.autoBuyPotions, hero.gold, hero.goldUpgrades, hero.traits);
       }
 
       const updatedSave: GameSaveData = {
@@ -1015,7 +1044,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Recalculate stats
       const equipped = saveData.inventory.filter(i => i.equipped);
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades, hero.traits);
       hero.currentHp = Math.min(hero.currentStats.maxHp, get().heroHp); // don't exceed new max hp
 
       const statName = stat === 'attack' ? 'Tấn Công' : stat === 'hp' ? 'HP' : stat === 'hpRecovery' ? 'Hồi Phục HP' : 'Sát Thương Chí Mạng';
@@ -1041,7 +1070,8 @@ export const useGameStore = create<GameState>((set, get) => {
           hero.autoUsePotion,
           hero.autoBuyPotions,
           hero.gold,
-          hero.goldUpgrades
+          hero.goldUpgrades,
+          hero.traits
         );
       }
 
@@ -1625,7 +1655,7 @@ export const useGameStore = create<GameState>((set, get) => {
       }));
 
       // Recalculate stats with prestige points, no items equipped
-      hero.currentStats = recalculateHeroStats(1, hero.prestigePoints, [], hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
+      hero.currentStats = recalculateHeroStats(1, hero.prestigePoints, [], hero.heroClass, hero.shardUpgrades, hero.goldUpgrades, hero.traits);
       hero.currentHp = hero.currentStats.maxHp;
 
       // Reset Quests to starter set
@@ -1664,7 +1694,7 @@ export const useGameStore = create<GameState>((set, get) => {
       });
 
       const equipped = inventory.filter(i => i.equipped);
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, newClass, hero.shardUpgrades, hero.goldUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, newClass, hero.shardUpgrades, hero.goldUpgrades, hero.traits);
       hero.currentHp = Math.min(hero.currentStats.maxHp, hero.currentHp);
 
       get().addLogMessage(
@@ -1802,7 +1832,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Recalculate stats
       const equipped = inventory.filter(i => i.equipped);
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades, hero.traits);
       hero.currentHp = Math.min(hero.currentHp, hero.currentStats.maxHp);
 
       const [type, tier] = gemKey.split('_');
@@ -1873,7 +1903,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Recalculate stats
       const equipped = inventory.filter(i => i.equipped);
-      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades, hero.traits);
       hero.currentHp = Math.min(hero.currentHp, hero.currentStats.maxHp);
 
       const [type, tier] = oldGem.split('_');
@@ -2460,6 +2490,136 @@ export const useGameStore = create<GameState>((set, get) => {
       return true;
     },
 
-    clearLogs: () => set({ combatLogs: [] })
+    clearLogs: () => set({ combatLogs: [] }),
+
+    rollHeroTraits: () => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      if (!hero.traits) {
+        hero.traits = [
+          { id: 1, grade: 'C', stat: 'atk', value: 10, locked: false },
+          { id: 2, grade: 'C', stat: 'hp', value: 10, locked: false },
+          { id: 3, grade: 'C', stat: 'crit', value: 10, locked: false },
+          { id: 4, grade: 'C', stat: 'gold', value: 10, locked: false },
+          { id: 5, grade: 'C', stat: 'atk', value: 10, locked: false }
+        ];
+      }
+
+      const lockedCount = hero.traits.filter(t => t.locked).length;
+      const cost = lockedCount * 15 + 30; // base 30, +15 per lock
+
+      if (hero.diamonds < cost) {
+        get().addLogMessage(
+          useLanguageStore.getState().language === 'vi'
+            ? `❌ KHÔNG ĐỦ KIM CƯƠNG: Cần ${cost} Kim Cương để thay đổi thiên phú!`
+            : `❌ INSUFFICIENT DIAMONDS: Need ${cost} Diamonds to change traits!`,
+          'system'
+        );
+        return;
+      }
+
+      hero.diamonds -= cost;
+
+      // Roll traits with ranges
+      hero.traits = hero.traits.map(t => {
+        if (t.locked) return t;
+
+        const roll = Math.random();
+        let grade: 'C' | 'B' | 'A' | 'S' | 'SS' = 'C';
+        if (roll < 0.01) grade = 'SS';
+        else if (roll < 0.05) grade = 'S';
+        else if (roll < 0.15) grade = 'A';
+        else if (roll < 0.40) grade = 'B';
+
+        const statsPool = ['atk', 'hp', 'crit', 'gold'] as const;
+        const stat = statsPool[Math.floor(Math.random() * statsPool.length)];
+
+        let min = 5;
+        let max = 15;
+        let step = 1;
+        if (grade === 'SS') { min = 250; max = 400; step = 5; }
+        else if (grade === 'S') { min = 100; max = 200; step = 5; }
+        else if (grade === 'A') { min = 50; max = 95; step = 5; }
+        else if (grade === 'B') { min = 20; max = 45; step = 5; }
+        else { min = 5; max = 15; step = 1; }
+
+        const possibleSteps = Math.floor((max - min) / step);
+        const value = min + Math.floor(Math.random() * (possibleSteps + 1)) * step;
+
+        return {
+          ...t,
+          grade,
+          stat,
+          value
+        };
+      });
+
+      // Recalculate stats
+      const equipped = saveData.inventory.filter(i => i.equipped);
+      hero.currentStats = recalculateHeroStats(hero.level, hero.prestigePoints, equipped, hero.heroClass, hero.shardUpgrades, hero.goldUpgrades, hero.traits);
+      hero.currentHp = Math.min(hero.currentStats.maxHp, hero.currentHp);
+
+      get().addLogMessage(
+        useLanguageStore.getState().language === 'vi'
+          ? `🧬 THIÊN PHÚ: Đã thay đổi thiên phú thành công (Tiêu hao ${cost} 💎).`
+          : `🧬 TRAITS: Successfully changed traits (Cost ${cost} 💎).`,
+        'system'
+      );
+
+      // Update Pixi engine if running
+      if (get().engineInstance) {
+        get().engineInstance.updateState(
+          hero.level,
+          hero.prestigePoints,
+          equipped,
+          saveData.activeStage,
+          hero.heroClass,
+          hero.name || 'Hero',
+          useLanguageStore.getState().language,
+          hero.shardUpgrades,
+          hero.potions,
+          hero.autoUsePotion,
+          hero.autoBuyPotions,
+          hero.gold,
+          hero.goldUpgrades,
+          hero.traits
+        );
+      }
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        lastSavedAt: Date.now()
+      };
+
+      set({ saveData: updatedSave });
+      autoSave(updatedSave);
+    },
+
+    toggleHeroTraitLock: (id: number) => {
+      const { saveData } = get();
+      if (!saveData) return;
+
+      const hero = { ...saveData.hero };
+      if (!hero.traits) return;
+
+      hero.traits = hero.traits.map(t => {
+        if (t.id === id) {
+          return { ...t, locked: !t.locked };
+        }
+        return t;
+      });
+
+      const updatedSave: GameSaveData = {
+        ...saveData,
+        hero,
+        lastSavedAt: Date.now()
+      };
+
+      set({ saveData: updatedSave });
+      autoSave(updatedSave);
+    }
   };
 });

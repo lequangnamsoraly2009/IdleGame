@@ -89,6 +89,13 @@ export interface HeroState {
     hpRecovery?: number;
     critDamage?: number;
   };
+  traits?: Array<{
+    id: number;
+    grade: 'C' | 'B' | 'A' | 'S' | 'SS';
+    stat: 'atk' | 'hp' | 'crit' | 'gold';
+    value: number;
+    locked: boolean;
+  }>;
 }
 
 export type DamageType = 'physical' | 'fire' | 'ice' | 'poison' | 'holy' | 'dark';
